@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Course Documentation</title>
+<meta name="description" content="Data Science & Agentic AI Programme: all course documentation by week, with a topic tracker showing what is covered so far.">
+<style>
+  :root {
+    --bg: #f7f6f2; --surface: #ffffff; --surface-2: #f0eee8; --text: #1d1d1b; --muted: #5f5d57;
+    --border: #dcd9d0; --accent: #2f5bd3; --accent-soft: #e3eafc;
+    --good: #1f7a4d; --good-soft: #ddf2e6; --warn: #8a5a00; --warn-soft: #fbf0d9;
+    --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05); --radius: 14px; color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+      --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+      --good: #6fd3a0; --good-soft: #173326; --warn: #f0c56b; --warn-soft: #3a2f17;
+      --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+    --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+    --good: #6fd3a0; --good-soft: #173326; --warn: #f0c56b; --warn-soft: #3a2f17;
+    --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1000px; margin: 0 auto; padding: 32px 16px 80px; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.12; margin: 4px 0 10px; letter-spacing: -0.02em; }
+  h2 { font-size: 1.45rem; margin: 40px 0 6px; }
+  .eyebrow { color: var(--muted); font-size: .82rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; }
+  .lede { color: var(--muted); font-size: 1.1rem; max-width: 64ch; margin: 0 0 18px; }
+  a { color: var(--accent); }
+  .theme-toggle { position: fixed; top: 12px; right: 12px; z-index: 5; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+  .progress { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 18px; display: grid; gap: 10px; }
+  .progress .bar { height: 12px; border-radius: 999px; background: var(--surface-2); overflow: hidden; display: flex; }
+  .progress .bar span { display: block; height: 100%; }
+  .progress .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .88rem; color: var(--muted); }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .week-section { margin-top: 36px; }
+  .week-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+  .week-head .dates { color: var(--muted); font-size: .92rem; }
+  .docs-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); margin: 12px 0; }
+  .doc { display: block; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; text-decoration: none; color: var(--text); box-shadow: var(--shadow); transition: border-color .15s, transform .15s; }
+  .doc:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .doc .kind { font-size: .72rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); }
+  .doc .kind.nb { color: var(--warn); }
+  .doc strong { display: block; margin: 2px 0 4px; }
+  .doc span.d { color: var(--muted); font-size: .88rem; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 22px 0 6px; position: sticky; top: 0; background: var(--bg); padding: 10px 0; z-index: 3; }
+  .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 6px 12px; border-radius: 9px; cursor: pointer; font: inherit; font-size: .9rem; }
+  .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .filters input { flex: 1 1 200px; min-width: 0; padding: 7px 12px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; }
+  .topics { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface); }
+  .topic { display: grid; grid-template-columns: 26px 1fr; gap: 4px 10px; padding: 9px 14px; border-bottom: 1px solid var(--border); align-items: start; }
+  .topic:last-child { border-bottom: 0; }
+  .topic .st { font-size: 1rem; line-height: 1.5; }
+  .topic .name { font-weight: 600; }
+  .topic .where { grid-column: 2; font-size: .85rem; color: var(--muted); }
+  .topic .where a { margin-right: 8px; }
+  .empty { color: var(--muted); padding: 12px 14px; display: none; }
+  footer { margin-top: 56px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 16px; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+</style>
+<style>
+  /* theme-toggle clearance: the fixed Theme button would otherwise overlap the first line on phones */
+  @media (max-width: 999px) { main { padding-top: 56px; } }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">◐ Theme</button>
+<main>
+  <div class="eyebrow">Data Science &amp; Agentic AI Programme · Oct–Nov 2026</div>
+  <h1>Course documentation</h1>
+  <p class="lede">Every topic we've covered, with interactive reference pages and notebooks, organised by week. Use the tracker to see what's documented so far. More is added each week.</p>
+
+  <div class="progress" aria-live="polite">
+    <div id="progressText"></div>
+    <div class="bar" id="progressBar"></div>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--good)"></i>✅ Covered</span>
+      <span><i class="dot" style="background:var(--warn)"></i>◐ Partly covered</span>
+      <span><i class="dot" style="background:var(--border)"></i>⬜ Not covered yet</span>
+    </div>
+  </div>
+
+  <div class="filters" role="group" aria-label="Filter topics">
+    <button class="btn" type="button" data-f="all" aria-pressed="true">All</button>
+    <button class="btn" type="button" data-f="covered">✅ Covered</button>
+    <button class="btn" type="button" data-f="partial">◐ Partly</button>
+    <button class="btn" type="button" data-f="todo">⬜ Not yet</button>
+    <input type="search" id="search" placeholder="Search topics, e.g. SMOTE, LSTM, rebase…" aria-label="Search topics">
+  </div>
+
+  <div id="weeks"></div>
+
+  <footer>Course repository: <a href="https://github.com/samuelts96/ds-october-2026">github.com/samuelts96/ds-october-2026</a> · Week 1 repository: <a href="https://github.com/samuelts96/ds-october-2026-week1">ds-october-2026-week1</a></footer>
+</main>
+
+<script>
+(() => {
+  const W1 = "https://github.com/samuelts96/ds-october-2026-week1/blob/main/materials/";
+  const NB0 = "https://github.com/samuelts96/ds-october-2026/blob/main/week0/titanic_data_exploration.ipynb";
+  const BRIEF2 = "https://github.com/samuelts96/ds-october-2026/blob/main/week2/README.md";
+
+  // Pages and notebooks per week. `href` is relative to docs/ for pages, absolute for notebooks.
+  const DOCS = {
+    sdlc: { kind: "Page", title: "SDLC, Waterfall & Agile", desc: "Lifecycle stages, prototype vs PoC vs MVP, testing types, Waterfall vs Agile, Scrum in this programme", href: "week0/sdlc-agile-waterfall.html" },
+    git: { kind: "Page", title: "Git & GitHub", desc: "Fork, clone, branch, add, commit, push, pull; merge vs rebase; conflicts; undoing things", href: "week0/git-github.html" },
+    uv: { kind: "Page", title: "Python, uv & Jupyter", desc: "Environments, uv init / venv / add / run / sync, VS Code, Jupyter, Colab", href: "week0/python-uv-jupyter.html" },
+    eda: { kind: "Page", title: "EDA & preprocessing", desc: "Missing data, duplicates, outliers, imputation, encoding, scaling, pipelines", href: "week0/eda-preprocessing.html" },
+    agile: { kind: "Page", title: "Agile, Scrum & tickets", desc: "Scrum roles and events, Kanban, writing tickets, acceptance criteria, Definition of Done, story points", href: "week0/agile-scrum-tickets.html" },
+    titanic: { kind: "Notebook", title: "Titanic data exploration", desc: "Hands-on EDA and preprocessing on the Titanic dataset", href: NB0 },
+    mlfund: { kind: "Page", title: "ML fundamentals & regression", desc: "Types of ML, workflow, splitting, linear regression, metrics, bias–variance, Ridge & Lasso", href: "week1/ml-fundamentals-regression.html" },
+    clf: { kind: "Page", title: "Classification guide", desc: "Logistic regression, naive Bayes, SVM, trees, bagging & boosting, metrics, hyperparameters, CV, over/underfitting", href: "week1/classification-guide.html" },
+    kmeans: { kind: "Page", title: "Unsupervised learning & K-Means", desc: "Clustering step by step, k-means++, elbow, silhouette, scaling, alternatives", href: "week1/unsupervised-kmeans.html" },
+    imb: { kind: "Notebook", title: "Imbalanced classification", desc: "4 classifiers, SMOTE vs undersampling, precision / recall / F1, ROC-AUC, thresholds", href: W1 + "imbalanced_classification.ipynb" },
+    tune: { kind: "Notebook", title: "Tuning, ROC-AUC & K-Means", desc: "GridSearchCV vs RandomizedSearchCV, ROC-AUC by hand, K-Means coded step by step", href: W1 + "tuning_roc_kmeans.ipynb" },
+    dl: { kind: "Page", title: "Deep learning foundations", desc: "Neurons, activations, MLP/DNN, forward pass, loss, backprop, gradient descent, optimisers, learning rate", href: "week2/deep-learning-foundations.html" },
+    arch: { kind: "Page", title: "Neural network architectures", desc: "CNNs, pooling, transfer learning, YOLO, RNNs, LSTMs, GRUs", href: "week2/neural-network-architectures.html" },
+    mlflow: { kind: "Page", title: "MLflow & experiment tracking", desc: "Runs, params, metrics, artifacts, autolog, comparing runs, model registry, champion / challenger", href: "week2/mlflow-experiment-tracking.html" },
+    brief2: { kind: "Brief", title: "Week 2 sprint brief", desc: "Write your own tickets, train 3+ DL models, track them in MLflow, present", href: BRIEF2 },
+  };
+
+  // status: c = covered, p = partly covered, t = not covered yet
+  const WEEKS = [
+    { n: 0, title: "Onboarding: SDLC, Agile, Git, uv & EDA", dates: "Wed 30 Sep – Fri 2 Oct", docs: ["sdlc", "agile", "git", "uv", "eda", "titanic"], topics: [
+      ["SDLC: requirements, prototyping, PoC, development, testing, release (MVP), monitoring", "c", ["sdlc"]],
+      ["Waterfall vs Agile", "c", ["sdlc"]],
+      ["Testing types: unit, integration, smoke, regression, end-to-end, UAT", "c", ["sdlc"]],
+      ["Scrum: roles, events, artefacts; how this programme runs as sprints", "c", ["agile", "sdlc"]],
+      ["Writing tickets: user stories, acceptance criteria, Definition of Done, story points, WIP limits", "c", ["agile", "brief2"]],
+      ["Git essentials: fork, clone, branch, status, add, commit, push, pull", "c", ["git"]],
+      ["Merge vs rebase, conflicts, pull requests, keeping a fork in sync", "c", ["git"]],
+      ["Python environments with uv: init, venv, add, run, sync; VS Code, Jupyter, Colab", "c", ["uv"]],
+      ["Exploratory data analysis: first look, distributions, relationships", "c", ["eda", "titanic"]],
+      ["Missing data, duplicates and outliers (IQR)", "c", ["eda", "titanic"]],
+      ["Imputation (mean / median / mode), encoding (label / one-hot), scaling (min-max / standard)", "c", ["eda", "titanic"]],
+    ]},
+    { n: 1, title: "Traditional Machine Learning", dates: "Mon 5 – Fri 9 Oct", docs: ["mlfund", "clf", "kmeans", "imb", "tune"], topics: [
+      ["Basic ML concepts: types of ML, features and labels, the ML workflow", "c", ["mlfund"]],
+      ["Train / validation / test splitting, stratification, data leakage", "c", ["mlfund", "clf"]],
+      ["Linear and multiple regression", "c", ["mlfund"]],
+      ["Regression metrics: MAE, MSE, RMSE, R²", "c", ["mlfund"]],
+      ["Bias–variance, overfitting vs underfitting (causes and fixes)", "c", ["mlfund", "clf"]],
+      ["Regularisation: Ridge (L2) and Lasso (L1)", "c", ["mlfund"]],
+      ["Logistic regression, naive Bayes, SVM", "c", ["clf"]],
+      ["K-Nearest Neighbours (KNN)", "p", ["mlfund"]],
+      ["Decision trees, Random Forest, Extra Trees", "c", ["clf"]],
+      ["Boosting: AdaBoost, Gradient Boosting, XGBoost, LightGBM, CatBoost", "c", ["clf"]],
+      ["Classification metrics, why accuracy misleads, ROC-AUC, PR-AUC", "c", ["clf", "imb", "tune"]],
+      ["Imbalanced data: SMOTE, undersampling, choosing a threshold", "c", ["imb"]],
+      ["Cross-validation and hyperparameter tuning (grid & random search)", "c", ["clf", "tune"]],
+      ["Unsupervised learning: K-Means, elbow method, silhouette score", "c", ["kmeans", "tune"]],
+      ["Other clustering: DBSCAN, hierarchical, Gaussian mixtures", "p", ["kmeans"]],
+    ]},
+    { n: 2, title: "Deep Learning Foundations & Intro to MLflow", dates: "Mon 12 – Fri 16 Oct", docs: ["dl", "arch", "mlflow", "brief2"], topics: [
+      ["Neurons, activation functions, MLPs and deep networks, the forward pass", "c", ["dl"]],
+      ["Loss functions, backpropagation, gradient descent", "c", ["dl"]],
+      ["Optimisers (SGD, momentum, RMSprop, Adam) and the learning rate", "c", ["dl"]],
+      ["Regularisation in DL: dropout, early stopping, batch normalisation", "c", ["dl"]],
+      ["CNNs: convolution, pooling, transfer learning", "c", ["arch"]],
+      ["Object detection & segmentation with pretrained YOLO", "c", ["arch"]],
+      ["RNNs, LSTMs and GRUs", "c", ["arch"]],
+      ["Experiment tracking with MLflow: runs, params, metrics, artifacts, autolog", "c", ["mlflow"]],
+      ["Model registry, versions, champion / challenger aliases (preview)", "c", ["mlflow"]],
+    ]},
+    { n: 3, title: "Time Series & MLOps", dates: "Mon 19 – Fri 23 Oct · Tech Eval 1 Thu–Fri", docs: [], topics: [
+      ["Time series: trend, seasonality, stationarity, forecasting, chronological validation", "t", []],
+      ["MLflow in an MLOps pipeline: registry and promotion", "p", ["mlflow"]],
+      ["FastAPI: routes, endpoints (/health, /v1/process), validation, status codes 200 / 400 / 422 / 500", "t", []],
+      ["MLOps pipeline: training, challenger vs champion, promotion", "p", ["mlflow"]],
+      ["Monitoring: data drift and model drift", "t", []],
+      ["Streamlit apps and moving from notebooks to Python scripts", "t", []],
+    ]},
+    { n: 4, title: "NLP, Transformers & Large Language Models", dates: "Mon 26 – Fri 30 Oct", docs: [], topics: [
+      ["Text preparation: tokenisation, bag-of-words, TF-IDF, word embeddings", "t", []],
+      ["Attention and the transformer architecture", "t", []],
+      ["BERT, GPT, T5; Hugging Face; LLM APIs; prompting and structured output", "t", []],
+    ]},
+    { n: 5, title: "Embeddings & Retrieval-Augmented Generation", dates: "Mon 2 – Fri 6 Nov", docs: [], topics: [
+      ["Chunking, embeddings, vector databases, hybrid retrieval, re-ranking, RAG evaluation", "t", []],
+    ]},
+    { n: 6, title: "Fine-Tuning, Alignment, Evaluation & Guardrails", dates: "Mon 9 – Fri 13 Nov", docs: [], topics: [
+      ["LoRA / QLoRA, instruction tuning, RLHF / DPO, LLM evaluation, guardrails", "t", []],
+    ]},
+    { n: 7, title: "Single-Agent Systems", dates: "Mon 16 – Fri 20 Nov", docs: [], topics: [
+      ["Agent loop, tool calling, memory, planning, LangGraph, MCP", "t", []],
+    ]},
+    { n: 8, title: "Multi-Agent Systems & Capstone", dates: "Mon 23 – Fri 27 Nov", docs: [], topics: [
+      ["Orchestration patterns, observability, deployment, capstone", "t", []],
+    ]},
+  ];
+
+  const ICON = { c: "✅", p: "◐", t: "⬜" };
+  const KEY = { c: "covered", p: "partial", t: "todo" };
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const link = (id) => `<a href="${DOCS[id].href}">${esc(DOCS[id].title)}</a>`;
+
+  // progress
+  const all = WEEKS.flatMap((w) => w.topics);
+  const count = (s) => all.filter((t) => t[1] === s).length;
+  const [c, p, t] = ["c", "p", "t"].map(count);
+  document.getElementById("progressText").innerHTML =
+    `<strong>${c} of ${all.length} topics covered</strong>, ${p} partly covered, ${t} still to come.`;
+  document.getElementById("progressBar").innerHTML =
+    `<span style="width:${(100 * c) / all.length}%;background:var(--good)"></span><span style="width:${(100 * p) / all.length}%;background:var(--warn)"></span>`;
+
+  // weeks
+  document.getElementById("weeks").innerHTML = WEEKS.map((w) => `
+    <section class="week-section" data-week="${w.n}">
+      <div class="week-head"><h2>Week ${w.n} · ${esc(w.title)}</h2><span class="dates">${esc(w.dates)}</span></div>
+      ${w.docs.length ? `<div class="docs-grid">${w.docs.map((id) => {
+        const d = DOCS[id];
+        return `<a class="doc" href="${d.href}"><span class="kind ${d.kind === "Page" ? "" : "nb"}">${d.kind}</span><strong>${esc(d.title)}</strong><span class="d">${esc(d.desc)}</span></a>`;
+      }).join("")}</div>` : ""}
+      <div class="topics">
+        ${w.topics.map(([name, st, refs]) => `
+          <div class="topic" data-status="${KEY[st]}" data-text="${esc(name.toLowerCase())}">
+            <span class="st" aria-label="${KEY[st]}">${ICON[st]}</span>
+            <span class="name">${esc(name)}</span>
+            ${refs.length ? `<span class="where">${refs.map(link).join("")}</span>` : `<span class="where">Not documented yet</span>`}
+          </div>`).join("")}
+        <div class="empty">No matching topics this week.</div>
+      </div>
+    </section>`).join("");
+
+  // filters
+  let filter = "all";
+  const search = document.getElementById("search");
+  function apply() {
+    const q = search.value.trim().toLowerCase();
+    document.querySelectorAll(".week-section").forEach((sec) => {
+      let shown = 0;
+      sec.querySelectorAll(".topic").forEach((el) => {
+        const ok = (filter === "all" || el.dataset.status === filter) && (!q || el.dataset.text.includes(q));
+        el.style.display = ok ? "" : "none";
+        if (ok) shown++;
+      });
+      sec.querySelector(".empty").style.display = shown ? "none" : "block";
+      sec.style.display = shown || (filter === "all" && !q) ? "" : "none";
+    });
+  }
+  document.querySelectorAll("[data-f]").forEach((b) => b.addEventListener("click", () => {
+    filter = b.dataset.f;
+    document.querySelectorAll("[data-f]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    apply();
+  }));
+  search.addEventListener("input", apply);
+
+  // theme
+  const root = document.documentElement;
+  try { const s = localStorage.getItem("theme"); if (s) root.dataset.theme = s; } catch {}
+  document.getElementById("themeToggle").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+  });
+})();
+</script>
+</body>
+</html>

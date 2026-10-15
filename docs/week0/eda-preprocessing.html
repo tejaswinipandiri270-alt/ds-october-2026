@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EDA &amp; Preprocessing</title>
+<meta name="description" content="Week 0 reference: exploratory data analysis and data preprocessing with the Titanic dataset: first look, data types, missing data, duplicates, outliers, imputation, encoding, scaling, feature engineering, leakage and pipelines.">
+<style>
+  :root {
+    --bg: #f7f6f2; --surface: #ffffff; --surface-2: #f0eee8; --text: #1d1d1b; --muted: #5f5d57;
+    --border: #dcd9d0; --accent: #2f5bd3; --accent-soft: #e3eafc;
+    --pos: #c2410c; --pos-soft: #fde8dc; --neg: #2f5bd3; --neg-soft: #e3eafc;
+    --good: #1f7a4d; --good-soft: #ddf2e6; --bad: #b3261e; --bad-soft: #fbe3e1; --warn: #8a5a00; --warn-soft: #fbf0d9;
+    --code-bg: #f3f1ec; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05); --radius: 14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+      --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+      --pos: #ff9a62; --pos-soft: #3d2618; --neg: #8aa8ff; --neg-soft: #1f2a47;
+      --good: #6fd3a0; --good-soft: #173326; --bad: #ff8a80; --bad-soft: #3d1f1d; --warn: #f0c56b; --warn-soft: #3a2f17;
+      --code-bg: #232321; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+    --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+    --pos: #ff9a62; --pos-soft: #3d2618; --neg: #8aa8ff; --neg-soft: #1f2a47;
+    --good: #6fd3a0; --good-soft: #173326; --bad: #ff8a80; --bad-soft: #3d1f1d; --warn: #f0c56b; --warn-soft: #3a2f17;
+    --code-bg: #232321; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .layout { display: grid; grid-template-columns: 1fr; max-width: 1240px; margin: 0 auto; }
+  @media (min-width: 1000px) { .layout { grid-template-columns: 250px minmax(0, 1fr); gap: 32px; padding: 0 24px; } }
+  aside.toc { display: none; }
+  @media (min-width: 1000px) {
+    aside.toc { display: block; position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; padding: 28px 0 28px; }
+  }
+  aside.toc .toc-title { font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px 10px; }
+  aside.toc a { display: block; color: var(--muted); text-decoration: none; font-size: .9rem; padding: 4px 10px; border-left: 2px solid transparent; border-radius: 0 6px 6px 0; }
+  aside.toc a:hover { color: var(--text); background: var(--surface-2); }
+  aside.toc a.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+  aside.toc a.sub { padding-left: 22px; font-size: .84rem; }
+  details.mobile-toc { margin: 16px 0 0; }
+  @media (min-width: 1000px) { details.mobile-toc { display: none; } }
+  details.mobile-toc summary { cursor: pointer; font-weight: 600; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  details.mobile-toc nav { display: grid; gap: 2px; padding: 8px 4px; }
+  details.mobile-toc a { color: var(--text); text-decoration: none; padding: 4px 10px; font-size: .92rem; }
+  main { min-width: 0; padding: 28px 16px 96px; max-width: 880px; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.7rem); line-height: 1.12; margin: 4px 0 12px; letter-spacing: -0.02em; }
+  h2 { font-size: 1.6rem; margin: 0 0 8px; letter-spacing: -0.01em; line-height: 1.25; }
+  h3 { font-size: 1.15rem; margin: 26px 0 8px; }
+  h4 { font-size: 1rem; margin: 18px 0 6px; }
+  p { margin: 0 0 12px; }
+  ul, ol { margin: 0 0 12px; padding-left: 22px; }
+  li { margin: 3px 0; }
+  a { color: var(--accent); }
+  .eyebrow { color: var(--muted); font-size: .82rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; }
+  .lede { color: var(--muted); font-size: 1.12rem; max-width: 64ch; }
+  section { margin-top: 56px; }
+  .num { color: var(--accent); margin-right: 6px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin: 16px 0; }
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 16px 0; }
+  .callout.good { border-color: var(--good); background: var(--good-soft); }
+  .callout.bad { border-color: var(--bad); background: var(--bad-soft); }
+  .callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+  .callout > :last-child { margin-bottom: 0; }
+  .intuition { font-size: 1.05rem; border-left: 4px solid var(--good); background: var(--good-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 12px 0 16px; }
+  .intuition strong:first-child { color: var(--good); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 5px; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: .85rem; line-height: 1.55; margin: 12px 0 16px; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .table-scroll { overflow-x: auto; margin: 12px 0 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  th { font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); }
+  td code { white-space: nowrap; }
+  .grid-2 { display: grid; gap: 14px; grid-template-columns: 1fr; }
+  @media (min-width: 720px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+  .grid-2 .card { margin: 0; }
+  .pill { display: inline-block; font-size: .74rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+  .pill.up { background: var(--bad-soft); color: var(--bad); }
+  .pill.down { background: var(--good-soft); color: var(--good); }
+  .pill.neutral { background: var(--surface-2); color: var(--muted); }
+  .proscons { display: grid; gap: 12px; grid-template-columns: 1fr; margin: 12px 0; }
+  @media (min-width: 640px) { .proscons { grid-template-columns: 1fr 1fr; } }
+  .proscons > div { border-radius: 10px; padding: 12px 14px; }
+  .proscons .pros { background: var(--good-soft); }
+  .proscons .cons { background: var(--bad-soft); }
+  .proscons h4 { margin: 0 0 6px; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+  .proscons .pros h4 { color: var(--good); } .proscons .cons h4 { color: var(--bad); }
+  .proscons ul { margin: 0; }
+  .theme-toggle { position: fixed; top: 12px; right: 12px; z-index: 5; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  /* widgets */
+  .widget { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; margin: 18px 0; }
+  .widget-title { font-weight: 700; margin-bottom: 4px; }
+  .widget-sub { color: var(--muted); font-size: .9rem; margin-bottom: 12px; }
+  .controls { display: grid; gap: 10px 18px; grid-template-columns: 1fr; margin-bottom: 12px; }
+  @media (min-width: 640px) { .controls { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }
+  .controls label { display: grid; gap: 2px; font-size: .86rem; color: var(--muted); }
+  .controls label span b { color: var(--text); }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .widget svg { width: 100%; height: auto; display: block; }
+  .svg-text { fill: var(--muted); font-size: 11px; font-family: system-ui, sans-serif; }
+  .svg-axis { stroke: var(--border); stroke-width: 1; }
+  .metrics-row { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); margin-top: 12px; }
+  .metric { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+  .metric .k { font-size: .74rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+  .metric .v { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .metric.hl { outline: 2px solid var(--bad); }
+  .verdict { font-weight: 700; padding: 8px 12px; border-radius: 10px; margin-top: 10px; }
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 6px 12px; border-radius: 9px; cursor: pointer; font: inherit; font-size: .9rem; }
+  .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .diagram { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 14px 0; font-size: .85rem; }
+  .diagram .box { border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px; padding: 6px 10px; text-align: center; }
+  .diagram .arrow { color: var(--muted); }
+  .quiz .q { margin-bottom: 16px; }
+  .quiz .prompt { font-weight: 600; margin-bottom: 6px; }
+  .quiz .opts { display: grid; gap: 6px; }
+  .quiz .opt { text-align: left; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); padding: 8px 12px; border-radius: 9px; cursor: pointer; font: inherit; }
+  .quiz .opt:disabled { cursor: default; }
+  .quiz .opt.right { border-color: var(--good); background: var(--good-soft); color: var(--good); font-weight: 600; }
+  .quiz .opt.wrong { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
+  .quiz .why { display: none; color: var(--muted); font-size: .88rem; margin-top: 4px; }
+  .quiz .q.answered .why { display: block; }
+  footer { margin-top: 64px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 16px; }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+
+  /* page-specific additions (tokens only) */
+  .check { display: flex; gap: 8px; align-items: center; font-size: .9rem; color: var(--muted); margin: 4px 0 10px; }
+  .check input { accent-color: var(--accent); width: 18px; height: 18px; }
+  .cells { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 6px; margin: 10px 0; }
+  .cell { border: 1px solid var(--border); background: var(--surface-2); border-radius: 8px; padding: 6px 4px; text-align: center; font-variant-numeric: tabular-nums; font-size: .92rem; }
+  .cell small { display: block; color: var(--muted); font-size: .68rem; }
+  .cell.missing { border-style: dashed; color: var(--bad); background: var(--bad-soft); }
+  .cell.filled { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+  .cell.dropped { opacity: .35; text-decoration: line-through; }
+  .cell.big { border-color: var(--warn); }
+  td.changed { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .note { color: var(--muted); font-size: .88rem; margin: 8px 0 0; }
+</style>
+<style>
+  /* Phone-width fixes: let grid/flex children shrink so wide code scrolls inside its box,
+     and let long inline code (e.g. module paths) wrap instead of widening the page. */
+  main div, main section, main details { min-width: 0; }
+  :not(pre) > code { overflow-wrap: anywhere; }
+</style>
+<style>
+  /* theme-toggle clearance: the fixed Theme button would otherwise overlap the first line on phones */
+  @media (max-width: 999px) { main { padding-top: 56px; } }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">◐ Theme</button>
+<div class="layout">
+  <aside class="toc" aria-label="Contents">
+    <p class="toc-title">Contents</p>
+    <a href="#why">1 · What EDA is</a>
+    <a href="#first-look">2 · First look</a>
+    <a href="#types">3 · Data types</a>
+    <a href="#explore">4 · Exploring the data</a>
+    <a href="#missing">5 · Missing data</a>
+    <a href="#duplicates">6 · Duplicates</a>
+    <a href="#outliers">7 · Outliers</a>
+    <a href="#imputation">8 · Imputation</a>
+    <a href="#encoding">9 · Encoding categories</a>
+    <a href="#scaling">10 · Scaling</a>
+    <a href="#features">11 · Feature engineering</a>
+    <a href="#leakage">12 · Leakage &amp; pipelines</a>
+    <a href="#cheatsheet">13 · Cheat sheet</a>
+    <a href="#quiz">14 · Quiz</a>
+  </aside>
+
+<main>
+  <header>
+    <div class="eyebrow">Week 0 · Onboarding</div>
+    <h1>Exploratory data analysis &amp; data preprocessing</h1>
+    <p class="lede">Before any model, you need to understand your data and get it into a shape a model can use. This guide walks through both steps on the Titanic passenger dataset: looking, questioning, cleaning, encoding, scaling and engineering features, and finally wrapping it all in a leak-proof scikit-learn pipeline.</p>
+    <details class="mobile-toc">
+      <summary>Contents</summary>
+      <nav>
+        <a href="#why">1 · What EDA is</a><a href="#first-look">2 · First look</a><a href="#types">3 · Data types</a>
+        <a href="#explore">4 · Exploring the data</a><a href="#missing">5 · Missing data</a><a href="#duplicates">6 · Duplicates</a>
+        <a href="#outliers">7 · Outliers</a><a href="#imputation">8 · Imputation</a><a href="#encoding">9 · Encoding categories</a>
+        <a href="#scaling">10 · Scaling</a><a href="#features">11 · Feature engineering</a><a href="#leakage">12 · Leakage &amp; pipelines</a>
+        <a href="#cheatsheet">13 · Cheat sheet</a><a href="#quiz">14 · Quiz</a>
+      </nav>
+    </details>
+  </header>
+
+  <!-- ============ 1. WHY ============ -->
+  <section id="why">
+    <h2><span class="num">1</span>What EDA is, and why it comes first</h2>
+    <p class="intuition"><strong>Intuition.</strong> A doctor examines the patient before prescribing. EDA is the examination: you look at the data from every angle before you decide what to do with it.</p>
+
+    <p><strong>Exploratory data analysis (EDA)</strong> means summarising and visualising a dataset to understand what is in it, what is wrong with it, and which patterns might be useful. <strong>Data preprocessing</strong> is what comes next: fixing the problems EDA found and converting the data into numbers a model can learn from.</p>
+
+    <h3>Why it comes first</h3>
+    <ul>
+      <li><strong>Garbage in, garbage out.</strong> A model learns whatever is in the data, including typing errors, duplicated rows and impossible values.</li>
+      <li><strong>Models need numbers.</strong> Most scikit-learn models cannot read text such as <code>"male"</code> or handle empty cells. Preprocessing converts and fills them.</li>
+      <li><strong>It shapes every later decision:</strong> which columns to keep, how to fill gaps, which model family suits the data, and which metric to use.</li>
+      <li><strong>It catches traps early</strong>, such as a column that secretly contains the answer (see <a href="#leakage">data leakage</a>).</li>
+    </ul>
+
+    <h3>The running example: Titanic</h3>
+    <p>We use the Kaggle Titanic <code>train.csv</code>: <strong>891 rows</strong> (one per passenger) and <strong>12 columns</strong>. The task is to predict <code>Survived</code> (1 = survived, 0 = did not). The column we want to predict is called the <strong>target</strong>; the columns we use to predict it are the <strong>features</strong>.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Column</th><th>Meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><code>PassengerId</code></td><td>Row identifier (no predictive meaning)</td><td>1</td></tr>
+        <tr><td><code>Survived</code></td><td><strong>Target</strong>: 0 = no, 1 = yes</td><td>0</td></tr>
+        <tr><td><code>Pclass</code></td><td>Ticket class: 1 = first, 2 = second, 3 = third</td><td>3</td></tr>
+        <tr><td><code>Name</code></td><td>Full name, including a title such as Mr or Mrs</td><td>Braund, Mr. Owen Harris</td></tr>
+        <tr><td><code>Sex</code></td><td>male / female</td><td>male</td></tr>
+        <tr><td><code>Age</code></td><td>Age in years (fractional for infants)</td><td>22.0</td></tr>
+        <tr><td><code>SibSp</code></td><td>Number of siblings or spouses aboard</td><td>1</td></tr>
+        <tr><td><code>Parch</code></td><td>Number of parents or children aboard</td><td>0</td></tr>
+        <tr><td><code>Ticket</code></td><td>Ticket number (free text)</td><td>A/5 21171</td></tr>
+        <tr><td><code>Fare</code></td><td>Fare paid</td><td>7.25</td></tr>
+        <tr><td><code>Cabin</code></td><td>Cabin number, often blank</td><td>C85</td></tr>
+        <tr><td><code>Embarked</code></td><td>Port: C = Cherbourg, Q = Queenstown, S = Southampton</td><td>S</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>The workflow</h3>
+    <div class="diagram">
+      <div class="box">Load</div><span class="arrow">→</span>
+      <div class="box">First look<br><small>shape, types, summary</small></div><span class="arrow">→</span>
+      <div class="box">Explore<br><small>plots, groupby</small></div><span class="arrow">→</span>
+      <div class="box">Find problems<br><small>missing, duplicates, outliers</small></div><span class="arrow">→</span>
+      <div class="box">Split train / test</div><span class="arrow">→</span>
+      <div class="box">Preprocess in a pipeline<br><small>impute, encode, scale</small></div><span class="arrow">→</span>
+      <div class="box"><b>Model</b></div>
+    </div>
+    <div class="callout"><p><strong>EDA is a loop, not a line.</strong> You will often go back: a model's mistakes reveal something odd, you look again, you add a feature. Write down what you find as you go; those notes become your preprocessing plan.</p></div>
+  </section>
+
+  <!-- ============ 2. FIRST LOOK ============ -->
+  <section id="first-look">
+    <h2><span class="num">2</span>First look: shape, head, info, describe</h2>
+    <p class="intuition"><strong>Intuition.</strong> Six commands answer "how big is it, what does it look like, what types are the columns, what is missing, and what range do the numbers cover?"</p>
+
+<pre><code>import pandas as pd
+
+df = pd.read_csv("train.csv")
+
+df.shape          # (891, 12)  → rows, columns
+df.head()         # first 5 rows (df.tail() for the last 5, df.sample(5) for random ones)
+df.info()         # column names, non-null counts, dtypes, memory
+df.describe()     # count, mean, std, min, quartiles, max for numeric columns
+df.dtypes         # just the type of each column
+df["Embarked"].value_counts(dropna=False)   # frequency of each category, including NaN</code></pre>
+
+    <h3>Reading <code>df.info()</code></h3>
+    <p><code>info()</code> lists every column with its count of <strong>non-null</strong> (non-missing) values and its <strong>dtype</strong> (data type). Any column with fewer than 891 non-null values has gaps.</p>
+<pre><code>RangeIndex: 891 entries, 0 to 890
+ #   Column       Non-Null Count  Dtype
+ 0   PassengerId  891 non-null    int64
+ 1   Survived     891 non-null    int64
+ 2   Pclass       891 non-null    int64
+ 3   Name         891 non-null    object
+ 4   Sex          891 non-null    object
+ 5   Age          714 non-null    float64   ← 177 missing
+ 6   SibSp        891 non-null    int64
+ 7   Parch        891 non-null    int64
+ 8   Ticket       891 non-null    object
+ 9   Fare         891 non-null    float64
+ 10  Cabin        204 non-null    object    ← 687 missing
+ 11  Embarked     889 non-null    object    ← 2 missing</code></pre>
+    <p><code>object</code> is pandas' type for text (strings). <code>int64</code> and <code>float64</code> are whole and decimal numbers. Notice that <code>Pclass</code> and <code>Survived</code> are stored as integers but are really categories; the dtype does not tell you the meaning (see <a href="#types">data types</a>).</p>
+
+    <h3>Reading <code>df.describe()</code></h3>
+    <p><code>describe()</code> gives one column of statistics per numeric feature. For <code>Fare</code> and <code>Age</code>, the key numbers are:</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Statistic</th><th>Meaning</th><th class="num">Fare</th><th class="num">Age</th></tr></thead>
+      <tbody>
+        <tr><td><code>count</code></td><td>Non-missing values</td><td class="num">891</td><td class="num">714</td></tr>
+        <tr><td><code>mean</code></td><td>Average</td><td class="num">≈ 32.2</td><td class="num">≈ 29.7</td></tr>
+        <tr><td><code>50%</code></td><td>Median: the middle value</td><td class="num">≈ 14.45</td><td class="num">28.0</td></tr>
+        <tr><td><code>max</code></td><td>Largest value</td><td class="num">512.33</td><td class="num">–</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn"><p><strong>Mean far above median = right skew.</strong> Fare's mean (32.2) is more than double its median (14.45). A few very expensive tickets drag the average up, while most passengers paid little. A <strong>skewed</strong> distribution has a long tail on one side; "right-skewed" means the tail stretches towards large values. Age's mean and median are close (29.7 vs 28.0), so it is roughly symmetric.</p></div>
+
+    <h3>Categorical summaries</h3>
+<pre><code>df.describe(include="object")                 # count, unique, top (most common), freq
+df["Embarked"].value_counts()                  # S is by far the most common port
+df["Sex"].value_counts(normalize=True)         # proportions instead of counts
+df["Survived"].value_counts(normalize=True)    # the class balance of the target
+df.nunique()                                   # number of distinct values per column</code></pre>
+    <p><code>nunique()</code> is a quick way to spot <strong>identifier-like</strong> columns: <code>PassengerId</code> and <code>Name</code> have a different value on every row, so they cannot be used as categories directly.</p>
+
+    <h3>First-look checklist</h3>
+    <ul>
+      <li>How many rows and columns? Is that what you expected?</li>
+      <li>Which column is the target? Is it balanced?</li>
+      <li>Are the dtypes right (numbers stored as text, dates stored as text)?</li>
+      <li>Which columns have missing values, and how many?</li>
+      <li>Do the min and max make sense (negative ages, zero prices)?</li>
+      <li>Which columns are identifiers or free text that need special handling?</li>
+    </ul>
+  </section>
+
+  <!-- ============ 3. DATA TYPES ============ -->
+  <section id="types">
+    <h2><span class="num">3</span>Data types: what kind of thing is each column?</h2>
+    <p class="intuition"><strong>Intuition.</strong> The type of a column decides which plots make sense, how you fill its gaps and how you turn it into numbers. Decide by <em>meaning</em>, not by the pandas dtype.</p>
+
+    <div class="table-scroll"><table>
+      <thead><tr><th>Type</th><th>Definition</th><th>Titanic examples</th><th>Typical handling</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Numeric, continuous</strong></td><td>Any value in a range; measured</td><td><code>Age</code>, <code>Fare</code></td><td>Histogram, box plot; median imputation; scaling</td></tr>
+        <tr><td><strong>Numeric, discrete</strong></td><td>Whole-number counts</td><td><code>SibSp</code>, <code>Parch</code></td><td>Bar chart of counts; treat as numeric</td></tr>
+        <tr><td><strong>Categorical, nominal</strong></td><td>Named groups with <em>no order</em></td><td><code>Sex</code>, <code>Embarked</code></td><td>Bar chart; mode imputation; one-hot encoding</td></tr>
+        <tr><td><strong>Categorical, ordinal</strong></td><td>Groups with a <em>meaningful order</em></td><td><code>Pclass</code> (1st &gt; 2nd &gt; 3rd)</td><td>Ordinal mapping to 1, 2, 3, or one-hot</td></tr>
+        <tr><td><strong>Binary</strong></td><td>Exactly two values</td><td><code>Survived</code>, <code>Sex</code></td><td>0 / 1</td></tr>
+        <tr><td><strong>Text</strong></td><td>Free-form strings</td><td><code>Name</code>, <code>Ticket</code></td><td>Extract features (a title, a prefix) or drop</td></tr>
+        <tr><td><strong>Identifier</strong></td><td>Unique per row</td><td><code>PassengerId</code></td><td>Drop before modelling</td></tr>
+        <tr><td><strong>Date / time</strong></td><td>Points in time</td><td>(none in Titanic)</td><td><code>pd.to_datetime</code>; extract year, month, weekday</td></tr>
+      </tbody>
+    </table></div>
+
+<pre><code># Fix types so pandas (and you) treat columns correctly
+df["Pclass"]   = df["Pclass"].astype("category")
+df["Sex"]      = df["Sex"].astype("category")
+df["Embarked"] = df["Embarked"].astype("category")
+
+# Dates (example from another dataset): text → datetime, then extract parts
+# sales["date"] = pd.to_datetime(sales["date"], format="%Y-%m-%d")
+# sales["month"] = sales["date"].dt.month
+
+# Numbers stored as text (e.g. "1,200") → numbers; bad values become NaN
+# shop["price"] = pd.to_numeric(shop["price"].str.replace(",", ""), errors="coerce")
+
+numeric_cols     = df.select_dtypes(include="number").columns
+categorical_cols = df.select_dtypes(include=["object", "category"]).columns</code></pre>
+    <div class="callout warn"><p><strong>A number is not always a quantity.</strong> Postcodes, phone numbers and class codes are digits, but averaging them is meaningless. Ask: "would it make sense to add two of these together?" If not, it is categorical.</p></div>
+  </section>
+
+  <!-- ============ 4. EXPLORE ============ -->
+  <section id="explore">
+    <h2><span class="num">4</span>Exploring the data: one variable, then two</h2>
+    <p class="intuition"><strong>Intuition.</strong> <em>Univariate</em> analysis asks "what does this one column look like?". <em>Bivariate</em> analysis asks "how does this column relate to another, especially the target?"</p>
+
+    <h3>Univariate: one column at a time</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Column type</th><th>Plot</th><th>What to look for</th></tr></thead>
+      <tbody>
+        <tr><td>Continuous</td><td><strong>Histogram</strong>: counts of values in bins</td><td>Shape (symmetric or skewed), peaks, gaps, impossible values</td></tr>
+        <tr><td>Continuous</td><td><strong>Box plot</strong>: median, quartiles, whiskers, outlier dots</td><td>Spread and outliers (see <a href="#outliers">outliers</a>)</td></tr>
+        <tr><td>Categorical / discrete</td><td><strong>Bar chart</strong> of <code>value_counts()</code></td><td>Dominant and rare categories</td></tr>
+      </tbody>
+    </table></div>
+<pre><code>import matplotlib.pyplot as plt
+
+fig, axes = plt.subplots(1, 3, figsize=(14, 4))
+df["Age"].plot.hist(bins=30, ax=axes[0], title="Age")             # roughly bell-shaped, with a group of children
+df["Fare"].plot.box(ax=axes[1], title="Fare")                     # long right tail, many outlier dots
+df["Embarked"].value_counts().plot.bar(ax=axes[2], title="Port")  # S dominates
+plt.tight_layout(); plt.show()</code></pre>
+
+    <h3>Bivariate: two columns together</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Pair</th><th>Tool</th><th>Titanic question</th></tr></thead>
+      <tbody>
+        <tr><td>Category → target</td><td><code>groupby(...).mean()</code>, grouped bar chart</td><td>Did women survive more often than men?</td></tr>
+        <tr><td>Two categories</td><td><code>pd.crosstab</code></td><td>How does survival vary by class <em>and</em> sex?</td></tr>
+        <tr><td>Numeric → target</td><td>Box plot or histogram split by target</td><td>Were survivors younger? Did they pay more?</td></tr>
+        <tr><td>Numeric ↔ numeric</td><td><strong>Scatter plot</strong></td><td>Do age and fare move together?</td></tr>
+        <tr><td>All numeric pairs</td><td><strong>Correlation heatmap</strong></td><td>Which features are linearly related?</td></tr>
+      </tbody>
+    </table></div>
+
+<pre><code># Survival rate by group: the mean of a 0/1 column is a proportion
+df.groupby("Sex")["Survived"].mean()
+df.groupby("Pclass")["Survived"].mean()
+df.groupby(["Pclass", "Sex"])["Survived"].mean().unstack()   # a two-way table
+
+pd.crosstab(df["Pclass"], df["Survived"], normalize="index")  # row proportions
+
+# Numeric vs target
+df.boxplot(column="Fare", by="Survived")
+df.plot.scatter(x="Age", y="Fare", c="Survived", colormap="coolwarm", alpha=0.6)
+
+# Correlation heatmap (numeric columns only)
+corr = df.select_dtypes("number").corr()
+plt.imshow(corr, cmap="coolwarm", vmin=-1, vmax=1); plt.colorbar()
+plt.xticks(range(len(corr)), corr.columns, rotation=45); plt.yticks(range(len(corr)), corr.columns)
+plt.show()</code></pre>
+
+    <div class="widget" id="survWidget">
+      <div class="widget-title">Try it: survival rate by group</div>
+      <div class="widget-sub">The result of <code>df.groupby(col)["Survived"].mean()</code> on the 891 training passengers. The dashed line is the overall survival rate.</div>
+      <div class="btn-row" role="group" aria-label="Group by">
+        <button class="btn" type="button" data-surv="Sex" aria-pressed="true">Group by Sex</button>
+        <button class="btn" type="button" data-surv="Pclass" aria-pressed="false">Group by Pclass</button>
+      </div>
+      <svg id="survSvg" viewBox="0 0 600 230" role="img" aria-label="Survival rate bar chart"></svg>
+      <p id="survText" class="note"></p>
+    </div>
+
+    <div class="callout"><p><strong>Correlation</strong> (Pearson's <em>r</em>) measures how strongly two numeric columns move together <em>in a straight line</em>, from −1 (perfectly opposite) through 0 (no linear link) to +1 (perfectly together). On Titanic, <code>Pclass</code> and <code>Fare</code> are negatively correlated: a smaller class number (first class) goes with a higher fare. Correlation ignores curved relationships and categories, and it <strong>never proves causation</strong>.</p></div>
+    <div class="callout warn"><p><strong>Watch for confounding.</strong> A <em>confounder</em> is a third variable that drives two others. Fare and survival are linked, but much of that link runs through class: first-class passengers paid more <em>and</em> had cabins nearer the lifeboats. Splitting by a second variable (<code>groupby(["Pclass", "Sex"])</code>) helps you see this.</p></div>
+  </section>
+
+  <!-- ============ 5. MISSING DATA ============ -->
+  <section id="missing">
+    <h2><span class="num">5</span>Missing data</h2>
+    <p class="intuition"><strong>Intuition.</strong> An empty cell is a question, not just a gap: <em>why</em> is it empty? The answer decides whether you can safely drop it, fill it, or treat "missing" as information in itself.</p>
+
+    <h3>Detecting it</h3>
+<pre><code>df.isnull().sum()                                  # count per column (isna() is identical)
+(df.isnull().mean() * 100).round(1)                # percentage per column
+df.isnull().sum().sort_values(ascending=False)     # worst first
+df[df["Embarked"].isnull()]                        # look at the actual rows</code></pre>
+
+    <div class="widget" id="missWidget">
+      <div class="widget-title">Missing values per column</div>
+      <div class="widget-sub">The output of <code>df.isnull().sum()</code> on Titanic <code>train.csv</code> (891 rows), drawn as bars.</div>
+      <svg id="missSvg" viewBox="0 0 600 300" role="img" aria-label="Missing values per column bar chart"></svg>
+    </div>
+    <ul>
+      <li><strong>Age</strong>: 177 missing (19.9%). Too many to drop the rows, few enough to fill sensibly.</li>
+      <li><strong>Cabin</strong>: 687 missing (77.1%). Most of the column is empty. Filling it would be mostly invention.</li>
+      <li><strong>Embarked</strong>: 2 missing. Trivial: fill with the most common port (S) or drop the two rows.</li>
+    </ul>
+
+    <h3>Why is it missing? MCAR, MAR, MNAR</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Type</th><th>Plain English</th><th>Example</th><th>Consequence</th></tr></thead>
+      <tbody>
+        <tr><td><strong>MCAR</strong><br><small>missing completely at random</small></td><td>The gap has nothing to do with anything: pure bad luck</td><td>A clerk spilt ink on two boarding records (plausible for <code>Embarked</code>)</td><td>Dropping or simple filling does not bias results; you only lose data</td></tr>
+        <tr><td><strong>MAR</strong><br><small>missing at random</small></td><td>The gap depends on <em>other columns you can see</em></td><td>If ages were recorded less often for third-class passengers, missingness depends on <code>Pclass</code></td><td>Fill using those other columns (group-wise median, model-based imputation)</td></tr>
+        <tr><td><strong>MNAR</strong><br><small>missing not at random</small></td><td>The gap depends on <em>the missing value itself</em></td><td>People with high incomes leave the "income" box empty; cabins were largely recorded for wealthier passengers</td><td>Dangerous: any fill is biased. Add a missing-indicator flag and treat "missing" as a signal</td></tr>
+      </tbody>
+    </table></div>
+<pre><code># Is Age missingness related to other columns? (a quick MAR check)
+df["Age_missing"] = df["Age"].isnull()
+df.groupby("Pclass")["Age_missing"].mean()     # different rates across classes → not MCAR
+df.groupby("Age_missing")["Survived"].mean()   # does missingness relate to the target?</code></pre>
+
+    <h3>Drop or impute?</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Situation</th><th>Usual choice</th><th>Titanic</th></tr></thead>
+      <tbody>
+        <tr><td>Very few rows missing (well under 5%), probably MCAR</td><td>Drop those rows (<code>dropna(subset=[...])</code>) or fill with the mode/median</td><td><code>Embarked</code></td></tr>
+        <tr><td>A moderate share missing (roughly 5–40%) in a useful column</td><td><strong>Impute</strong>, and consider a missing-indicator flag</td><td><code>Age</code></td></tr>
+        <tr><td>Most of the column missing (over about 60%)</td><td>Drop the column, or reduce it to "known / unknown"</td><td><code>Cabin</code> → <code>HasCabin</code></td></tr>
+        <tr><td>The target itself is missing</td><td>Drop those rows: you cannot learn from them</td><td>(none)</td></tr>
+      </tbody>
+    </table></div>
+    <p>These percentages are rules of thumb, not laws. Always ask how important the column is and why it is missing.</p>
+<pre><code>df = df.dropna(subset=["Embarked"])          # drop the 2 rows (or fill with mode instead)
+df = df.drop(columns=["Cabin"])              # drop a mostly-empty column...
+# ...or keep its signal:
+df["HasCabin"] = df["Cabin"].notna().astype(int)
+
+# Missing-indicator flag: remember WHICH values were filled
+df["Age_missing"] = df["Age"].isna().astype(int)
+df["Age"] = df["Age"].fillna(df["Age"].median())</code></pre>
+    <div class="callout good"><p><strong>Missing-indicator flags</strong> are cheap insurance. After filling, the model can no longer tell a real 28-year-old from a filled-in 28. The extra 0/1 column lets it learn whether "age unknown" matters on its own. In scikit-learn, <code>SimpleImputer(add_indicator=True)</code> does this for you.</p></div>
+    <div class="callout bad"><p><strong>Do not drop rows blindly.</strong> <code>df.dropna()</code> with no arguments drops every row with <em>any</em> gap. On Titanic, Cabin alone would wipe out 687 of 891 rows (77%).</p></div>
+  </section>
+
+  <!-- ============ 6. DUPLICATES ============ -->
+  <section id="duplicates">
+    <h2><span class="num">6</span>Duplicates</h2>
+    <p class="intuition"><strong>Intuition.</strong> A duplicated row counts the same event twice. The model then over-weights it, and if one copy lands in training and the other in testing, your test score is flattered.</p>
+
+<pre><code>df.duplicated().sum()                      # Titanic: 0 fully duplicated rows
+
+# Which rows are duplicates? keep=False marks ALL copies (default keep="first" marks only the later ones)
+df[df.duplicated(keep=False)]
+
+# Duplicates on a subset of columns, e.g. same name and ticket but a different id
+df.duplicated(subset=["Name", "Ticket"]).sum()
+
+df = df.drop_duplicates()                              # keep the first copy
+df = df.drop_duplicates(subset=["Name", "Ticket"], keep="last")</code></pre>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Argument</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>keep="first"</code> (default)</td><td>Mark/keep the first occurrence; later copies count as duplicates</td></tr>
+        <tr><td><code>keep="last"</code></td><td>Keep the last occurrence (useful if later rows are corrections)</td></tr>
+        <tr><td><code>keep=False</code></td><td>Mark <em>every</em> copy, so you can inspect them all side by side</td></tr>
+        <tr><td><code>subset=[...]</code></td><td>Compare only these columns. An ID column makes every row unique, so exclude it to find real repeats</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn"><p><strong>Not every repeat is an error.</strong> Two different passengers can share a ticket number (families travelled on one ticket), so duplicated <code>Ticket</code> values are real. Decide what "the same record" means for your data before deleting anything. Also check for near-duplicates, such as <code>"S"</code> vs <code>" s"</code>; clean them with <code>.str.strip().str.upper()</code>.</p></div>
+  </section>
+
+  <!-- ============ 7. OUTLIERS ============ -->
+  <section id="outliers">
+    <h2><span class="num">7</span>Outliers</h2>
+    <p class="intuition"><strong>Intuition.</strong> An outlier is a value far from the rest. It might be a typing mistake, or it might be the most interesting row in the dataset. Find it, then <em>investigate</em> before you touch it.</p>
+
+    <h3>The box plot and the IQR rule</h3>
+    <p>Sort the values and cut them into quarters. <strong>Q1</strong> (the 25th percentile) has a quarter of the values below it; <strong>Q3</strong> (the 75th percentile) has three-quarters below it. The <strong>interquartile range</strong> (IQR) is the width of the middle half:</p>
+    <div class="card">
+      <p><code>IQR = Q3 − Q1</code></p>
+      <p><code>lower bound = Q1 − 1.5 × IQR</code> &nbsp;·&nbsp; <code>upper bound = Q3 + 1.5 × IQR</code></p>
+      <p style="margin:0">Anything outside the bounds is flagged as an outlier. The 1.5 is a convention; 3 flags only "extreme" outliers. A box plot draws exactly this: the box is Q1 to Q3, the line inside is the median, the whiskers reach the furthest points still inside the bounds, and the dots beyond are the outliers.</p>
+    </div>
+    <p>On Titanic <code>Fare</code>, the upper bound is about <strong>65.63</strong> and <strong>116 passengers</strong> lie above it. About 90% of them travelled first class. These are not errors: expensive tickets for first-class passengers are exactly what you would expect. The maximum, 512.33, is a real fare.</p>
+<pre><code>q1, q3 = df["Fare"].quantile([0.25, 0.75])
+iqr = q3 - q1
+lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr       # upper ≈ 65.63
+outliers = df[(df["Fare"] &lt; lower) | (df["Fare"] &gt; upper)]
+len(outliers)                                       # 116
+outliers["Pclass"].value_counts(normalize=True)     # about 90% first class</code></pre>
+
+    <div class="widget" id="outWidget">
+      <div class="widget-title">Try it: outlier explorer</div>
+      <div class="widget-sub">40 fare-like values (made up, right-skewed like the real Fare). Change the IQR multiplier, cap the outliers, or apply a log transform and see how the picture changes.</div>
+      <div class="controls">
+        <label><span>IQR multiplier k: <b id="outKV">1.5</b></span><input type="range" id="outK" min="1" max="3" step="0.1" value="1.5"></label>
+      </div>
+      <div class="btn-row" role="group" aria-label="Scale">
+        <button class="btn" type="button" data-outscale="raw" aria-pressed="true">Raw values</button>
+        <button class="btn" type="button" data-outscale="log" aria-pressed="false">Log transform log(1 + x)</button>
+      </div>
+      <label class="check"><input type="checkbox" id="outCap"> Cap (clip) outliers at the bounds</label>
+      <svg id="outSvg" viewBox="0 0 600 230" role="img" aria-label="Box plot and dot plot of fare-like values"></svg>
+      <div class="metrics-row" id="outMetrics"></div>
+      <div class="verdict" id="outVerdict"></div>
+    </div>
+
+    <h3>The z-score rule</h3>
+    <p>A <strong>z-score</strong> says how many standard deviations a value is from the mean: <code>z = (x − mean) / std</code>. A common rule flags <code>|z| &gt; 3</code>. It works well for roughly bell-shaped data, but on skewed data the outliers themselves inflate the mean and standard deviation, which hides them. The IQR rule uses quartiles, which outliers barely move, so it is more <strong>robust</strong> (less affected by extreme values).</p>
+<pre><code>z = (df["Fare"] - df["Fare"].mean()) / df["Fare"].std()
+df[z.abs() &gt; 3]</code></pre>
+
+    <h3>Genuine or error?</h3>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0">Probably an error</h4><ul style="margin:0"><li>Impossible values: age −5, age 250, a negative price</li><li>Unit mix-ups: a height of 1.8 among values like 180</li><li>Placeholder codes: 999, −1, 0 meaning "unknown"</li><li>Typos: an extra zero</li></ul></div>
+      <div class="card"><h4 style="margin-top:0">Probably genuine</h4><ul style="margin:0"><li>Rare but possible: a 512 fare in first class</li><li>Explained by another column (first class, a large group ticket)</li><li>The very thing you want to detect (fraud, faults)</li></ul></div>
+    </div>
+
+    <h3>What to do about them</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Option</th><th>How</th><th>When</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Keep</strong></td><td>Do nothing</td><td>Genuine values, and a model that copes (tree-based models barely care)</td></tr>
+        <tr><td><strong>Cap / clip</strong> (winsorise)</td><td><code>df["Fare"].clip(lower, upper)</code></td><td>Genuine but extreme values that would dominate a linear model</td></tr>
+        <tr><td><strong>Transform</strong></td><td><code>np.log1p(df["Fare"])</code></td><td>Right-skewed, positive data (prices, incomes). Squashes the tail, keeps the order</td></tr>
+        <tr><td><strong>Remove</strong></td><td><code>df = df[df["Age"].between(0, 110)]</code></td><td>Clear errors only, and only when you cannot fix them</td></tr>
+        <tr><td><strong>Fix / set to missing</strong></td><td><code>df["Age"] = df["Age"].replace(999, np.nan)</code></td><td>Placeholder codes, then impute as normal</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout bad"><p><strong>Never delete outliers just because a rule flagged them.</strong> On Titanic, removing the 116 "outlier" fares would delete a large share of first-class passengers, exactly the group with the highest survival rate, and bias the model.</p></div>
+    <div class="callout warn"><p><code>log1p(x)</code> means <code>log(1 + x)</code>. The "+1" stops it breaking on zero, which matters because some Titanic fares are exactly 0.</p></div>
+  </section>
+
+  <!-- ============ 8. IMPUTATION ============ -->
+  <section id="imputation">
+    <h2><span class="num">8</span>Imputation: filling the gaps</h2>
+    <p class="intuition"><strong>Intuition.</strong> Imputation means replacing a missing value with a sensible guess. The simplest guess is a "typical" value for the column; smarter guesses use the other columns.</p>
+
+    <div class="table-scroll"><table>
+      <thead><tr><th>Method</th><th>Fills with</th><th>Use for</th><th>Watch out</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Mean</strong></td><td>The average</td><td>Symmetric numeric data without outliers</td><td>Pulled by outliers and skew</td></tr>
+        <tr><td><strong>Median</strong></td><td>The middle value</td><td>Skewed numeric data or data with outliers (<code>Age</code>, <code>Fare</code>). A safe default</td><td>Ignores relationships with other columns</td></tr>
+        <tr><td><strong>Mode</strong> (most frequent)</td><td>The most common value</td><td>Categorical columns (<code>Embarked</code> → S)</td><td>Inflates the most common category</td></tr>
+        <tr><td><strong>Constant</strong></td><td>A fixed value such as <code>"Unknown"</code> or 0</td><td>Categories where "missing" is meaningful (<code>Cabin</code> → "Unknown")</td><td>Numeric constants such as 0 can be misleading</td></tr>
+        <tr><td><strong>Group-wise median</strong></td><td>The median of similar rows</td><td>MAR data: fill <code>Age</code> by the median of the same <code>Sex</code> and <code>Pclass</code></td><td>Groups must be big enough to have a stable median</td></tr>
+        <tr><td><strong>Forward fill</strong></td><td>The previous value in time</td><td>Time series (sensor readings, daily prices)</td><td>Only valid when rows are sorted in time</td></tr>
+        <tr><td><strong>KNN imputer</strong></td><td>The average of the k most similar rows</td><td>Columns that relate to others in non-simple ways</td><td>Needs scaling; slower</td></tr>
+        <tr><td><strong>Iterative imputer</strong></td><td>A prediction from a model of the other columns</td><td>Several related columns with gaps</td><td>Most complex; still experimental in scikit-learn</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="widget" id="impWidget">
+      <div class="widget-title">Try it: imputation playground</div>
+      <div class="widget-sub">20 age-like values (made up), 5 of them missing, plus two elderly passengers (80 and 74). Choose a strategy; filled values are highlighted in blue.</div>
+      <div class="btn-row" role="group" aria-label="Imputation strategy">
+        <button class="btn" type="button" data-imp="none" aria-pressed="true">Original</button>
+        <button class="btn" type="button" data-imp="mean" aria-pressed="false">Mean</button>
+        <button class="btn" type="button" data-imp="median" aria-pressed="false">Median</button>
+        <button class="btn" type="button" data-imp="mode" aria-pressed="false">Mode</button>
+        <button class="btn" type="button" data-imp="drop" aria-pressed="false">Drop rows</button>
+      </div>
+      <label class="check"><input type="checkbox" id="impBig" checked> Include the two large values (80, 74)</label>
+      <div class="cells" id="impCells"></div>
+      <div class="metrics-row" id="impMetrics"></div>
+      <p id="impText" class="note"></p>
+    </div>
+    <div class="callout"><p><strong>Why the median resists outliers.</strong> The mean adds up every value, so one 80 pulls it up noticeably. The median only cares about the <em>middle position</em>: making the largest value bigger does not change which value sits in the middle. Untick the two large values in the playground: the mean drops by about 6 years, the median by 1.</p></div>
+    <div class="callout warn"><p><strong>Any single-value fill shrinks the spread.</strong> Putting the same number into many gaps adds rows exactly at the centre, so the standard deviation falls and the distribution gets an artificial spike. That is one reason to add a missing-indicator flag, and to prefer group-wise or model-based imputation when many values are missing.</p></div>
+
+<pre><code>import numpy as np
+
+# Simple pandas fills
+df["Age"]      = df["Age"].fillna(df["Age"].median())
+df["Embarked"] = df["Embarked"].fillna(df["Embarked"].mode()[0])   # mode() returns a Series
+df["Cabin"]    = df["Cabin"].fillna("Unknown")
+
+# Group-wise median: each passenger gets the median age of their own Sex × Pclass group
+df["Age"] = df["Age"].fillna(df.groupby(["Sex", "Pclass"])["Age"].transform("median"))
+
+# Time series: carry the last known value forward
+# readings["temp"] = readings.sort_values("time")["temp"].ffill()
+
+# scikit-learn imputers (use these inside a pipeline, see section 12)
+from sklearn.impute import SimpleImputer, KNNImputer
+from sklearn.experimental import enable_iterative_imputer   # noqa: F401, required import
+from sklearn.impute import IterativeImputer
+
+SimpleImputer(strategy="median", add_indicator=True)       # also: "mean", "most_frequent", "constant"
+KNNImputer(n_neighbors=5)
+IterativeImputer(random_state=42)</code></pre>
+    <div class="callout bad"><p><strong>Compute fill values on the training data only.</strong> <code>df["Age"].median()</code> on the whole dataset includes the test rows, a small but real form of <a href="#leakage">leakage</a>. Pandas fills are fine for exploring; for modelling, put the imputer in a pipeline.</p></div>
+  </section>
+
+  <!-- ============ 9. ENCODING ============ -->
+  <section id="encoding">
+    <h2><span class="num">9</span>Encoding categorical variables</h2>
+    <p class="intuition"><strong>Intuition.</strong> Models do maths, so categories must become numbers. The trick is to do it without inventing an order or a distance that does not exist.</p>
+
+    <h3>Label and ordinal encoding</h3>
+    <p><strong>Label encoding</strong> replaces each category with an integer: <code>female → 0</code>, <code>male → 1</code>. <strong>Ordinal encoding</strong> does the same but in an order you choose, for categories that really are ordered.</p>
+<pre><code># Binary column: a simple mapping is fine
+df["Sex_code"] = df["Sex"].map({"female": 0, "male": 1})
+
+# Ordinal column: choose the order deliberately
+size_order = {"small": 0, "medium": 1, "large": 2}
+# shop["size_code"] = shop["size"].map(size_order)
+
+from sklearn.preprocessing import OrdinalEncoder
+OrdinalEncoder(categories=[["small", "medium", "large"]])</code></pre>
+
+    <h3>One-hot encoding</h3>
+    <p><strong>One-hot encoding</strong> creates one 0/1 column per category. A passenger who embarked at Cherbourg gets <code>Embarked_C = 1, Embarked_Q = 0, Embarked_S = 0</code>. No order, no distances: every category is equally different from every other.</p>
+<pre><code># Quick, for exploration
+pd.get_dummies(df, columns=["Embarked", "Sex"], drop_first=False, dtype=int)
+
+# For modelling: remembers the categories seen in training
+from sklearn.preprocessing import OneHotEncoder
+ohe = OneHotEncoder(handle_unknown="ignore")    # unseen category at prediction time → all zeros, no crash
+ohe.fit(X_train[["Embarked"]])
+ohe.get_feature_names_out()                     # ['Embarked_C', 'Embarked_Q', 'Embarked_S']</code></pre>
+    <div class="callout"><p><strong>Why <code>OneHotEncoder</code> over <code>get_dummies</code> for models?</strong> <code>get_dummies</code> creates columns from whatever is in the data it is given. If the test set lacks a category, or has a new one, its columns will not match the training columns. <code>OneHotEncoder</code> learns the categories once, on the training data, and <code>handle_unknown="ignore"</code> encodes anything new as all zeros instead of raising an error.</p></div>
+
+    <h3>Why not label-encode nominal categories?</h3>
+    <p>If you encode <code>Embarked</code> as <code>C = 0, Q = 1, S = 2</code>, a linear model reads that as "S is twice Q" and "Q sits between C and S". That order is invented by the alphabet. The model may then learn nonsense such as "survival changes steadily from C through Q to S".</p>
+    <div class="proscons">
+      <div class="pros"><h4>Label / ordinal encoding is fine for</h4><ul><li>Binary columns (<code>Sex</code>)</li><li>Truly ordered categories (<code>Pclass</code>, sizes, education levels)</li><li>Tree-based models, which split on thresholds and are less fooled by a fake order</li></ul></div>
+      <div class="cons"><h4>Avoid it for</h4><ul><li>Nominal categories with 3 or more values (<code>Embarked</code>) in linear models, SVMs, KNN and neural networks</li><li>Anywhere distance or "bigger than" would be meaningless</li></ul></div>
+    </div>
+
+    <h3>High cardinality</h3>
+    <p><strong>Cardinality</strong> is the number of distinct values. <code>Ticket</code> and <code>Cabin</code> have hundreds. One-hot encoding them creates hundreds of sparse columns, mostly with a single 1, which invites overfitting.</p>
+    <ul>
+      <li><strong>Extract structure</strong>: the deck letter from <code>Cabin</code> (<code>"C85" → "C"</code>), a title from <code>Name</code>.</li>
+      <li><strong>Group rare categories</strong> into <code>"Other"</code> (<code>OneHotEncoder(min_frequency=10)</code> or <code>max_categories=</code>).</li>
+      <li><strong>Frequency encoding</strong>: replace each category with how often it occurs.</li>
+      <li><strong>Target encoding</strong>: replace each category with the average target for that category. Powerful but leaks easily; only use it with cross-fitting (scikit-learn's <code>TargetEncoder</code> does this).</li>
+      <li>Or <strong>drop</strong> the column if it is essentially an identifier.</li>
+    </ul>
+  </section>
+
+  <!-- ============ 10. SCALING ============ -->
+  <section id="scaling">
+    <h2><span class="num">10</span>Feature scaling</h2>
+    <p class="intuition"><strong>Intuition.</strong> Age runs from 0 to 80, Fare from 0 to 512. For a model that measures distances, a difference of 50 in Fare would swamp a difference of 50 years in Age. Scaling puts features on comparable rulers.</p>
+
+    <div class="table-scroll"><table>
+      <thead><tr><th>Scaler</th><th>Formula</th><th>Result</th><th>Best for</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Min-max</strong> (<code>MinMaxScaler</code>)</td><td><code>(x − min) / (max − min)</code></td><td>Values in [0, 1]</td><td>Bounded data, neural network inputs, images. Sensitive to outliers: one 512 squashes everyone else near 0</td></tr>
+        <tr><td><strong>Standardisation</strong> (<code>StandardScaler</code>)</td><td><code>(x − mean) / std</code></td><td>Mean 0, standard deviation 1 (z-scores)</td><td>The usual default: linear and logistic regression, SVM, PCA</td></tr>
+        <tr><td><strong>Robust</strong> (<code>RobustScaler</code>)</td><td><code>(x − median) / IQR</code></td><td>Median 0; outliers stay large but do not distort the rest</td><td>Data with outliers (<code>Fare</code>)</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Which models need scaling?</h3>
+    <div class="proscons">
+      <div class="pros"><h4>Need scaling</h4><ul><li>K-nearest neighbours, k-means (distance-based)</li><li>Support vector machines</li><li>Linear and logistic regression with regularisation</li><li>Neural networks (and gradient descent in general)</li><li>PCA</li></ul></div>
+      <div class="cons"><h4>Do not need scaling</h4><ul><li>Decision trees</li><li>Random forests, extra trees</li><li>Gradient boosting (XGBoost, LightGBM, CatBoost)</li><li>Naive Bayes (mostly)</li></ul><p style="margin:6px 0 0;font-size:.9rem">Trees split on "is Fare &gt; 50?", and the answer is the same whatever the units.</p></div>
+    </div>
+
+    <div class="widget" id="labWidget">
+      <div class="widget-title">Try it: scaling &amp; encoding lab</div>
+      <div class="widget-sub">A 5-row mini table (made-up but Titanic-like). Apply a scaler to the numeric columns and encode the categorical ones. Changed cells are highlighted.</div>
+      <div class="btn-row" role="group" aria-label="Scaler">
+        <button class="btn" type="button" data-scale="none" aria-pressed="true">No scaling</button>
+        <button class="btn" type="button" data-scale="minmax" aria-pressed="false">Min-max</button>
+        <button class="btn" type="button" data-scale="standard" aria-pressed="false">Standard</button>
+        <button class="btn" type="button" data-scale="robust" aria-pressed="false">Robust</button>
+      </div>
+      <div class="btn-row" role="group" aria-label="Encoders">
+        <button class="btn" type="button" id="labOhe" aria-pressed="false">One-hot Embarked</button>
+        <button class="btn" type="button" id="labSex" aria-pressed="false">Label-encode Sex</button>
+      </div>
+      <div class="table-scroll"><table id="labTable"></table></div>
+      <p id="labText" class="note"></p>
+    </div>
+
+<pre><code>from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler
+
+scaler = StandardScaler()
+X_train[["Age", "Fare"]] = scaler.fit_transform(X_train[["Age", "Fare"]])   # learn mean/std on TRAIN
+X_test[["Age", "Fare"]]  = scaler.transform(X_test[["Age", "Fare"]])        # reuse them on TEST
+
+scaler.mean_, scaler.scale_     # the learned parameters</code></pre>
+    <div class="callout warn"><p><strong>Scale numeric features only</strong>, not one-hot 0/1 columns (they are already on a 0–1 scale) and not the target. <code>StandardScaler</code> uses the population standard deviation (dividing by n), so its numbers differ slightly from pandas' <code>.std()</code>, which divides by n − 1.</p></div>
+  </section>
+
+  <!-- ============ 11. FEATURE ENGINEERING ============ -->
+  <section id="features">
+    <h2><span class="num">11</span>Feature engineering basics</h2>
+    <p class="intuition"><strong>Intuition.</strong> Feature engineering means building new columns that express what you know about the problem, so the model does not have to discover it alone. A good feature often beats a fancier model.</p>
+
+    <div class="table-scroll"><table>
+      <thead><tr><th>New feature</th><th>Built from</th><th>Idea</th></tr></thead>
+      <tbody>
+        <tr><td><code>FamilySize</code></td><td><code>SibSp + Parch + 1</code></td><td>Travelling alone vs in a small or large group may change survival chances</td></tr>
+        <tr><td><code>IsAlone</code></td><td><code>FamilySize == 1</code></td><td>A simple yes/no version</td></tr>
+        <tr><td><code>Title</code></td><td>Text between the comma and the full stop in <code>Name</code></td><td>Mr, Mrs, Miss, Master capture sex, age group and status in one column</td></tr>
+        <tr><td><code>AgeBand</code></td><td><code>pd.cut(Age, bins)</code></td><td><strong>Binning</strong>: grouping a continuous value into ranges (child, adult…). Captures non-linear effects for linear models</td></tr>
+        <tr><td><code>HasCabin</code> / <code>Deck</code></td><td><code>Cabin</code></td><td>Turns a mostly-empty column into usable signal</td></tr>
+        <tr><td><code>FarePerPerson</code></td><td><code>Fare / FamilySize</code></td><td>Group tickets inflate Fare; this approximates the individual price</td></tr>
+      </tbody>
+    </table></div>
+<pre><code>df["FamilySize"] = df["SibSp"] + df["Parch"] + 1
+df["IsAlone"]    = (df["FamilySize"] == 1).astype(int)
+
+# "Braund, Mr. Owen Harris" → "Mr"
+df["Title"] = df["Name"].str.extract(r",\s*([^\.]+)\.", expand=False).str.strip()
+df["Title"] = df["Title"].replace({"Mlle": "Miss", "Ms": "Miss", "Mme": "Mrs"})
+common = ["Mr", "Mrs", "Miss", "Master"]
+df["Title"] = df["Title"].where(df["Title"].isin(common), "Rare")   # group rare titles
+
+df["AgeBand"] = pd.cut(df["Age"], bins=[0, 12, 18, 35, 60, 120],
+                       labels=["child", "teen", "young adult", "adult", "senior"])
+df["HasCabin"] = df["Cabin"].notna().astype(int)
+df["Deck"]     = df["Cabin"].str[0].fillna("Unknown")
+df["FarePerPerson"] = df["Fare"] / df["FamilySize"]
+
+df.groupby("Title")["Survived"].agg(["mean", "count"])   # check the feature is informative</code></pre>
+    <div class="callout good"><p><strong>Title also helps imputation.</strong> "Master" was used for boys, so the median age of passengers titled Master is a much better guess for a missing age than the overall median. Group-wise imputation by <code>Title</code> is a classic Titanic trick.</p></div>
+    <div class="callout warn"><p><strong>Rule-based features are safe; data-based features need care.</strong> <code>FamilySize</code> uses only the row itself, so it can be computed on all data. Anything learned from the data (bin edges from quantiles, frequency counts, target means) must be learned from the training set only.</p></div>
+  </section>
+
+  <!-- ============ 12. LEAKAGE & PIPELINES ============ -->
+  <section id="leakage">
+    <h2><span class="num">12</span>Data leakage, fit-on-train-only, and pipelines</h2>
+    <p class="intuition"><strong>Intuition.</strong> The test set is a sealed exam paper. <strong>Data leakage</strong> is any way information from the exam sneaks into revision: the score looks brilliant, then the model fails on genuinely new data.</p>
+
+    <h3>Common forms of leakage</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Leak</th><th>Example</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Preprocessing on all data</strong></td><td>Scaling or imputing with the mean of train + test</td><td>Split first; <code>fit</code> on train, <code>transform</code> both</td></tr>
+        <tr><td><strong>Target leakage</strong></td><td>A feature recorded <em>after</em> the outcome (e.g. a lifeboat number for Titanic, "account closed date" for churn)</td><td>Ask: "would I know this value at prediction time?" If not, drop it</td></tr>
+        <tr><td><strong>Duplicates across the split</strong></td><td>The same row in train and test</td><td>Deduplicate before splitting</td></tr>
+        <tr><td><strong>Time leakage</strong></td><td>Training on the future to predict the past</td><td>Split by time for time-ordered data</td></tr>
+        <tr><td><strong>Tuning on the test set</strong></td><td>Trying many settings and picking the best test score</td><td>Use cross-validation on train; touch the test set once</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>fit vs transform</h3>
+    <ul>
+      <li><code>fit</code>: <strong>learn</strong> parameters from data (the median, the mean and std, the list of categories).</li>
+      <li><code>transform</code>: <strong>apply</strong> those learned parameters.</li>
+      <li><code>fit_transform</code>: both, on the same data. Use it on <strong>training data only</strong>.</li>
+    </ul>
+    <div class="diagram">
+      <div class="box">Full data</div><span class="arrow">→</span>
+      <div class="box">train_test_split</div><span class="arrow">→</span>
+      <div class="box"><b>Train</b><br><small>fit + transform</small></div>
+      <div class="box"><b>Test</b><br><small>transform only</small></div>
+    </div>
+
+    <h3>The leak-proof way: Pipeline + ColumnTransformer</h3>
+    <p>A <strong>Pipeline</strong> chains steps so that calling <code>fit</code> fits every step on the training data in order. A <strong>ColumnTransformer</strong> applies different preprocessing to different columns. Together, they guarantee that the same steps run the same way at training and prediction time, and that cross-validation refits them inside each fold.</p>
+<pre><code>import pandas as pd
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.linear_model import LogisticRegression
+
+df = pd.read_csv("train.csv")
+df["FamilySize"] = df["SibSp"] + df["Parch"] + 1          # row-wise rule: safe before the split
+
+X = df.drop(columns=["Survived", "PassengerId", "Name", "Ticket", "Cabin"])
+y = df["Survived"]
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=42)
+
+numeric     = ["Age", "Fare", "SibSp", "Parch", "FamilySize"]
+categorical = ["Sex", "Embarked", "Pclass"]
+
+numeric_pipe = Pipeline([
+    ("impute", SimpleImputer(strategy="median", add_indicator=True)),
+    ("scale",  StandardScaler()),
+])
+categorical_pipe = Pipeline([
+    ("impute", SimpleImputer(strategy="most_frequent")),
+    ("onehot", OneHotEncoder(handle_unknown="ignore")),
+])
+preprocess = ColumnTransformer([
+    ("num", numeric_pipe, numeric),
+    ("cat", categorical_pipe, categorical),
+])
+
+model = Pipeline([
+    ("preprocess", preprocess),
+    ("clf", LogisticRegression(max_iter=1000)),
+])
+
+print(cross_val_score(model, X_train, y_train, cv=5).mean())  # preprocessing refit in every fold
+model.fit(X_train, y_train)                                   # fit everything on train only
+print(model.score(X_test, y_test))                            # one honest test score</code></pre>
+    <p>Here <code>Pclass</code> is one-hot encoded. You could instead pass it through as an ordinal number (1, 2, 3); try both and compare with cross-validation.</p>
+    <div class="callout good"><p><strong>Bonus:</strong> the fitted pipeline is one object. Save it with <code>joblib.dump(model, "model.joblib")</code>, and at prediction time raw data goes in and predictions come out, with exactly the same imputation, encoding and scaling.</p></div>
+  </section>
+
+  <!-- ============ 13. CHEAT SHEET ============ -->
+  <section id="cheatsheet">
+    <h2><span class="num">13</span>Cheat sheet: problem → find it → fix it</h2>
+    <p class="intuition"><strong>Intuition.</strong> Keep this table next to you during your first few projects.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Problem</th><th>Find it</th><th>Fix it</th></tr></thead>
+      <tbody>
+        <tr><td>Wrong dtype</td><td><code>df.info()</code>, <code>df.dtypes</code></td><td><code>astype</code>, <code>pd.to_numeric(errors="coerce")</code>, <code>pd.to_datetime</code></td></tr>
+        <tr><td>Missing values</td><td><code>df.isnull().sum()</code>, <code>df.isnull().mean()</code></td><td>Drop rows/columns, <code>fillna</code>, <code>SimpleImputer</code>, group-wise median, missing-indicator flag</td></tr>
+        <tr><td>Duplicate rows</td><td><code>df.duplicated().sum()</code>, <code>keep=False</code></td><td><code>drop_duplicates(subset=..., keep=...)</code></td></tr>
+        <tr><td>Inconsistent categories</td><td><code>value_counts()</code>, <code>unique()</code></td><td><code>.str.strip().str.lower()</code>, <code>replace({...})</code></td></tr>
+        <tr><td>Outliers</td><td>Box plot, IQR rule, z-score</td><td>Investigate; keep, <code>clip</code>, <code>np.log1p</code>, or remove clear errors</td></tr>
+        <tr><td>Impossible values</td><td><code>describe()</code> min/max, domain rules</td><td>Set to <code>NaN</code> and impute, or fix at source</td></tr>
+        <tr><td>Skewed numeric feature</td><td>Histogram; mean far from median</td><td><code>np.log1p</code>, <code>RobustScaler</code>, median imputation</td></tr>
+        <tr><td>Text categories</td><td><code>select_dtypes("object")</code></td><td>One-hot (nominal), ordinal mapping (ordered), 0/1 (binary)</td></tr>
+        <tr><td>High-cardinality category</td><td><code>df.nunique()</code></td><td>Extract structure, group rare values, frequency/target encoding, or drop</td></tr>
+        <tr><td>Features on different scales</td><td><code>describe()</code> ranges</td><td><code>StandardScaler</code>, <code>MinMaxScaler</code>, <code>RobustScaler</code> (not needed for trees)</td></tr>
+        <tr><td>Identifier columns</td><td><code>nunique() == len(df)</code></td><td>Drop before modelling</td></tr>
+        <tr><td>Imbalanced target</td><td><code>y.value_counts(normalize=True)</code></td><td>Stratified split, suitable metrics, class weights</td></tr>
+        <tr><td>Leakage</td><td>Suspiciously high scores; "would I know this at prediction time?"</td><td>Split first, Pipeline + ColumnTransformer, drop post-outcome features</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ============ 14. QUIZ ============ -->
+  <section id="quiz">
+    <h2><span class="num">14</span>Quiz</h2>
+    <p class="intuition"><strong>Intuition.</strong> Ten questions to check the key ideas. You get instant feedback and an explanation for each one.</p>
+    <div class="card quiz" id="quizBox"></div>
+    <p><strong id="quizScore"></strong> <button class="btn" type="button" id="quizReset">Try again</button></p>
+  </section>
+
+  <footer>Data Science &amp; Agentic AI Programme · Week 0 · <a href="../index.html">All course docs</a></footer>
+</main>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : "–");
+
+  /* ---------- theme ---------- */
+  const root = document.documentElement;
+  try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch {}
+  const redrawers = [];
+  $("themeToggle").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+    redrawers.forEach((f) => f());
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => redrawers.forEach((f) => f()));
+
+  /* ---------- table of contents highlight ---------- */
+  const tocLinks = [...document.querySelectorAll("aside.toc a")];
+  const sections = tocLinks.map((a) => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        tocLinks.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id));
+      }
+    });
+  }, { rootMargin: "0px 0px -70% 0px" });
+  sections.forEach((s) => obs.observe(s));
+
+  /* ---------- svg helpers ---------- */
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs = {}, text) {
+    const n = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+
+  /* ---------- stats helpers ---------- */
+  const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+  function quantile(a, q) {            // linear interpolation, same as pandas' default
+    const s = [...a].sort((x, y) => x - y);
+    const pos = (s.length - 1) * q, lo = Math.floor(pos), hi = Math.ceil(pos);
+    return s[lo] + (s[hi] - s[lo]) * (pos - lo);
+  }
+  const median = (a) => quantile(a, 0.5);
+  function std(a, ddof = 1) {
+    if (a.length - ddof <= 0) return NaN;
+    const m = mean(a);
+    return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - ddof));
+  }
+  function setPressed(selector, btn) {
+    document.querySelectorAll(selector).forEach((x) => x.setAttribute("aria-pressed", String(x === btn)));
+  }
+
+  /* ---------- survival by group ---------- */
+  const SURV = {
+    Sex: [{ k: "female", n: 314, s: 233 }, { k: "male", n: 577, s: 109 }],
+    Pclass: [{ k: "1st class", n: 216, s: 136 }, { k: "2nd class", n: 184, s: 87 }, { k: "3rd class", n: 491, s: 119 }],
+  };
+  let survBy = "Sex";
+  function drawSurv() {
+    const svg = $("survSvg"); svg.innerHTML = "";
+    const L = 110, R = 560, T = 16, rowH = 54;
+    const rows = SURV[survBy];
+    const X = (p) => L + p * (R - L);
+    const B = T + rows.length * rowH;
+    svg.setAttribute("viewBox", `0 0 600 ${B + 40}`);
+    [0, 0.25, 0.5, 0.75, 1].forEach((p) => {
+      svg.append(el("line", { x1: X(p), y1: T - 4, x2: X(p), y2: B, class: "svg-axis" }));
+      svg.append(el("text", { x: X(p), y: B + 16, class: "svg-text", "text-anchor": "middle" }, Math.round(p * 100) + "%"));
+    });
+    rows.forEach((r, i) => {
+      const p = r.s / r.n, y = T + i * rowH + 8;
+      svg.append(el("text", { x: L - 10, y: y + 20, class: "svg-text", "text-anchor": "end", style: "font-size:13px" }, r.k));
+      svg.append(el("rect", { x: L, y, width: X(p) - L, height: 30, rx: 5, fill: p >= 0.5 ? css("--good") : css("--pos"), opacity: 0.85 }));
+      svg.append(el("text", { x: X(p) + 6, y: y + 20, class: "svg-text", style: "font-size:12px" }, `${(p * 100).toFixed(1)}%  (${r.s} / ${r.n})`));
+    });
+    const overall = 342 / 891;
+    svg.append(el("line", { x1: X(overall), y1: T - 6, x2: X(overall), y2: B, stroke: css("--text"), "stroke-width": 1.5, "stroke-dasharray": "5 4" }));
+    svg.append(el("text", { x: X(overall) + 4, y: B + 32, class: "svg-text" }, `overall ${(overall * 100).toFixed(1)}%`));
+    $("survText").textContent = survBy === "Sex"
+      ? "Women survived at roughly four times the rate of men: the clearest single signal in the dataset, and a reason Sex is always among the most important features."
+      : "Survival falls steadily from first to third class. Because the order is meaningful, Pclass is an ordinal category.";
+  }
+  document.querySelectorAll("[data-surv]").forEach((b) => b.addEventListener("click", () => {
+    survBy = b.dataset.surv; setPressed("[data-surv]", b); drawSurv();
+  }));
+  drawSurv(); redrawers.push(drawSurv);
+
+  /* ---------- missing values chart ---------- */
+  const MISS = [["PassengerId", 0], ["Survived", 0], ["Pclass", 0], ["Name", 0], ["Sex", 0], ["Age", 177],
+    ["SibSp", 0], ["Parch", 0], ["Ticket", 0], ["Fare", 0], ["Cabin", 687], ["Embarked", 2]];
+  function drawMissing() {
+    const svg = $("missSvg"); svg.innerHTML = "";
+    const L = 100, R = 520, T = 8, rowH = 22, N = 891;
+    const X = (v) => L + (v / N) * (R - L);
+    const B = T + MISS.length * rowH;
+    [0, 0.25, 0.5, 0.75, 1].forEach((p) => {
+      svg.append(el("line", { x1: X(p * N), y1: T, x2: X(p * N), y2: B, class: "svg-axis" }));
+      svg.append(el("text", { x: X(p * N), y: B + 14, class: "svg-text", "text-anchor": "middle" }, Math.round(p * 100) + "%"));
+    });
+    MISS.forEach(([name, n], i) => {
+      const y = T + i * rowH;
+      svg.append(el("text", { x: L - 8, y: y + 15, class: "svg-text", "text-anchor": "end", style: "font-size:12px" }, name));
+      const color = n / N > 0.5 ? css("--bad") : n / N > 0.05 ? css("--warn") : css("--good");
+      if (n > 0) svg.append(el("rect", { x: L, y: y + 4, width: Math.max(3, X(n) - L), height: 14, rx: 3, fill: color }));
+      svg.append(el("text", { x: (n > 0 ? Math.max(L + 3, X(n)) : L) + 6, y: y + 15, class: "svg-text" }, n ? `${n} (${((n / N) * 100).toFixed(1)}%)` : "0"));
+    });
+    svg.append(el("text", { x: (L + R) / 2, y: B + 30, class: "svg-text", "text-anchor": "middle" }, "share of the 891 rows that are missing"));
+  }
+  drawMissing(); redrawers.push(drawMissing);
+
+  /* ---------- outlier explorer ---------- */
+  const FARES = [7.25, 7.75, 7.9, 7.9, 8.05, 8.05, 8.66, 9.5, 10.5, 11.13, 12.35, 13, 13, 14.45, 15.5, 16.1, 18, 21, 23.25, 26,
+    26.55, 27.72, 29.13, 31.39, 35.5, 39.69, 46.9, 52, 56.5, 61.98, 69.55, 77.29, 83.16, 90, 110.88, 133.65, 151.55, 211.34, 263, 512.33];
+  const JITTER = FARES.map((_, i) => ((i * 37) % 11) / 10);   // deterministic vertical spread for the dots
+  let outScale = "raw";
+  function drawOutliers() {
+    const k = +$("outK").value, cap = $("outCap").checked, isLog = outScale === "log";
+    $("outKV").textContent = k.toFixed(1);
+    const vals = FARES.map((v) => (isLog ? Math.log1p(v) : v));
+    const q1 = quantile(vals, 0.25), q3 = quantile(vals, 0.75), iqr = q3 - q1, med = median(vals);
+    const lo = q1 - k * iqr, hi = q3 + k * iqr;
+    const isOut = (v) => v < lo || v > hi;
+    const shown = vals.map((v) => (cap ? Math.min(hi, Math.max(lo, v)) : v));
+    const nOut = vals.filter(isOut).length;
+
+    const svg = $("outSvg"); svg.innerHTML = "";
+    const L = 30, R = 580;
+    const dMin = isLog ? 0 : 0, dMax = isLog ? Math.ceil(Math.max(...vals) + 0.2) : 540;
+    const X = (v) => L + ((v - dMin) / (dMax - dMin)) * (R - L);
+    // axis
+    svg.append(el("line", { x1: L, y1: 196, x2: R, y2: 196, class: "svg-axis" }));
+    const ticks = isLog ? [0, 1, 2, 3, 4, 5, 6, 7] : [0, 100, 200, 300, 400, 500];
+    ticks.filter((t) => t <= dMax).forEach((t) => {
+      svg.append(el("line", { x1: X(t), y1: 196, x2: X(t), y2: 200, class: "svg-axis" }));
+      svg.append(el("text", { x: X(t), y: 212, class: "svg-text", "text-anchor": "middle" }, t));
+    });
+    svg.append(el("text", { x: R, y: 226, class: "svg-text", "text-anchor": "end" }, isLog ? "log(1 + fare)" : "fare"));
+    // bounds band
+    const bx1 = X(Math.max(dMin, lo)), bx2 = X(Math.min(dMax, hi));
+    svg.append(el("rect", { x: bx1, y: 10, width: Math.max(0, bx2 - bx1), height: 180, fill: css("--good-soft"), opacity: 0.6 }));
+    if (hi <= dMax) {
+      svg.append(el("line", { x1: X(hi), y1: 10, x2: X(hi), y2: 190, stroke: css("--bad"), "stroke-dasharray": "5 4", "stroke-width": 1.5 }));
+      svg.append(el("text", { x: Math.min(X(hi) + 4, R - 120), y: 22, class: "svg-text" }, `upper bound ${fmt(hi, isLog ? 2 : 1)}`));
+    }
+    if (lo >= dMin) {
+      svg.append(el("line", { x1: X(lo), y1: 10, x2: X(lo), y2: 190, stroke: css("--bad"), "stroke-dasharray": "5 4", "stroke-width": 1.5 }));
+      svg.append(el("text", { x: X(lo) + 4, y: 36, class: "svg-text" }, `lower bound ${fmt(lo, 2)}`));
+    }
+    // box plot
+    const inside = vals.filter((v) => !isOut(v));
+    const wLo = Math.min(...inside), wHi = Math.max(...inside);
+    const by = 58, bh = 36;
+    svg.append(el("line", { x1: X(wLo), y1: by + bh / 2, x2: X(q1), y2: by + bh / 2, stroke: css("--text"), "stroke-width": 1.5 }));
+    svg.append(el("line", { x1: X(q3), y1: by + bh / 2, x2: X(wHi), y2: by + bh / 2, stroke: css("--text"), "stroke-width": 1.5 }));
+    [wLo, wHi].forEach((w) => svg.append(el("line", { x1: X(w), y1: by + 8, x2: X(w), y2: by + bh - 8, stroke: css("--text"), "stroke-width": 1.5 })));
+    svg.append(el("rect", { x: X(q1), y: by, width: Math.max(1, X(q3) - X(q1)), height: bh, fill: css("--accent-soft"), stroke: css("--accent"), "stroke-width": 1.5 }));
+    svg.append(el("line", { x1: X(med), y1: by, x2: X(med), y2: by + bh, stroke: css("--accent"), "stroke-width": 3 }));
+    vals.filter(isOut).forEach((v) => svg.append(el("circle", { cx: X(Math.min(v, dMax)), cy: by + bh / 2, r: 4, fill: "none", stroke: css("--bad"), "stroke-width": 1.5 })));
+    svg.append(el("text", { x: X(q1), y: by - 6, class: "svg-text", "text-anchor": "end" }, "Q1"));
+    svg.append(el("text", { x: X(q3), y: by - 6, class: "svg-text" }, "Q3"));
+    // dots
+    shown.forEach((v, i) => {
+      const out = isOut(vals[i]);
+      const cy = 130 + JITTER[i] * 50;
+      svg.append(el("circle", {
+        cx: X(Math.min(v, dMax)), cy, r: 5,
+        fill: out ? (cap ? css("--warn") : css("--bad")) : css("--accent"),
+        opacity: out ? 1 : 0.7, stroke: css("--surface"), "stroke-width": 1,
+      }));
+    });
+    svg.append(el("text", { x: L, y: 120, class: "svg-text" }, cap ? "each value (capped values in amber)" : "each value (outliers in red)"));
+
+    // metrics, always in the original fare units
+    const back = (v) => (isLog ? Math.expm1(v) : v);
+    const shownFare = shown.map(back);
+    $("outMetrics").innerHTML = [
+      ["Q1", fmt(q1, 2)], ["Q3", fmt(q3, 2)], ["IQR", fmt(iqr, 2)], ["Outliers", `${nOut} / ${FARES.length}`, nOut > 0],
+      ["Mean fare", fmt(mean(shownFare), 1)], ["Median fare", fmt(median(shownFare), 1)],
+    ].map(([kk, v, hl]) => `<div class="metric${hl ? " hl" : ""}"><div class="k">${kk}</div><div class="v">${v}</div></div>`).join("");
+
+    const v = $("outVerdict");
+    const rawMean = mean(FARES);
+    if (isLog) {
+      v.style.background = css("--good-soft"); v.style.color = css("--good");
+      v.textContent = `On the log scale the long right tail is squashed: ${nOut === 0 ? "no values fall" : nOut === 1 ? "only 1 value falls" : `only ${nOut} values fall`} outside the k = ${k.toFixed(1)} bounds, and the order of the values is unchanged. Q1, Q3 and IQR above are in log units; mean and median are converted back to fares.`;
+    } else if (cap && nOut) {
+      v.style.background = css("--warn-soft"); v.style.color = css("--warn");
+      v.textContent = `Capping moved ${nOut} value(s) down to ${fmt(hi, 1)}. The mean fell from ${fmt(rawMean, 1)} to ${fmt(mean(shownFare), 1)}, the median did not move. The rows are kept, but their true size is lost.`;
+    } else {
+      v.style.background = css("--bad-soft"); v.style.color = css("--bad");
+      v.textContent = `With k = ${k.toFixed(1)}, ${nOut} of ${FARES.length} values are flagged. A larger k flags fewer. The mean (${fmt(rawMean, 1)}) sits well above the median (${fmt(median(FARES), 1)}) because of the right tail.`;
+    }
+  }
+  $("outK").addEventListener("input", drawOutliers);
+  $("outCap").addEventListener("change", drawOutliers);
+  document.querySelectorAll("[data-outscale]").forEach((b) => b.addEventListener("click", () => {
+    outScale = b.dataset.outscale; setPressed("[data-outscale]", b); drawOutliers();
+  }));
+  drawOutliers(); redrawers.push(drawOutliers);
+
+  /* ---------- imputation playground ---------- */
+  const AGES = [22, 38, 26, null, 35, 24, null, 54, 2, 24, 27, null, 14, 58, 24, null, 31, 80, 74, null];
+  const BIG = new Set([17, 18]);   // indices of the two large values
+  let impMode = "none";
+  function modeOf(a) {
+    const c = new Map(); a.forEach((v) => c.set(v, (c.get(v) || 0) + 1));
+    let best = a[0], bc = 0; c.forEach((n, v) => { if (n > bc) { bc = n; best = v; } }); return best;
+  }
+  function renderImpute() {
+    const withBig = $("impBig").checked;
+    const data = AGES.map((v, i) => ({ v, i })).filter((d) => withBig || !BIG.has(d.i));
+    const observed = data.filter((d) => d.v !== null).map((d) => d.v);
+    const fills = { mean: mean(observed), median: median(observed), mode: modeOf(observed) };
+    const fill = fills[impMode];
+    let html = "", result = [];
+    data.forEach((d) => {
+      if (d.v === null) {
+        if (impMode === "none") html += `<div class="cell missing">NaN<small>row ${d.i + 1}</small></div>`;
+        else if (impMode === "drop") html += `<div class="cell missing dropped">NaN<small>dropped</small></div>`;
+        else { html += `<div class="cell filled">${fmt(fill, 1)}<small>filled</small></div>`; result.push(fill); }
+      } else {
+        html += `<div class="cell${BIG.has(d.i) ? " big" : ""}">${d.v}<small>row ${d.i + 1}</small></div>`;
+        result.push(d.v);
+      }
+    });
+    $("impCells").innerHTML = html;
+    const nMissing = data.length - observed.length;
+    const usable = impMode === "none" ? observed : result;
+    $("impMetrics").innerHTML = [
+      ["Rows used", `${usable.length}`], ["Mean", fmt(mean(usable), 1)], ["Median", fmt(median(usable), 1)], ["Std", fmt(std(usable), 1)],
+    ].map(([k, v]) => `<div class="metric"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+    const msg = {
+      none: `${nMissing} of ${data.length} values are missing. Statistics are computed on the ${observed.length} observed values (pandas skips NaN by default). Mean ${fmt(fills.mean, 1)} vs median ${fmt(fills.median, 1)}: ${withBig ? "the two large ages pull the mean up, but barely move the median." : "without the large ages, mean and median are much closer."}`,
+      mean: `Every gap gets ${fmt(fills.mean, 1)}. The mean is unchanged, but the standard deviation shrinks because ${nMissing} identical values were added at the centre.${withBig ? " The fill is inflated by the two elderly passengers: most real values are below it." : ""}`,
+      median: `Every gap gets ${fmt(fills.median, 1)}, the middle observed value. It is resistant to the large ages${withBig ? ", so it sits closer to a typical passenger than the mean does" : ""}. A safe default for skewed numeric columns.`,
+      mode: `Every gap gets ${fmt(fills.mode, 0)}, the most frequent value. Natural for categories (Embarked → S); for a continuous column like age it simply repeats one common value.`,
+      drop: `${nMissing} rows are deleted, leaving ${observed.length} of ${data.length} (${Math.round((observed.length / data.length) * 100)}%). No invented values, but you lose data, and if the gaps are not random (MAR/MNAR), the remaining rows are biased.`,
+    };
+    $("impText").textContent = msg[impMode];
+  }
+  document.querySelectorAll("[data-imp]").forEach((b) => b.addEventListener("click", () => {
+    impMode = b.dataset.imp; setPressed("[data-imp]", b); renderImpute();
+  }));
+  $("impBig").addEventListener("change", renderImpute);
+  renderImpute();
+
+  /* ---------- scaling & encoding lab ---------- */
+  const LAB = [
+    { Age: 22, Fare: 7.25, Embarked: "S", Sex: "male" },
+    { Age: 38, Fare: 71.28, Embarked: "C", Sex: "female" },
+    { Age: 26, Fare: 7.93, Embarked: "S", Sex: "female" },
+    { Age: 35, Fare: 53.1, Embarked: "S", Sex: "female" },
+    { Age: 27, Fare: 8.46, Embarked: "Q", Sex: "male" },
+  ];
+  let labScale = "none", labOhe = false, labSex = false;
+  function scaleCol(col) {
+    const a = LAB.map((r) => r[col]);
+    if (labScale === "minmax") { const mn = Math.min(...a), mx = Math.max(...a); return { v: a.map((x) => (x - mn) / (mx - mn)), p: `min ${mn}, max ${mx}` }; }
+    if (labScale === "standard") { const m = mean(a), s = std(a, 0); return { v: a.map((x) => (x - m) / s), p: `mean ${fmt(m, 2)}, std ${fmt(s, 2)}` }; }
+    if (labScale === "robust") { const m = median(a), i = quantile(a, 0.75) - quantile(a, 0.25); return { v: a.map((x) => (x - m) / i), p: `median ${fmt(m, 2)}, IQR ${fmt(i, 2)}` }; }
+    return { v: a, p: "" };
+  }
+  function renderLab() {
+    const age = scaleCol("Age"), fare = scaleCol("Fare");
+    const scaled = labScale !== "none";
+    const ports = ["C", "Q", "S"];
+    let head = "<thead><tr><th>#</th><th class=\"num\">Age</th><th class=\"num\">Fare</th>";
+    head += labOhe ? ports.map((p) => `<th class="num">Embarked_${p}</th>`).join("") : "<th>Embarked</th>";
+    head += labSex ? "<th class=\"num\">Sex (code)</th>" : "<th>Sex</th>";
+    head += "</tr></thead>";
+    const body = LAB.map((r, i) => {
+      let tr = `<tr><td>${i + 1}</td>`;
+      tr += `<td class="num${scaled ? " changed" : ""}">${scaled ? fmt(age.v[i], 2) : r.Age}</td>`;
+      tr += `<td class="num${scaled ? " changed" : ""}">${scaled ? fmt(fare.v[i], 2) : r.Fare}</td>`;
+      tr += labOhe ? ports.map((p) => `<td class="num changed">${r.Embarked === p ? 1 : 0}</td>`).join("") : `<td>${r.Embarked}</td>`;
+      tr += labSex ? `<td class="num changed">${r.Sex === "female" ? 0 : 1}</td>` : `<td>${r.Sex}</td>`;
+      return tr + "</tr>";
+    }).join("");
+    $("labTable").innerHTML = head + "<tbody>" + body + "</tbody>";
+
+    const parts = [];
+    if (labScale === "minmax") parts.push(`Min-max: (x − min) / (max − min). Age: ${age.p}; Fare: ${fare.p}. Every value now lies in [0, 1]. Notice the two high fares push the three cheap ones close to 0.`);
+    else if (labScale === "standard") parts.push(`Standardisation: (x − mean) / std. Age: ${age.p}; Fare: ${fare.p}. Each column now has mean 0 and standard deviation 1; negative means "below average".`);
+    else if (labScale === "robust") parts.push(`Robust: (x − median) / IQR. Age: ${age.p}; Fare: ${fare.p}. The median row becomes 0; extreme values stay large instead of squashing the rest.`);
+    else parts.push("Age and Fare are on very different ranges (22–38 vs 7–71). Pick a scaler.");
+    if (labOhe) parts.push("One-hot: Embarked became three 0/1 columns; each row has exactly one 1. No fake order between ports.");
+    if (labSex) parts.push("Label encoding: female → 0, male → 1 (alphabetical, like LabelEncoder). Fine here because Sex is binary.");
+    parts.push("In a real project, the scaler's parameters are learned on the training set only.");
+    $("labText").textContent = parts.join(" ");
+  }
+  document.querySelectorAll("[data-scale]").forEach((b) => b.addEventListener("click", () => {
+    labScale = b.dataset.scale; setPressed("[data-scale]", b); renderLab();
+  }));
+  $("labOhe").addEventListener("click", () => { labOhe = !labOhe; $("labOhe").setAttribute("aria-pressed", String(labOhe)); renderLab(); });
+  $("labSex").addEventListener("click", () => { labSex = !labSex; $("labSex").setAttribute("aria-pressed", String(labSex)); renderLab(); });
+  renderLab();
+
+  /* ---------- quiz ---------- */
+  const QUIZ = [
+    { q: "Fare has a mean of about 32.2 and a median of about 14.45. What does this tell you?", o: ["Fare is roughly symmetric", "Fare is right-skewed: a few large values pull the mean up", "Fare has many missing values", "Fare is a categorical column"], a: 1, w: "When the mean is far above the median, a long right tail of large values is dragging the mean upwards." },
+    { q: "Cabin is 77.1% missing. What is the most sensible first move?", o: ["Fill every gap with the mean cabin number", "Drop every row with a missing cabin", "Drop the column, or reduce it to a HasCabin 0/1 flag", "Ignore it; models handle text automatically"], a: 2, w: "With most values missing, filling would be mostly invention and dropping rows would lose 687 of 891 passengers. A known/unknown flag keeps the signal." },
+    { q: "Values are missing because of something you can see in other columns (e.g. more gaps in third class). This is…", o: ["MCAR", "MAR", "MNAR", "A duplicate"], a: 1, w: "Missing at random (MAR): the missingness depends on observed columns, so you can use those columns to impute." },
+    { q: "Which imputation is the safest default for a skewed numeric column with outliers?", o: ["Mean", "Median", "Mode", "Zero"], a: 1, w: "The median depends only on the middle position, so extreme values barely move it." },
+    { q: "With the IQR rule, Q1 = 10 and Q3 = 30. What is the upper bound with k = 1.5?", o: ["45", "60", "30", "75"], a: 1, w: "IQR = 20, so the upper bound is Q3 + 1.5 × 20 = 30 + 30 = 60." },
+    { q: "116 Titanic fares lie above the IQR upper bound, about 90% of them first class. What should you do?", o: ["Delete them: the rule says they are outliers", "Investigate: they are genuine, so keep, cap or log-transform depending on the model", "Replace them with the mean", "Set them to missing"], a: 1, w: "They are real first-class fares. Deleting them would remove much of first class and bias the model." },
+    { q: "Why not label-encode Embarked as C = 0, Q = 1, S = 2 for a logistic regression?", o: ["It uses too much memory", "It invents an order and distances between ports that do not exist", "Logistic regression cannot read integers", "It creates too many columns"], a: 1, w: "Embarked is nominal. One-hot encoding avoids implying that S is 'twice' Q." },
+    { q: "What does OneHotEncoder(handle_unknown=\"ignore\") do with a category it never saw during fit?", o: ["Raises an error", "Encodes it as all zeros", "Adds a new column", "Drops the row"], a: 1, w: "Unknown categories become a row of zeros, so prediction does not crash on new data." },
+    { q: "Which model does NOT need feature scaling?", o: ["K-nearest neighbours", "Support vector machine", "Random forest", "Logistic regression with regularisation"], a: 2, w: "Tree-based models split on thresholds, which are unaffected by the units of a feature." },
+    { q: "You call StandardScaler().fit_transform(X) on the whole dataset, then split into train and test. What is wrong?", o: ["Nothing", "Data leakage: the test rows influenced the mean and std", "StandardScaler only works on test data", "You should have used MinMaxScaler"], a: 1, w: "Split first, fit on train only, and transform the test set with the training parameters, ideally inside a Pipeline." },
+  ];
+  let answered = 0, correct = 0;
+  function renderQuiz() {
+    answered = 0; correct = 0;
+    $("quizScore").textContent = `0 / ${QUIZ.length} answered`;
+    $("quizBox").innerHTML = QUIZ.map((it, qi) => `<div class="q" data-q="${qi}"><div class="prompt">${qi + 1}. ${esc(it.q)}</div><div class="opts">${it.o.map((o, oi) => `<button class="opt" type="button" data-o="${oi}">${esc(o)}</button>`).join("")}</div><div class="why">${esc(it.w)}</div></div>`).join("");
+  }
+  $("quizBox").addEventListener("click", (e) => {
+    const b = e.target.closest(".opt"); if (!b || b.disabled) return;
+    const qEl = b.closest(".q"), it = QUIZ[+qEl.dataset.q];
+    qEl.querySelectorAll(".opt").forEach((o) => { o.disabled = true; if (+o.dataset.o === it.a) o.classList.add("right"); });
+    if (+b.dataset.o !== it.a) b.classList.add("wrong"); else correct++;
+    qEl.classList.add("answered"); answered++;
+    $("quizScore").textContent = answered === QUIZ.length ? `Score: ${correct} / ${QUIZ.length}` : `${correct} correct · ${answered} / ${QUIZ.length} answered`;
+  });
+  $("quizReset").addEventListener("click", renderQuiz);
+  renderQuiz();
+})();
+</script>
+</body>
+</html>

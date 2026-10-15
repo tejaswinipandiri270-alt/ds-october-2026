@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MLflow Experiment Tracking</title>
+<meta name="description" content="Week 2 reference: tracking deep learning experiments with MLflow: runs, parameters, metrics, artifacts, autologging, comparing runs, searching in code, logging models, the model registry with aliases, and the champion vs challenger workflow.">
+<style>
+  :root {
+    --bg: #f7f6f2; --surface: #ffffff; --surface-2: #f0eee8; --text: #1d1d1b; --muted: #5f5d57;
+    --border: #dcd9d0; --accent: #2f5bd3; --accent-soft: #e3eafc;
+    --pos: #c2410c; --pos-soft: #fde8dc; --neg: #2f5bd3; --neg-soft: #e3eafc;
+    --good: #1f7a4d; --good-soft: #ddf2e6; --bad: #b3261e; --bad-soft: #fbe3e1; --warn: #8a5a00; --warn-soft: #fbf0d9;
+    --code-bg: #f3f1ec; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05); --radius: 14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+      --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+      --pos: #ff9a62; --pos-soft: #3d2618; --neg: #8aa8ff; --neg-soft: #1f2a47;
+      --good: #6fd3a0; --good-soft: #173326; --bad: #ff8a80; --bad-soft: #3d1f1d; --warn: #f0c56b; --warn-soft: #3a2f17;
+      --code-bg: #232321; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+    --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+    --pos: #ff9a62; --pos-soft: #3d2618; --neg: #8aa8ff; --neg-soft: #1f2a47;
+    --good: #6fd3a0; --good-soft: #173326; --bad: #ff8a80; --bad-soft: #3d1f1d; --warn: #f0c56b; --warn-soft: #3a2f17;
+    --code-bg: #232321; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .layout { display: grid; grid-template-columns: 1fr; max-width: 1240px; margin: 0 auto; }
+  @media (min-width: 1000px) { .layout { grid-template-columns: 250px minmax(0, 1fr); gap: 32px; padding: 0 24px; } }
+  aside.toc { display: none; }
+  @media (min-width: 1000px) {
+    aside.toc { display: block; position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; padding: 28px 0 28px; }
+  }
+  aside.toc .toc-title { font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px 10px; }
+  aside.toc a { display: block; color: var(--muted); text-decoration: none; font-size: .9rem; padding: 4px 10px; border-left: 2px solid transparent; border-radius: 0 6px 6px 0; }
+  aside.toc a:hover { color: var(--text); background: var(--surface-2); }
+  aside.toc a.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+  aside.toc a.sub { padding-left: 22px; font-size: .84rem; }
+  details.mobile-toc { margin: 16px 0 0; }
+  @media (min-width: 1000px) { details.mobile-toc { display: none; } }
+  details.mobile-toc summary { cursor: pointer; font-weight: 600; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  details.mobile-toc nav { display: grid; gap: 2px; padding: 8px 4px; }
+  details.mobile-toc a { color: var(--text); text-decoration: none; padding: 4px 10px; font-size: .92rem; }
+  main { min-width: 0; padding: 28px 16px 96px; max-width: 880px; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.7rem); line-height: 1.12; margin: 4px 0 12px; letter-spacing: -0.02em; }
+  h2 { font-size: 1.6rem; margin: 0 0 8px; letter-spacing: -0.01em; line-height: 1.25; }
+  h3 { font-size: 1.15rem; margin: 26px 0 8px; }
+  h4 { font-size: 1rem; margin: 18px 0 6px; }
+  p { margin: 0 0 12px; }
+  ul, ol { margin: 0 0 12px; padding-left: 22px; }
+  li { margin: 3px 0; }
+  a { color: var(--accent); }
+  .eyebrow { color: var(--muted); font-size: .82rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; }
+  .lede { color: var(--muted); font-size: 1.12rem; max-width: 64ch; }
+  section { margin-top: 56px; }
+  .num { color: var(--accent); margin-right: 6px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin: 16px 0; }
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 16px 0; }
+  .callout.good { border-color: var(--good); background: var(--good-soft); }
+  .callout.bad { border-color: var(--bad); background: var(--bad-soft); }
+  .callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+  .callout > :last-child { margin-bottom: 0; }
+  .intuition { font-size: 1.05rem; border-left: 4px solid var(--good); background: var(--good-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 12px 0 16px; }
+  .intuition strong:first-child { color: var(--good); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 5px; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: .85rem; line-height: 1.55; margin: 12px 0 16px; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .table-scroll { overflow-x: auto; margin: 12px 0 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  th { font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); }
+  td code { white-space: nowrap; }
+  .grid-2 { display: grid; gap: 14px; grid-template-columns: 1fr; }
+  @media (min-width: 720px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+  .grid-2 .card { margin: 0; }
+  .pill { display: inline-block; font-size: .74rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+  .pill.up { background: var(--bad-soft); color: var(--bad); }
+  .pill.down { background: var(--good-soft); color: var(--good); }
+  .pill.neutral { background: var(--surface-2); color: var(--muted); }
+  .proscons { display: grid; gap: 12px; grid-template-columns: 1fr; margin: 12px 0; }
+  @media (min-width: 640px) { .proscons { grid-template-columns: 1fr 1fr; } }
+  .proscons > div { border-radius: 10px; padding: 12px 14px; }
+  .proscons .pros { background: var(--good-soft); }
+  .proscons .cons { background: var(--bad-soft); }
+  .proscons h4 { margin: 0 0 6px; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+  .proscons .pros h4 { color: var(--good); } .proscons .cons h4 { color: var(--bad); }
+  .proscons ul { margin: 0; }
+  .theme-toggle { position: fixed; top: 12px; right: 12px; z-index: 5; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  /* widgets */
+  .widget { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; margin: 18px 0; }
+  .widget-title { font-weight: 700; margin-bottom: 4px; }
+  .widget-sub { color: var(--muted); font-size: .9rem; margin-bottom: 12px; }
+  .controls { display: grid; gap: 10px 18px; grid-template-columns: 1fr; margin-bottom: 12px; }
+  @media (min-width: 640px) { .controls { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }
+  .controls label { display: grid; gap: 2px; font-size: .86rem; color: var(--muted); }
+  .controls label span b { color: var(--text); }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .widget svg { width: 100%; height: auto; display: block; }
+  .svg-text { fill: var(--muted); font-size: 11px; font-family: system-ui, sans-serif; }
+  .svg-axis { stroke: var(--border); stroke-width: 1; }
+  .metrics-row { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); margin-top: 12px; }
+  .metric { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+  .metric .k { font-size: .74rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+  .metric .v { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .metric.hl { outline: 2px solid var(--bad); }
+  .cm { display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px; font-size: .85rem; max-width: 360px; }
+  .cm div { padding: 8px; border-radius: 8px; text-align: center; }
+  .cm .h { color: var(--muted); font-size: .75rem; font-weight: 700; background: none; }
+  .cm .tp { background: var(--good-soft); } .cm .tn { background: var(--good-soft); }
+  .cm .fp { background: var(--bad-soft); } .cm .fn { background: var(--bad-soft); }
+  .cm b { display: block; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+  .sim-grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .sim-grid { grid-template-columns: 1.4fr 1fr; } }
+  .verdict { font-weight: 700; padding: 8px 12px; border-radius: 10px; margin-top: 10px; }
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 6px 12px; border-radius: 9px; cursor: pointer; font: inherit; font-size: .9rem; }
+  .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .folds { display: grid; gap: 4px; }
+  .fold-row { display: grid; gap: 3px; align-items: center; grid-template-columns: 64px 1fr 70px; font-size: .8rem; color: var(--muted); }
+  .fold-cells { display: grid; gap: 3px; }
+  .fold-cells div { height: 22px; border-radius: 5px; background: var(--accent-soft); border: 1px solid var(--accent); opacity: .55; }
+  .fold-cells div.val { background: var(--pos); border-color: var(--pos); opacity: 1; }
+  .diagram { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 14px 0; font-size: .85rem; }
+  .diagram .box { border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px; padding: 6px 10px; text-align: center; }
+  .diagram .arrow { color: var(--muted); }
+  .quiz .q { margin-bottom: 16px; }
+  .quiz .prompt { font-weight: 600; margin-bottom: 6px; }
+  .quiz .opts { display: grid; gap: 6px; }
+  .quiz .opt { text-align: left; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); padding: 8px 12px; border-radius: 9px; cursor: pointer; font: inherit; }
+  .quiz .opt:disabled { cursor: default; }
+  .quiz .opt.right { border-color: var(--good); background: var(--good-soft); color: var(--good); font-weight: 600; }
+  .quiz .opt.wrong { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
+  .quiz .why { display: none; color: var(--muted); font-size: .88rem; margin-top: 4px; }
+  .quiz .q.answered .why { display: block; }
+  footer { margin-top: 64px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 16px; }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+
+  /* page-specific additions (same tokens, same look) */
+  select, input[type="text"], input[type="search"] { font: inherit; font-size: .9rem; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 6px 10px; width: 100%; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); font-weight: 600; }
+  .runs-table th button { all: unset; cursor: pointer; white-space: nowrap; }
+  .runs-table th button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .runs-table td, .runs-table th { white-space: nowrap; }
+  .runs-table td.num, .runs-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .runs-table tr.best td { background: var(--good-soft); }
+  .runs-table input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .82rem; color: var(--muted); margin-top: 8px; }
+  .legend span.sw { display: inline-block; width: 18px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+  .filter-msg { font-size: .85rem; color: var(--muted); margin: 4px 0 8px; }
+  .filter-msg.err { color: var(--bad); }
+  .event-log { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; max-height: 320px; overflow-y: auto; }
+  .event-log li { background: var(--surface-2); border-radius: 9px; padding: 8px 10px; font-size: .88rem; margin: 0; }
+  .event-log li code { display: block; white-space: pre-wrap; word-break: break-word; margin-top: 4px; }
+  .alias { display: inline-block; font-size: .74rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; margin-right: 4px; }
+  .alias.champ { background: var(--good-soft); color: var(--good); border: 1px solid var(--good); }
+  p code, li code { overflow-wrap: anywhere; }
+  .grid-2 > * { min-width: 0; }
+  .alias.chall { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn); }
+</style>
+<style>
+  /* Phone-width fixes: let grid/flex children shrink so wide code scrolls inside its box,
+     and let long inline code (e.g. module paths) wrap instead of widening the page. */
+  main div, main section, main details { min-width: 0; }
+  :not(pre) > code { overflow-wrap: anywhere; }
+</style>
+<style>
+  /* theme-toggle clearance: the fixed Theme button would otherwise overlap the first line on phones */
+  @media (max-width: 999px) { main { padding-top: 56px; } }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">◐ Theme</button>
+<div class="layout">
+  <aside class="toc" aria-label="Contents">
+    <p class="toc-title">Contents</p>
+    <a href="#why">1 · The problem MLflow solves</a>
+    <a href="#components">2 · What MLflow is</a>
+    <a href="#vocab">3 · Core vocabulary</a>
+    <a href="#setup">4 · Install and open the UI</a>
+    <a href="#manual">5 · Manual logging</a>
+    <a href="#autolog">6 · Autologging</a>
+    <a href="#naming">7 · Naming and organising</a>
+    <a href="#artifacts">8 · Figures and artifacts</a>
+    <a href="#compare">9 · Comparing runs in the UI</a>
+    <a class="sub" href="#runs-widget">Try it: a runs table</a>
+    <a href="#search">10 · Searching runs in code</a>
+    <a href="#models">11 · Logging and loading models</a>
+    <a href="#registry">12 · The model registry</a>
+    <a href="#champion">13 · Champion vs challenger</a>
+    <a class="sub" href="#cc-widget">Try it: promotion simulator</a>
+    <a href="#example">14 · Worked example</a>
+    <a href="#practices">15 · Good practices</a>
+    <a class="sub" href="#checklist">Week 2 checklist</a>
+    <a href="#troubleshooting">16 · Troubleshooting</a>
+    <a href="#cheatsheet">17 · Cheat sheet</a>
+    <a href="#quiz">18 · Quiz</a>
+  </aside>
+
+<main>
+  <header>
+    <div class="eyebrow">Week 2 · Deep Learning &amp; MLflow</div>
+    <h1>Tracking experiments and models with MLflow</h1>
+    <p class="lede">This week you will train at least three deep learning models. MLflow records every run (its settings, scores, plots and the model itself) so you can compare them side by side, reproduce the best one, and hand it on. This page covers tracking, autologging, comparing and searching runs, logging models, and the model registry with its champion and challenger aliases, which come back in Week 3's MLOps pipeline.</p>
+    <details class="mobile-toc">
+      <summary>Contents</summary>
+      <nav>
+        <a href="#why">1 · The problem MLflow solves</a><a href="#components">2 · What MLflow is</a><a href="#vocab">3 · Core vocabulary</a>
+        <a href="#setup">4 · Install and open the UI</a><a href="#manual">5 · Manual logging</a><a href="#autolog">6 · Autologging</a>
+        <a href="#naming">7 · Naming and organising</a><a href="#artifacts">8 · Figures and artifacts</a><a href="#compare">9 · Comparing runs in the UI</a>
+        <a href="#search">10 · Searching runs in code</a><a href="#models">11 · Logging and loading models</a><a href="#registry">12 · The model registry</a>
+        <a href="#champion">13 · Champion vs challenger</a><a href="#example">14 · Worked example</a><a href="#practices">15 · Good practices</a>
+        <a href="#troubleshooting">16 · Troubleshooting</a><a href="#cheatsheet">17 · Cheat sheet</a><a href="#quiz">18 · Quiz</a>
+      </nav>
+    </details>
+  </header>
+
+  <!-- ============ 1. WHY ============ -->
+  <section id="why">
+    <h2><span class="num">1</span>The problem MLflow solves</h2>
+    <p class="intuition"><strong>Intuition.</strong> MLflow is a lab notebook that fills itself in. Every time you train a model, it writes down what you tried and how well it worked, so you never have to ask "which notebook cell produced my best model?"</p>
+
+    <p>Picture a normal Tuesday afternoon. You have trained a Keras network on the Adult Census Income data a dozen times. You changed the learning rate, added a layer, tried dropout, went back to fewer layers. One of those runs scored 85.7% validation accuracy. Which one? You re-ran some cells, the output was overwritten, and your notes say "lr 0.001? maybe 2 layers".</p>
+    <p>This is the normal state of machine learning without tracking. The four problems it causes:</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Problem</th><th>Without tracking</th><th>With MLflow</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Memory</strong></td><td>"Which settings gave the 85.7%?" Lost when the cell re-ran.</td><td>Every run is stored with its settings and scores, forever.</td></tr>
+        <tr><td><strong>Reproducibility</strong></td><td>You can't rebuild the best model because you don't know the exact settings, data version or code version.</td><td>Parameters, tags (data version, git commit) and the saved model sit together in one run.</td></tr>
+        <tr><td><strong>Comparison</strong></td><td>Copying numbers into a spreadsheet by hand; mistakes creep in.</td><td>A sortable, filterable table and charts of all runs; select several and compare.</td></tr>
+        <tr><td><strong>Collaboration and hand-over</strong></td><td>"The model is in <code>final_v3_REAL.keras</code> on my laptop."</td><td>A shared tracking server and a <strong>model registry</strong> with named versions, such as "the current champion".</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout"><p><strong>Reproducibility</strong> means that someone else (or you, in a month) can get the same result from the same inputs. It needs four things recorded: the code version, the data version, the settings, and the random seed. MLflow gives you a place to put all four.</p></div>
+    <p>MLflow is <strong>open source</strong>, works with almost any library (Keras, TensorFlow, PyTorch, scikit-learn, XGBoost and many more), and runs perfectly well on your own laptop with no server or cloud account.</p>
+  </section>
+
+  <!-- ============ 2. COMPONENTS ============ -->
+  <section id="components">
+    <h2><span class="num">2</span>What MLflow is: its components</h2>
+    <p class="intuition"><strong>Intuition.</strong> MLflow is a toolbox, not one tool. This week you mostly use <strong>Tracking</strong> (recording runs). <strong>Models</strong> and the <strong>Model Registry</strong> (saving and versioning models) matter most in Week 3.</p>
+
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0">Tracking</h4><p style="margin:0">An API and web UI for logging and browsing runs: parameters, metrics, artifacts and tags. <strong>The core of this week.</strong></p></div>
+      <div class="card"><h4 style="margin-top:0">Models</h4><p style="margin:0">A standard way to save a model with everything needed to load it again: the files, the library ("flavour"), dependencies and an input/output signature. Any MLflow model can be loaded the same way through <code>mlflow.pyfunc</code>.</p></div>
+      <div class="card"><h4 style="margin-top:0">Model Registry</h4><p style="margin:0">A central catalogue of named models, each with numbered <strong>versions</strong> and movable <strong>aliases</strong> such as <code>champion</code> and <code>challenger</code>. Used heavily in Week 3.</p></div>
+      <div class="card"><h4 style="margin-top:0">Projects (briefly)</h4><p style="margin:0">A way to package code with an <code>MLproject</code> file so it can be re-run with <code>mlflow run</code>. Less common today; you won't need it on this course.</p></div>
+    </div>
+    <p style="margin-top:14px">Recent MLflow releases also add features for generative AI applications: tracing of LLM and agent calls, prompt versioning and LLM evaluation. You will meet some of these ideas in the agentic AI weeks; this page focuses on classic model tracking.</p>
+    <div class="diagram">
+      <div class="box">Your training script<br><small>Keras, scikit-learn…</small></div><span class="arrow">→ log →</span>
+      <div class="box">Tracking store<br><small>runs: params, metrics, tags</small></div><span class="arrow">+</span>
+      <div class="box">Artifact store<br><small>files: plots, models</small></div><span class="arrow">→</span>
+      <div class="box">MLflow UI<br><small>compare runs</small></div><span class="arrow">→</span>
+      <div class="box">Model Registry<br><small>versions + aliases</small></div>
+    </div>
+    <p>Two kinds of storage sit behind MLflow. The <strong>tracking store</strong> (also called the backend store) holds the small things: parameters, metrics, tags and run information. The <strong>artifact store</strong> holds files, which can be large: images, the saved model. On your laptop both live in your project folder.</p>
+  </section>
+
+  <!-- ============ 3. VOCABULARY ============ -->
+  <section id="vocab">
+    <h2><span class="num">3</span>Core vocabulary</h2>
+    <p class="intuition"><strong>Intuition.</strong> An <strong>experiment</strong> is a folder for one question. Each training attempt inside it is a <strong>run</strong>. A run records its inputs (<strong>parameters</strong>), its scores (<strong>metrics</strong>), its output files (<strong>artifacts</strong>) and labels (<strong>tags</strong>).</p>
+
+    <div class="diagram">
+      <div class="box"><b>Experiment</b><br><small>adult-income-mlp</small></div><span class="arrow">contains →</span>
+      <div class="box"><b>Run</b> "mlp-2x128-lr1e-3"<br><small>run ID a1f3…</small></div><span class="arrow">records →</span>
+      <div class="box">Parameters<br><small>lr = 0.001</small></div>
+      <div class="box">Metrics<br><small>val_loss per epoch</small></div>
+      <div class="box">Artifacts<br><small>curve.png, model/</small></div>
+      <div class="box">Tags<br><small>data_version = v1</small></div>
+    </div>
+
+    <div class="table-scroll"><table>
+      <thead><tr><th>Term</th><th>What it is</th><th>Example</th><th>Key facts</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Experiment</strong></td><td>A named group of runs that answer one question</td><td><code>adult-income-mlp</code></td><td>Created by <code>mlflow.set_experiment()</code> if it doesn't exist. Runs not assigned anywhere go to an experiment called "Default".</td></tr>
+        <tr><td><strong>Run</strong></td><td>One execution of your training code</td><td>One call to <code>model.fit</code> with one set of settings</td><td>Has a unique, random <strong>run ID</strong>, a start and end time, and a status (RUNNING, FINISHED, FAILED).</td></tr>
+        <tr><td><strong>Run name</strong></td><td>A human-friendly label for a run</td><td><code>mlp-2x128-adam-lr1e-3</code></td><td>If you don't give one, MLflow makes up a random two-word name. Names don't have to be unique; IDs are.</td></tr>
+        <tr><td><strong>Parameter</strong> (param)</td><td>An input setting you chose <em>before</em> training</td><td><code>learning_rate=0.001</code>, <code>epochs=20</code></td><td>Stored as text. Logged <strong>once</strong> per run: logging the same key with a different value raises an error.</td></tr>
+        <tr><td><strong>Metric</strong></td><td>A number that measures how well the run did</td><td><code>val_loss</code>, <code>val_accuracy</code>, <code>rmse</code></td><td>Numeric. Can be logged <strong>many times</strong> with a <code>step</code> (for example, once per epoch), which gives you a curve.</td></tr>
+        <tr><td><strong>Artifact</strong></td><td>Any output file</td><td>A training-curve PNG, a confusion matrix, a CSV of predictions, the saved model</td><td>Stored in the artifact store and browsable in the UI.</td></tr>
+        <tr><td><strong>Tag</strong></td><td>A free-text label about the run</td><td><code>data_version=adult-v1</code>, <code>stage=baseline</code></td><td>Can be changed later. MLflow adds system tags that start with <code>mlflow.</code> (such as <code>mlflow.runName</code> and, when available, the git commit).</td></tr>
+        <tr><td><strong>Model</strong></td><td>A trained model saved in MLflow's standard format</td><td>The Keras network, logged with <code>log_model</code></td><td>Can be loaded back with one line and registered in the Model Registry.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Per-step metrics</h3>
+    <p>A <strong>step</strong> is a counter you attach to a metric value, usually the epoch number (one <strong>epoch</strong> is one full pass through the training data). Logging <code>val_loss</code> at steps 0, 1, 2… gives MLflow a whole curve, which the UI draws as a line chart. In the runs table, MLflow shows the <strong>last</strong> value logged for each metric.</p>
+
+    <div class="widget" id="vocabWidget">
+      <div class="widget-title">Try it: parameter, metric, artifact or tag?</div>
+      <div class="widget-sub">Decide where each item belongs. You get instant feedback.</div>
+      <div class="quiz" id="vocabBox"></div>
+      <p style="margin:0"><strong id="vocabScore"></strong> <button class="btn" type="button" id="vocabReset">Try again</button></p>
+    </div>
+  </section>
+
+  <!-- ============ 4. SETUP ============ -->
+  <section id="setup">
+    <h2><span class="num">4</span>Install and open the UI</h2>
+    <p class="intuition"><strong>Intuition.</strong> One command installs MLflow into your project, another opens a web page that shows every run you have logged.</p>
+
+    <h3>Install with uv</h3>
+    <p>The course uses <strong>uv</strong>, a fast Python package and project manager. From your project folder:</p>
+<pre><code>uv add mlflow                     # adds MLflow to pyproject.toml and installs it
+uv add tensorflow scikit-learn    # if you don't already have them
+uv run python -c "import mlflow; print(mlflow.__version__)"   # check it works</code></pre>
+
+    <h3>Start the UI</h3>
+<pre><code>uv run mlflow ui</code></pre>
+    <p>Then open <strong>http://127.0.0.1:5000</strong> in your browser. Leave that terminal running; stop it with <code>Ctrl+C</code>. Run the command <strong>from your project folder</strong>: the UI reads runs from the folder it was started in.</p>
+
+    <h3>Where are my runs stored?</h3>
+    <p>By default, MLflow stores runs <strong>locally in your project folder</strong>. Depending on your MLflow version, that is either an <code>mlruns/</code> folder or a SQLite database file called <code>mlflow.db</code> (newer default setups), with artifacts in a folder next to it. You can choose explicitly with a <strong>tracking URI</strong>, the address MLflow sends runs to:</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Tracking URI</th><th>Where runs go</th><th>When to use</th></tr></thead>
+      <tbody>
+        <tr><td><em>(not set)</em></td><td>The default local store in the current folder</td><td>Getting started on your laptop</td></tr>
+        <tr><td><code>sqlite:///mlflow.db</code></td><td>A SQLite database file in the current folder</td><td>Local work, including the Model Registry; reliable and fast</td></tr>
+        <tr><td><code>http://127.0.0.1:5000</code></td><td>A running MLflow <strong>server</strong> (<code>mlflow server</code>)</td><td>Sharing one store between several scripts, notebooks or people</td></tr>
+      </tbody>
+    </table></div>
+<pre><code>import mlflow
+
+mlflow.set_tracking_uri("sqlite:///mlflow.db")   # optional: pick the store explicitly
+print(mlflow.get_tracking_uri())                  # see where runs are going</code></pre>
+    <p>If you set a tracking URI in code, start the UI pointing at the same store, for example <code>uv run mlflow ui --backend-store-uri sqlite:///mlflow.db</code>. A mismatch here is the number one reason for "the UI shows no runs" (see <a href="#troubleshooting">Troubleshooting</a>).</p>
+    <div class="callout warn"><p><strong>Keep the stores out of git.</strong> Add these lines to <code>.gitignore</code> before your first commit. They can grow to gigabytes and may contain data.</p>
+<pre style="margin-bottom:0"><code>mlruns/
+mlartifacts/
+mlflow.db</code></pre></div>
+  </section>
+
+  <!-- ============ 5. MANUAL ============ -->
+  <section id="manual">
+    <h2><span class="num">5</span>Manual logging</h2>
+    <p class="intuition"><strong>Intuition.</strong> Open a run, write things into it, close it. The <code>with mlflow.start_run():</code> block opens and closes the run for you, even if your code crashes.</p>
+
+    <h3>The minimal pattern</h3>
+<pre><code>import mlflow
+
+mlflow.set_experiment("california-housing-mlp")      # created if it doesn't exist
+
+with mlflow.start_run(run_name="mlp-2x64-adam-lr1e-3"):
+    # 1. Parameters: the settings you chose
+    mlflow.log_param("learning_rate", 0.001)
+    mlflow.log_params({"hidden_layers": 2, "units": 64, "batch_size": 128, "epochs": 30})
+
+    # 2. Tags: labels about the run
+    mlflow.set_tag("data_version", "california-housing-sklearn-1.5")
+    mlflow.set_tag("model_family", "mlp")
+
+    # ... train the model here ...
+
+    # 3. Metrics: final scores
+    mlflow.log_metric("test_rmse", 0.531)
+    mlflow.log_metrics({"test_mae": 0.372, "test_r2": 0.787})</code></pre>
+    <p>When the <code>with</code> block ends, the run is marked FINISHED. If an exception is raised inside it, the run is marked FAILED, which is useful when you look back.</p>
+
+    <h3>Logging a metric per epoch</h3>
+    <p>Pass <code>step=</code> so MLflow can draw a curve. With Keras you can read the values from the <code>History</code> object that <code>fit</code> returns:</p>
+<pre><code>with mlflow.start_run(run_name="mlp-2x64-adam-lr1e-3"):
+    mlflow.log_params({"learning_rate": 0.001, "epochs": 30})
+    history = model.fit(X_train, y_train, validation_split=0.2, epochs=30, verbose=0)
+
+    for epoch, (loss, val_loss) in enumerate(zip(history.history["loss"],
+                                                 history.history["val_loss"])):
+        mlflow.log_metric("loss", loss, step=epoch)
+        mlflow.log_metric("val_loss", val_loss, step=epoch)</code></pre>
+    <p>For live logging during training, you could log from inside a Keras callback instead. In practice <a href="#autolog">autologging</a> does this for you.</p>
+
+    <h3>The logging functions</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Function</th><th>Logs</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>mlflow.log_param(key, value)</code></td><td>One parameter</td><td>Stored as text; once per key per run</td></tr>
+        <tr><td><code>mlflow.log_params(dict)</code></td><td>Several parameters</td><td>Handy with a config dictionary</td></tr>
+        <tr><td><code>mlflow.log_metric(key, value, step=None)</code></td><td>One metric value</td><td>Call again with a new <code>step</code> to build a curve</td></tr>
+        <tr><td><code>mlflow.log_metrics(dict, step=None)</code></td><td>Several metrics at one step</td><td>e.g. <code>{"loss": .., "val_loss": ..}</code></td></tr>
+        <tr><td><code>mlflow.set_tag(key, value)</code> / <code>set_tags(dict)</code></td><td>Tags</td><td>Can be overwritten later</td></tr>
+        <tr><td><code>mlflow.log_artifact(local_path)</code></td><td>One file from disk</td><td>Optional <code>artifact_path=</code> puts it in a sub-folder</td></tr>
+        <tr><td><code>mlflow.log_figure(fig, "plots/curve.png")</code></td><td>A Matplotlib (or Plotly) figure</td><td>No need to save to disk first</td></tr>
+        <tr><td><code>mlflow.log_text(text, "notes.txt")</code> / <code>log_dict(d, "config.json")</code></td><td>Text or a dictionary as a file</td><td>Good for configs and notes</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout bad"><p><strong>Common error:</strong> logging the same parameter twice with different values in one run raises an exception. This often happens when you log <code>"epochs"</code> yourself <em>and</em> autolog logs it too with a different value. Fix: give your own parameters distinct names, or let autolog handle them.</p></div>
+
+    <h3>Getting the run ID</h3>
+<pre><code>with mlflow.start_run(run_name="baseline") as run:
+    ...
+print(run.info.run_id)            # e.g. "3f2a9c..."
+# inside a run you can also use: mlflow.active_run().info.run_id</code></pre>
+  </section>
+
+  <!-- ============ 6. AUTOLOG ============ -->
+  <section id="autolog">
+    <h2><span class="num">6</span>Autologging</h2>
+    <p class="intuition"><strong>Intuition.</strong> One line before training, and MLflow watches your library: it records the settings, the score after every epoch, and the model, without you writing any <code>log_*</code> calls.</p>
+
+<pre><code>import mlflow
+
+mlflow.set_experiment("fashion-mnist-cnn")
+mlflow.autolog()                      # turn on every supported integration
+
+with mlflow.start_run(run_name="cnn-2conv-adam-lr1e-3"):
+    model.fit(X_train, y_train, validation_split=0.1, epochs=15, batch_size=128)</code></pre>
+    <p>Call autolog <strong>before</strong> you train. If no run is open when <code>fit</code> starts, autolog opens one for you, but wrapping it in your own <code>start_run</code> lets you choose the run name and add extra parameters and tags.</p>
+
+    <h3>Generic or flavour-specific?</h3>
+    <p>A <strong>flavour</strong> is MLflow's name for a library integration (the "Keras flavour", the "scikit-learn flavour"). You can turn autologging on for everything, or just for one library:</p>
+<pre><code>mlflow.autolog()               # all supported libraries that are installed
+mlflow.tensorflow.autolog()    # Keras on TensorFlow only
+mlflow.keras.autolog()         # Keras 3 (available in recent MLflow versions)
+mlflow.sklearn.autolog()       # scikit-learn only</code></pre>
+    <div class="callout warn"><p><strong>Gotcha:</strong> with the generic <code>mlflow.autolog()</code>, the scikit-learn integration also watches your <em>preprocessing</em>. Fitting a <code>StandardScaler</code> or <code>ColumnTransformer</code> can create extra runs you didn't expect. If you only want the Keras runs, use the flavour-specific call, or do your preprocessing before switching autolog on.</p></div>
+
+    <h3>What autolog captures</h3>
+    <p>The exact names vary a little between versions, so look at one run in the UI to see what yours records.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th></th><th>Keras / TensorFlow</th><th>scikit-learn</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Parameters</strong></td><td>Training settings from <code>fit</code> (epochs, batch size), the optimiser's name and configuration (including the learning rate), early-stopping settings if you use that callback</td><td>Everything from <code>estimator.get_params()</code>, e.g. <code>n_estimators</code>, <code>max_depth</code>, <code>C</code></td></tr>
+        <tr><td><strong>Metrics</strong></td><td>Every metric Keras reports, <strong>once per epoch</strong>: <code>loss</code>, <code>accuracy</code>, <code>val_loss</code>, <code>val_accuracy</code>…</td><td>Training scores (e.g. training accuracy, F1, ROC-AUC for classifiers; RMSE, R² for regressors), plus scores you compute with <code>sklearn.metrics</code> on other data</td></tr>
+        <tr><td><strong>Artifacts</strong></td><td>A model summary text file and the trained model</td><td>The fitted model; for classifiers, plots such as a confusion matrix; for searches, a table of all candidates</td></tr>
+        <tr><td><strong>Extras</strong></td><td>Early stopping information (e.g. the stopped epoch)</td><td><code>GridSearchCV</code> / <code>RandomizedSearchCV</code> create a parent run with one child run per candidate</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Useful options</h3>
+<pre><code>mlflow.tensorflow.autolog(
+    log_models=True,      # set False to skip saving the model (faster, less disk)
+    log_datasets=False,   # skip recording dataset information
+    disable=False,        # True switches autologging off again
+)</code></pre>
+    <div class="proscons">
+      <div class="pros"><h4>Autolog: strengths</h4><ul><li>Almost no code to write</li><li>Per-epoch curves for free</li><li>Consistent names across runs</li><li>The model is saved automatically</li></ul></div>
+      <div class="cons"><h4>Autolog: limits</h4><ul><li>Doesn't know your data version, feature set or why you tried this run: add those as tags or params yourself</li><li>Doesn't log your holdout <em>test</em> score unless you log it</li><li>Can log more than you want (stray preprocessing runs, large models)</li></ul></div>
+    </div>
+    <div class="callout good"><p><strong>The course recommendation:</strong> autolog for the heavy lifting, plus a handful of manual <code>log_params</code> / <code>set_tag</code> / <code>log_metric</code> calls for the things only you know. This keeps your training code short and your runs informative.</p></div>
+  </section>
+
+  <!-- ============ 7. NAMING ============ -->
+  <section id="naming">
+    <h2><span class="num">7</span>Naming and organising</h2>
+    <p class="intuition"><strong>Intuition.</strong> Good names let you understand the runs table at a glance in three weeks' time. Name experiments after the <em>question</em>, and runs after <em>what is different</em> about them.</p>
+
+    <h3>Experiments: one per question</h3>
+    <ul>
+      <li>One experiment per dataset and task: <code>adult-income-mlp</code>, <code>california-housing-mlp</code>, <code>fashion-mnist-cnn</code>.</li>
+      <li>Runs inside one experiment should be <strong>comparable</strong>: same data split, same target, same main metric. If you change the split or the target, start a new experiment.</li>
+      <li>Avoid <code>test</code>, <code>experiment1</code>, <code>samuel-stuff</code>. Avoid putting everything in "Default".</li>
+    </ul>
+
+    <h3>Runs: say what changed</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Pattern</th><th>Example</th><th>Reads as</th></tr></thead>
+      <tbody>
+        <tr><td><code>{model}-{arch}-{optimiser}-lr{lr}</code></td><td><code>mlp-2x128-adam-lr1e-3</code></td><td>MLP, 2 hidden layers of 128, Adam, learning rate 0.001</td></tr>
+        <tr><td>+ regularisation</td><td><code>mlp-2x128-adam-lr1e-3-do0.3</code></td><td>…with 30% dropout</td></tr>
+        <tr><td>CNN</td><td><code>cnn-2conv32-64-dense128-adam-lr1e-3</code></td><td>Two conv layers (32 and 64 filters), dense 128</td></tr>
+        <tr><td>Baseline</td><td><code>baseline-logreg</code></td><td>The simple reference model</td></tr>
+      </tbody>
+    </table></div>
+    <p>Generate the name from the config dictionary so it can't drift from the real settings:</p>
+<pre><code>cfg = {"layers": [128, 128], "optimiser": "adam", "lr": 1e-3, "dropout": 0.3}
+run_name = f"mlp-{len(cfg['layers'])}x{cfg['layers'][0]}-{cfg['optimiser']}-lr{cfg['lr']:.0e}-do{cfg['dropout']}"
+# -> "mlp-2x128-adam-lr1e-03-do0.3"</code></pre>
+
+    <h3>Tags worth adding to every run</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Tag</th><th>Example value</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><code>data_version</code></td><td><code>adult-openml-v2</code></td><td>Which data the run saw</td></tr>
+        <tr><td><code>git_commit</code></td><td><code>8c6ba77</code></td><td>Which code produced it (MLflow often records this itself as <code>mlflow.source.git.commit</code> when you run a script inside a git repository)</td></tr>
+        <tr><td><code>purpose</code></td><td><code>baseline</code> / <code>tuning</code> / <code>final</code></td><td>Filter the table quickly</td></tr>
+        <tr><td><code>owner</code></td><td><code>team-blue</code></td><td>Who to ask, on a shared server</td></tr>
+      </tbody>
+    </table></div>
+<pre><code>import subprocess
+commit = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], text=True).strip()
+mlflow.set_tags({"git_commit": commit, "data_version": "adult-openml-v2", "purpose": "tuning"})</code></pre>
+    <p>For more structure, MLflow supports <strong>nested runs</strong>: a parent run (say, "lr-sweep") with child runs inside it, created with <code>mlflow.start_run(nested=True)</code>. Useful for hyperparameter searches; optional this week.</p>
+  </section>
+
+  <!-- ============ 8. ARTIFACTS ============ -->
+  <section id="artifacts">
+    <h2><span class="num">8</span>Logging figures and other artifacts</h2>
+    <p class="intuition"><strong>Intuition.</strong> Metrics are numbers; artifacts are everything else. A training-curve plot attached to the run is worth more than a plot in a notebook cell that gets overwritten.</p>
+
+    <h3>A training-curve figure</h3>
+<pre><code>import matplotlib.pyplot as plt
+
+def plot_history(history):
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.plot(history.history["loss"], label="training loss")
+    ax.plot(history.history["val_loss"], label="validation loss")
+    ax.set_xlabel("epoch"); ax.set_ylabel("loss"); ax.legend()
+    ax.set_title("Training curve")
+    return fig
+
+with mlflow.start_run(run_name="mlp-2x128-adam-lr1e-3"):
+    history = model.fit(X_train, y_train, validation_split=0.2, epochs=20, verbose=0)
+    fig = plot_history(history)
+    mlflow.log_figure(fig, "plots/training_curve.png")   # path inside the run's artifacts
+    plt.close(fig)                                        # free memory in long loops</code></pre>
+    <p>MLflow already draws metric curves in the UI, but a saved figure is handy for your GitHub README and your Tuesday presentation, and it shows exactly what you looked at.</p>
+
+    <h3>Other useful artifacts</h3>
+<pre><code>from sklearn.metrics import ConfusionMatrixDisplay
+import pandas as pd
+
+# A confusion matrix (classification)
+disp = ConfusionMatrixDisplay.from_predictions(y_test, y_pred)
+mlflow.log_figure(disp.figure_, "plots/confusion_matrix.png")
+
+# Predictions as a CSV file
+pd.DataFrame({"y_true": y_test, "y_pred": y_pred}).to_csv("predictions.csv", index=False)
+mlflow.log_artifact("predictions.csv", artifact_path="outputs")
+
+# The config used, as JSON
+mlflow.log_dict(cfg, "config.json")</code></pre>
+    <div class="callout bad"><p><strong>Don't log secrets or personal data.</strong> API keys, passwords, <code>.env</code> files and raw personal data must never become artifacts or parameters. Anyone with access to the tracking server can read them.</p></div>
+  </section>
+
+  <!-- ============ 9. COMPARE ============ -->
+  <section id="compare">
+    <h2><span class="num">9</span>Comparing runs in the UI</h2>
+    <p class="intuition"><strong>Intuition.</strong> The MLflow UI is a spreadsheet of your runs that you can sort, filter and chart. Pick the runs you care about, press <strong>Compare</strong>, and look at the curves together.</p>
+    <p>The layout changes a little between MLflow versions, but the main pieces are always there:</p>
+    <ol>
+      <li><strong>Experiments list</strong> (left): click your experiment, e.g. <code>adult-income-mlp</code>.</li>
+      <li><strong>Runs table</strong>: one row per run. Use the <strong>Columns</strong> button to show the parameters and metrics you care about (for example <code>learning_rate</code>, <code>val_accuracy</code>, <code>val_loss</code>) and hide the rest.</li>
+      <li><strong>Sort</strong> by clicking a column header, e.g. <code>val_loss</code> ascending: the best run rises to the top.</li>
+      <li><strong>Filter</strong> with the search box, which accepts expressions such as <code>params.optimizer = "adam" and metrics.val_accuracy &gt; 0.85</code>.</li>
+      <li><strong>Chart view</strong>: a tab or toggle that shows each metric as a chart, with one line or bar per run.</li>
+      <li>Tick the checkboxes of two or more runs and press <strong>Compare</strong>. The comparison page shows:
+        <ul>
+          <li>a table of parameters and metrics side by side, with differences highlighted;</li>
+          <li>a <strong>parallel coordinates plot</strong>: one vertical axis per parameter or metric, one line per run, so you can see which settings lead to good scores;</li>
+          <li>scatter and contour plots of one parameter against a metric;</li>
+          <li><strong>metric charts</strong>: per-epoch curves of, say, <code>val_loss</code> for every selected run on one chart.</li>
+        </ul>
+      </li>
+      <li>Click a run's name to open its <strong>run page</strong>: parameters, metrics, tags, and the <strong>Artifacts</strong> panel where your plots and model live.</li>
+    </ol>
+    <div class="callout"><p><strong>Reading the comparison:</strong> look at the <em>shape</em> of the validation curves, not only the final number. A validation loss that falls and then rises is overfitting: the best epoch was earlier than the last one. A big gap between training accuracy and validation accuracy says the same thing.</p></div>
+
+    <div class="widget" id="runs-widget">
+      <div class="widget-title">Try it: a mock MLflow runs table</div>
+      <div class="widget-sub"><strong>Illustrative example data</strong>, not real results: 8 Keras MLP runs on a tabular classification task. Click a header to sort. Filter with expressions like <code>optimiser = adam</code>, <code>dropout &gt; 0</code> or <code>val_accuracy &gt;= 0.85 and layers = 2</code>. Tick runs and press Compare to draw their validation-loss curves.</div>
+      <div class="controls">
+        <label><span>Filter</span><input type="search" id="runFilter" placeholder="e.g. optimiser = adam" autocomplete="off"></label>
+        <label><span>Best run by</span>
+          <select id="runBestBy">
+            <option value="val_loss">val_loss (lowest, last epoch)</option>
+            <option value="val_accuracy" selected>val_accuracy (highest)</option>
+            <option value="min_val_loss">min val_loss over epochs (lowest)</option>
+          </select>
+        </label>
+      </div>
+      <p class="filter-msg" id="runFilterMsg"></p>
+      <div class="table-scroll"><table class="runs-table">
+        <thead id="runHead"></thead>
+        <tbody id="runBody"></tbody>
+      </table></div>
+      <div class="btn-row">
+        <button class="btn primary" type="button" id="runCompare">Compare selected</button>
+        <button class="btn" type="button" id="runSelectAll">Select all shown</button>
+        <button class="btn" type="button" id="runClear">Clear selection</button>
+      </div>
+      <svg id="runChart" viewBox="0 0 600 270" role="img" aria-label="Validation loss curves of the selected runs"></svg>
+      <div class="legend" id="runLegend"></div>
+      <div class="verdict" id="runVerdict"></div>
+    </div>
+    <p>Things to notice in the widget: the two deep runs without dropout reach a low validation loss early, then it climbs; their training accuracy is far above validation accuracy (flagged as possible overfitting). Ranking by the <em>last</em> <code>val_loss</code> and by the <em>minimum</em> <code>val_loss</code> can give different winners. That is why early stopping with <code>restore_best_weights=True</code> is worth using.</p>
+  </section>
+
+  <!-- ============ 10. SEARCH ============ -->
+  <section id="search">
+    <h2><span class="num">10</span>Searching runs in code</h2>
+    <p class="intuition"><strong>Intuition.</strong> Everything you can see in the UI table you can also pull into a pandas DataFrame with <code>mlflow.search_runs</code>, then sort, filter and pick the best run in code.</p>
+
+<pre><code>import mlflow
+
+runs = mlflow.search_runs(
+    experiment_names=["adult-income-mlp"],
+    filter_string="metrics.val_accuracy &gt; 0.84 and attributes.status = 'FINISHED'",
+    order_by=["metrics.val_accuracy DESC"],
+    max_results=50,
+)
+print(type(runs))          # &lt;class 'pandas.core.frame.DataFrame'&gt;
+print(runs.columns[:8])    # run_id, experiment_id, status, ..., metrics.*, params.*, tags.*</code></pre>
+    <p>Each row is a run. Columns are named by their type: <code>metrics.val_accuracy</code>, <code>params.learning_rate</code>, <code>tags.mlflow.runName</code>, plus <code>run_id</code>, <code>status</code>, <code>start_time</code> and <code>end_time</code>.</p>
+
+    <h3>Filter syntax</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Filter</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>metrics.val_loss &lt; 0.32</code></td><td>Metrics are numbers: no quotes around the value</td></tr>
+        <tr><td><code>params.optimizer = 'adam'</code></td><td>Params are stored as text: quote the value</td></tr>
+        <tr><td><code>tags.purpose = 'final'</code></td><td>Tags are text too</td></tr>
+        <tr><td><code>tags.mlflow.runName LIKE 'mlp-2x%'</code></td><td>Pattern match on the run name (<code>%</code> = anything)</td></tr>
+        <tr><td><code>... and ...</code></td><td>Combine conditions with <code>and</code> (there is no <code>or</code>; run two searches instead)</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn"><p><strong>Two traps.</strong> (1) Because params are text, sorting or comparing them in pandas sorts alphabetically ("0.01" before "0.001" is not numeric order); convert with <code>pd.to_numeric</code>. (2) <code>metrics.val_loss</code> is the <strong>last</strong> logged value, not the best one over all epochs.</p></div>
+
+    <h3>Pick the best run and print a comparison table</h3>
+<pre><code>best = runs.iloc[0]                                   # already ordered by val_accuracy
+print("Best run:", best["tags.mlflow.runName"], best["run_id"])
+print("val_accuracy:", round(best["metrics.val_accuracy"], 4))
+
+cols = ["tags.mlflow.runName", "params.learning_rate", "metrics.val_loss", "metrics.val_accuracy"]
+table = runs[[c for c in cols if c in runs.columns]]  # only columns that exist
+print(table.to_string(index=False))</code></pre>
+    <p>For per-epoch values (the whole curve, not just the last value) use the client:</p>
+<pre><code>from mlflow import MlflowClient
+
+client = MlflowClient()
+history = client.get_metric_history(best["run_id"], "val_loss")
+curve = [(m.step, m.value) for m in history]
+best_epoch, best_val_loss = min(curve, key=lambda t: t[1])</code></pre>
+  </section>
+
+  <!-- ============ 11. MODELS ============ -->
+  <section id="models">
+    <h2><span class="num">11</span>Logging and loading models</h2>
+    <p class="intuition"><strong>Intuition.</strong> Logging a model saves it <em>with its instructions</em>: which library, which dependencies, what input it expects. Anyone can then load it with one line, without your training code.</p>
+
+    <h3>Log a model</h3>
+<pre><code>import mlflow
+
+with mlflow.start_run(run_name="rf-baseline") as run:
+    rf.fit(X_train, y_train)
+    model_info = mlflow.sklearn.log_model(
+        rf,
+        name="model",                      # recent MLflow (3.x)
+        input_example=X_train.iloc[:5],    # lets MLflow infer the input signature
+    )
+
+print(model_info.model_uri)                # use this URI to load or register the model</code></pre>
+    <div class="callout warn"><p><strong>Version note:</strong> in recent MLflow (3.x) the model's name is given with <code>name="model"</code>. Older MLflow 2.x code uses <code>artifact_path="model"</code> for the same thing, and you will see it in many tutorials. If one keyword raises an error or a deprecation warning, try the other, and check your version with <code>mlflow.__version__</code>.</p></div>
+    <p>For Keras the pattern is the same with the Keras or TensorFlow flavour, for example <code>mlflow.tensorflow.log_model(model, name="model")</code>, or <code>mlflow.keras.log_model(...)</code> for Keras 3 in recent MLflow. If you use autolog with <code>log_models=True</code>, the model is logged for you and you don't need this call.</p>
+
+    <h3>Model URIs: how to point at a model</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>URI</th><th>Points at</th></tr></thead>
+      <tbody>
+        <tr><td><code>model_info.model_uri</code></td><td>Exactly the model you just logged (the safest choice in code)</td></tr>
+        <tr><td><code>runs:/&lt;run_id&gt;/model</code></td><td>The model logged under the name "model" in that run</td></tr>
+        <tr><td><code>models:/adult-income-classifier/3</code></td><td>Version 3 of a registered model</td></tr>
+        <tr><td><code>models:/adult-income-classifier@champion</code></td><td>Whichever version currently has the alias <code>champion</code></td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Load a model</h3>
+<pre><code># Generic: works for any flavour; gives you .predict()
+model = mlflow.pyfunc.load_model(model_info.model_uri)
+preds = model.predict(X_test)
+
+# Native: gives you back the real Keras / scikit-learn object
+rf_again = mlflow.sklearn.load_model(model_info.model_uri)
+keras_model = mlflow.tensorflow.load_model("runs:/&lt;run_id&gt;/model")</code></pre>
+    <p><strong>pyfunc</strong> ("Python function") is MLflow's universal model interface: every flavour can be loaded as a pyfunc with a <code>predict</code> method. That is what serving tools and the Week 3 pipeline use, because they don't need to know which library trained the model. For a Keras classifier, <code>predict</code> returns what the network outputs, such as probabilities, so apply your threshold afterwards.</p>
+  </section>
+
+  <!-- ============ 12. REGISTRY ============ -->
+  <section id="registry">
+    <h2><span class="num">12</span>The model registry</h2>
+    <p class="intuition"><strong>Intuition.</strong> The registry is a shelf of named models. Each time you add a new version it gets the next number. <strong>Aliases</strong> are sticky labels such as "champion" that you move from version to version, so other code can always ask for "the champion" without knowing its number.</p>
+
+    <h3>Key ideas</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Term</th><th>Meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Registered model</strong></td><td>A named entry in the registry</td><td><code>adult-income-classifier</code></td></tr>
+        <tr><td><strong>Version</strong></td><td>A numbered snapshot of a model, linked to the run that produced it. Numbers go 1, 2, 3… and are never reused</td><td>Version 3</td></tr>
+        <tr><td><strong>Alias</strong></td><td>A movable, named pointer to <em>one</em> version. Each alias points at one version at a time; setting it on another version moves it</td><td><code>@champion</code> → version 3</td></tr>
+        <tr><td><strong>Model version tag</strong></td><td>A label on a version</td><td><code>validation_status = approved</code></td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Register a model</h3>
+<pre><code>import mlflow
+
+# Option A: register while logging
+model_info = mlflow.sklearn.log_model(rf, name="model",
+                                      registered_model_name="adult-income-classifier")
+
+# Option B: register an already-logged model
+mv = mlflow.register_model(model_info.model_uri, "adult-income-classifier")
+print(mv.name, mv.version)       # adult-income-classifier 1</code></pre>
+    <p>If the registered model doesn't exist yet, it is created and this becomes version 1. Registering again creates version 2, and so on.</p>
+
+    <h3>Set aliases and load by alias</h3>
+<pre><code>from mlflow import MlflowClient
+
+client = MlflowClient()
+client.set_registered_model_alias("adult-income-classifier", "champion", 1)
+client.set_registered_model_alias("adult-income-classifier", "challenger", 2)
+
+# Which version is the champion right now?
+mv = client.get_model_version_by_alias("adult-income-classifier", "champion")
+print(mv.version, mv.run_id)
+
+# Load the champion: this code never changes, even when the champion does
+champion = mlflow.pyfunc.load_model("models:/adult-income-classifier@champion")
+
+# Remove an alias
+client.delete_registered_model_alias("adult-income-classifier", "challenger")
+
+# Add a tag to a version
+client.set_model_version_tag("adult-income-classifier", "2", "validation_status", "approved")</code></pre>
+    <div class="callout"><p><strong>Stages are deprecated.</strong> Older tutorials move versions between fixed <em>stages</em> ("Staging", "Production", "Archived") with <code>transition_model_version_stage</code>. MLflow has deprecated stages in favour of <strong>aliases</strong> (and version tags), which are more flexible: you choose the names, and a version can have several aliases. Use aliases on this course.</p></div>
+    <p>The UI has a <strong>Models</strong> tab where you can see registered models, their versions, which run each came from, and their aliases. You can also register a model from a run page by opening the model in the Artifacts panel and choosing "Register model".</p>
+  </section>
+
+  <!-- ============ 13. CHAMPION ============ -->
+  <section id="champion">
+    <h2><span class="num">13</span>Champion vs challenger</h2>
+    <p class="intuition"><strong>Intuition.</strong> The <strong>champion</strong> is the model currently in use. A new model, the <strong>challenger</strong>, has to beat it in a fair contest (same data, same metric, a rule agreed in advance) before it takes the title.</p>
+
+    <h3>The workflow</h3>
+    <div class="diagram">
+      <div class="box">1. Train challenger<br><small>new data / new settings</small></div><span class="arrow">→</span>
+      <div class="box">2. Register<br><small>new version, alias <code>challenger</code></small></div><span class="arrow">→</span>
+      <div class="box">3. Evaluate both<br><small>same holdout, same metric</small></div><span class="arrow">→</span>
+      <div class="box">4. Apply the rule<br><small>e.g. beat by ≥ 0.5 points</small></div><span class="arrow">→</span>
+      <div class="box">5. Promote or keep<br><small>move <code>champion</code> alias</small></div>
+    </div>
+    <ul>
+      <li><strong>Same holdout set:</strong> a fixed set of rows that neither model trained on. Comparing a challenger's validation score with a champion's old test score is not a fair contest.</li>
+      <li><strong>Same metric</strong>, decided before you look at the results.</li>
+      <li><strong>A margin</strong>: requiring the challenger to win by at least, say, 0.5 percentage points avoids swapping models over tiny differences that are just noise.</li>
+      <li><strong>Promotion is just moving an alias.</strong> Anything that loads <code>models:/&lt;name&gt;@champion</code> picks up the new version automatically. Rolling back is moving the alias back.</li>
+    </ul>
+<pre><code>from mlflow import MlflowClient
+from sklearn.metrics import accuracy_score
+import mlflow
+
+NAME, MARGIN = "adult-income-classifier", 0.005      # 0.5 percentage points
+client = MlflowClient()
+
+def holdout_accuracy(alias):
+    model = mlflow.pyfunc.load_model(f"models:/{NAME}@{alias}")
+    proba = model.predict(X_holdout)                   # same holdout for both
+    return accuracy_score(y_holdout, (proba &gt;= 0.5).astype(int).ravel())
+
+champ_acc, chall_acc = holdout_accuracy("champion"), holdout_accuracy("challenger")
+challenger = client.get_model_version_by_alias(NAME, "challenger")
+
+with mlflow.start_run(run_name="champion-vs-challenger"):
+    mlflow.log_metrics({"champion_acc": champ_acc, "challenger_acc": chall_acc})
+    if chall_acc &gt;= champ_acc + MARGIN:
+        client.set_registered_model_alias(NAME, "champion", challenger.version)
+        mlflow.set_tag("decision", f"promoted v{challenger.version}")
+    else:
+        mlflow.set_tag("decision", "kept champion")</code></pre>
+
+    <div class="widget" id="cc-widget">
+      <div class="widget-title">Try it: champion vs challenger simulator</div>
+      <div class="widget-sub">A simulated registry for <code>adult-income-classifier</code>. Train a challenger (its holdout accuracy is simulated with a fixed random seed, so the sequence repeats after a reset), choose a promotion rule, then evaluate. The log shows each registry action and the equivalent <code>MlflowClient</code> call.</div>
+      <div class="controls">
+        <label><span>Promotion rule</span>
+          <select id="ccRule">
+            <option value="margin" selected>Must beat champion by ≥ 0.5 points</option>
+            <option value="any">Any improvement (&gt; 0)</option>
+          </select>
+        </label>
+      </div>
+      <div class="btn-row">
+        <button class="btn" type="button" id="ccTrain">Train challenger</button>
+        <button class="btn primary" type="button" id="ccEval">Evaluate &amp; promote</button>
+        <button class="btn" type="button" id="ccReset">Reset registry</button>
+      </div>
+      <div class="metrics-row" id="ccMetrics"></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Version</th><th>Holdout accuracy</th><th>Aliases</th><th>Status</th></tr></thead>
+        <tbody id="ccVersions"></tbody>
+      </table></div>
+      <div class="verdict" id="ccVerdict"></div>
+      <h4>Registry event log <small style="color:var(--muted);font-weight:400">(newest first)</small></h4>
+      <ol class="event-log" id="ccLog"></ol>
+    </div>
+    <p>Try the same sequence under both rules. With "any improvement", the champion changes often, sometimes for gains of 0.1 points that a different random seed would erase. With a margin, promotions are rarer and more meaningful. In Week 3 this whole contest runs automatically inside the MLOps pipeline.</p>
+  </section>
+
+  <!-- ============ 14. EXAMPLE ============ -->
+  <section id="example">
+    <h2><span class="num">14</span>Worked example: three Keras runs on Adult Census Income</h2>
+    <p class="intuition"><strong>Intuition.</strong> Prepare the data once, loop over three configurations, let autolog record each run, add the details only you know, then pull everything back with <code>search_runs</code> and print a comparison table.</p>
+    <p>The task: predict whether a person's income is above $50K from census attributes (binary classification). The same structure works for California Housing (change the loss to <code>"mse"</code>, the output layer to <code>Dense(1)</code> with no activation, and the metric to RMSE) and for Fashion-MNIST (swap in a CNN).</p>
+
+    <h3>Step 1: data, prepared once</h3>
+<pre><code>import mlflow
+import keras
+from sklearn.datasets import fetch_openml
+from sklearn.model_selection import train_test_split
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+EXPERIMENT = "adult-income-mlp"
+DATA_VERSION = "openml-adult-v2"
+
+adult = fetch_openml("adult", version=2, as_frame=True)
+X = adult.data
+y = (adult.target == "&gt;50K").astype("int32")
+
+# Holdout test set: never used for choosing between runs
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=42)
+
+num_cols = X.select_dtypes("number").columns
+cat_cols = X.select_dtypes(exclude="number").columns
+prep = ColumnTransformer([
+    ("num", StandardScaler(), num_cols),
+    ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), cat_cols),
+])
+X_train_p = prep.fit_transform(X_train).astype("float32")   # fit on training data only
+X_test_p = prep.transform(X_test).astype("float32")</code></pre>
+
+    <h3>Step 2: three configurations in a loop</h3>
+<pre><code>CONFIGS = [
+    {"layers": [64],       "lr": 1e-3, "dropout": 0.0},   # small baseline
+    {"layers": [128, 128], "lr": 1e-3, "dropout": 0.3},   # deeper + dropout
+    {"layers": [128, 128], "lr": 1e-2, "dropout": 0.3},   # same, higher learning rate
+]
+
+def build_model(n_features, layers, lr, dropout):
+    model = keras.Sequential([keras.Input(shape=(n_features,))])
+    for units in layers:
+        model.add(keras.layers.Dense(units, activation="relu"))
+        if dropout:
+            model.add(keras.layers.Dropout(dropout))
+    model.add(keras.layers.Dense(1, activation="sigmoid"))
+    model.compile(optimizer=keras.optimizers.Adam(learning_rate=lr),
+                  loss="binary_crossentropy", metrics=["accuracy"])
+    return model
+
+def run_name(cfg):
+    return f"mlp-{len(cfg['layers'])}x{cfg['layers'][0]}-adam-lr{cfg['lr']:.0e}-do{cfg['dropout']}"
+
+mlflow.set_experiment(EXPERIMENT)
+mlflow.tensorflow.autolog(log_models=True)   # Keras only; mlflow.keras.autolog() in recent MLflow with Keras 3
+
+for cfg in CONFIGS:
+    keras.utils.set_random_seed(42)          # same seed for every run: a fair comparison
+    with mlflow.start_run(run_name=run_name(cfg)):
+        # Extra params autolog can't know. Prefixed "cfg_" so they never clash with autolog's names.
+        mlflow.log_params({"cfg_hidden_layers": len(cfg["layers"]),
+                           "cfg_units": str(cfg["layers"]),
+                           "cfg_dropout": cfg["dropout"],
+                           "cfg_learning_rate": cfg["lr"]})
+        mlflow.set_tags({"data_version": DATA_VERSION, "purpose": "week2-comparison"})
+
+        model = build_model(X_train_p.shape[1], cfg["layers"], cfg["lr"], cfg["dropout"])
+        early_stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=3,
+                                                   restore_best_weights=True)
+        model.fit(X_train_p, y_train, validation_split=0.2, epochs=30,
+                  batch_size=256, callbacks=[early_stop], verbose=0)
+
+        # The holdout score, logged by hand (autolog doesn't do this)
+        test_loss, test_acc = model.evaluate(X_test_p, y_test, verbose=0)
+        mlflow.log_metrics({"test_loss": test_loss, "test_accuracy": test_acc})</code></pre>
+    <p>Autolog records the epochs, batch size, optimiser settings, per-epoch <code>loss</code>, <code>accuracy</code>, <code>val_loss</code> and <code>val_accuracy</code>, and the model. Our manual calls add the architecture, the data version and the holdout score.</p>
+
+    <h3>Step 3: compare in code</h3>
+<pre><code>import pandas as pd
+
+runs = mlflow.search_runs(experiment_names=[EXPERIMENT],
+                          filter_string="tags.purpose = 'week2-comparison'",
+                          order_by=["metrics.val_accuracy DESC"])
+
+cols = ["tags.mlflow.runName", "params.cfg_units", "params.cfg_dropout",
+        "params.cfg_learning_rate", "metrics.val_loss", "metrics.val_accuracy",
+        "metrics.accuracy", "metrics.test_accuracy"]
+table = runs[[c for c in cols if c in runs.columns]].copy()
+table.columns = [c.split(".")[-1] for c in table.columns]          # shorter headers
+table["gap"] = table["accuracy"] - table["val_accuracy"]           # train − validation
+print(table.round(4).to_string(index=False))
+
+best = runs.iloc[0]
+print(f"\nBest by validation accuracy: {best['tags.mlflow.runName']} (run {best['run_id'][:8]})")</code></pre>
+    <p>Output will look something like this (your numbers will differ):</p>
+<pre><code>                    runName       units  dropout  learning_rate  val_loss  val_accuracy  accuracy  test_accuracy     gap
+mlp-2x128-adam-lr1e-03-do0.3  [128, 128]      0.3          0.001    0.3081        0.8567    0.8641         0.8549  0.0074
+     mlp-1x64-adam-lr1e-03-do0.0        [64]      0.0          0.001    0.3149        0.8531    0.8590         0.8522  0.0059
+mlp-2x128-adam-lr1e-02-do0.3  [128, 128]      0.3           0.01    0.3274        0.8478    0.8563         0.8470  0.0085</code></pre>
+    <div class="callout"><p><strong>Choose on validation, report on test.</strong> Pick the winner by <code>val_accuracy</code> (or <code>val_loss</code>). Look at <code>test_accuracy</code> only to report how the chosen model is likely to do on new data. If you choose by test score, the test set stops being an honest estimate.</p></div>
+
+    <h3>Step 4: register the winner (optional this week)</h3>
+<pre><code>from mlflow import MlflowClient
+
+mv = mlflow.register_model(f"runs:/{best['run_id']}/model", "adult-income-classifier")
+MlflowClient().set_registered_model_alias("adult-income-classifier", "champion", mv.version)</code></pre>
+    <p>Autolog names the logged model <code>model</code> by default; check the run's Artifacts panel if the URI doesn't resolve in your version, and copy the model URI shown there.</p>
+  </section>
+
+  <!-- ============ 15. PRACTICES ============ -->
+  <section id="practices">
+    <h2><span class="num">15</span>Good practices</h2>
+    <p class="intuition"><strong>Intuition.</strong> Track as if a stranger has to reproduce your best model from the MLflow UI alone, without asking you anything.</p>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0">Organise</h4><ul style="margin:0"><li>One experiment per project or question</li><li>Descriptive run names generated from the config</li><li>Same split and main metric for every run in an experiment</li></ul></div>
+      <div class="card"><h4 style="margin-top:0">Reproduce</h4><ul style="margin:0"><li>Set seeds (<code>keras.utils.set_random_seed(42)</code>, <code>random_state=42</code>)</li><li>Log the data version and git commit as tags</li><li>Commit your code before a batch of "real" runs</li></ul></div>
+      <div class="card"><h4 style="margin-top:0">Compare fairly</h4><ul style="margin:0"><li>Choose on validation, report on the holdout test set</li><li>Look at curves, not just final numbers</li><li>Change one thing at a time when you can</li></ul></div>
+      <div class="card"><h4 style="margin-top:0">Stay safe and tidy</h4><ul style="margin:0"><li>Never log secrets, <code>.env</code> files or personal data</li><li>Keep <code>mlruns/</code>, <code>mlartifacts/</code>, <code>mlflow.db</code> out of git</li><li>Delete broken test runs in the UI so the table stays readable</li></ul></div>
+    </div>
+    <div class="callout warn"><p><strong>Even with seeds, GPU training is not always bit-for-bit repeatable.</strong> Small run-to-run differences (say ±0.2 points) are normal. That is one more reason to use a margin when promoting a challenger.</p></div>
+
+    <h3 id="checklist">Your Week 2 checklist</h3>
+    <ol>
+      <li>Train <strong>at least 3</strong> deep learning models (different architectures and/or learning rates) on one of: Adult Census Income (classification), California Housing (regression) or Fashion-MNIST (CNN).</li>
+      <li>Use <code>mlflow.autolog()</code> (or the Keras/TensorFlow flavour) plus a few manual params and tags.</li>
+      <li>Every run is in a clearly named experiment with a descriptive run name.</li>
+      <li>Compare runs in the MLflow UI: sorted table, the Compare page, and the <code>val_loss</code> metric chart.</li>
+      <li>Take <strong>screenshots</strong> of the runs table and the comparison charts for your README.</li>
+      <li>Push code and screenshots to GitHub, with <code>mlruns/</code> and <code>mlartifacts/</code> in <code>.gitignore</code>.</li>
+      <li>Prepare the <strong>Tuesday presentation</strong>: which run won, by which metric, what the curves show (any overfitting?), and what you would try next.</li>
+    </ol>
+  </section>
+
+  <!-- ============ 16. TROUBLESHOOTING ============ -->
+  <section id="troubleshooting">
+    <h2><span class="num">16</span>Troubleshooting</h2>
+    <p class="intuition"><strong>Intuition.</strong> Most MLflow problems come down to "the code and the UI are looking at different places".</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>The UI shows no runs, or an old set of runs</td><td>The UI was started in a different folder from your notebook, or your code sets a tracking URI the UI isn't using</td><td>Print <code>mlflow.get_tracking_uri()</code> in your code. Start the UI from the same folder, or pass the same store: <code>mlflow ui --backend-store-uri sqlite:///mlflow.db</code></td></tr>
+        <tr><td>Runs are in "Default", not my experiment</td><td><code>set_experiment</code> was not called, or was called after the run started</td><td>Call <code>mlflow.set_experiment("...")</code> before <code>start_run</code></td></tr>
+        <tr><td>Port 5000 is already in use</td><td>Another MLflow UI is still running, or another program uses the port (on macOS, often the AirPlay Receiver)</td><td><code>uv run mlflow ui --port 5001</code> and open http://127.0.0.1:5001</td></tr>
+        <tr><td><code>MlflowException</code> about changing a param value</td><td>The same param key was logged twice with different values (often you and autolog)</td><td>Rename your own params (e.g. a <code>cfg_</code> prefix) or stop logging that one manually</td></tr>
+        <tr><td>Runs stay "RUNNING" forever</td><td>A notebook cell crashed outside a <code>with</code> block, leaving the run open</td><td>Use <code>with mlflow.start_run():</code>; call <code>mlflow.end_run()</code> to close a stuck run</td></tr>
+        <tr><td>"Run … is already active"</td><td>You started a run while another one is still open</td><td><code>mlflow.end_run()</code> first, or use <code>nested=True</code> on purpose</td></tr>
+        <tr><td>Lots of unexpected extra runs</td><td>Generic <code>mlflow.autolog()</code> also logged scikit-learn preprocessing fits</td><td>Use <code>mlflow.tensorflow.autolog()</code> (or <code>mlflow.keras.autolog()</code>) instead</td></tr>
+        <tr><td>Registry calls fail with a message that the registry is unavailable or unsupported</td><td>Some older setups don't support the registry on a plain file store</td><td>Use a database store: <code>mlflow.set_tracking_uri("sqlite:///mlflow.db")</code>, and start the UI with the same URI</td></tr>
+        <tr><td><code>log_model</code> complains about <code>name</code> or <code>artifact_path</code></td><td>The keyword differs between MLflow versions</td><td>Check <code>mlflow.__version__</code>: recent versions use <code>name=</code>; older ones <code>artifact_path=</code></td></tr>
+        <tr><td><code>git status</code> shows thousands of files</td><td>The local store is not ignored</td><td>Add <code>mlruns/</code>, <code>mlartifacts/</code>, <code>mlflow.db</code> to <code>.gitignore</code>; if already committed, <code>git rm -r --cached mlruns</code></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ============ 17. CHEAT SHEET ============ -->
+  <section id="cheatsheet">
+    <h2><span class="num">17</span>Cheat sheet</h2>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Task</th><th>Code / command</th></tr></thead>
+      <tbody>
+        <tr><td>Install</td><td><code>uv add mlflow</code></td></tr>
+        <tr><td>Open the UI</td><td><code>uv run mlflow ui</code> → http://127.0.0.1:5000 (<code>--port 5001</code> if busy)</td></tr>
+        <tr><td>Choose the store</td><td><code>mlflow.set_tracking_uri("sqlite:///mlflow.db")</code></td></tr>
+        <tr><td>Choose the experiment</td><td><code>mlflow.set_experiment("adult-income-mlp")</code></td></tr>
+        <tr><td>Open a run</td><td><code>with mlflow.start_run(run_name="mlp-2x128-lr1e-3") as run:</code></td></tr>
+        <tr><td>Autolog</td><td><code>mlflow.autolog()</code> · <code>mlflow.tensorflow.autolog()</code> · <code>mlflow.sklearn.autolog()</code></td></tr>
+        <tr><td>Params</td><td><code>mlflow.log_param("lr", 1e-3)</code> · <code>mlflow.log_params({...})</code></td></tr>
+        <tr><td>Metrics</td><td><code>mlflow.log_metric("val_loss", v, step=epoch)</code> · <code>mlflow.log_metrics({...})</code></td></tr>
+        <tr><td>Tags</td><td><code>mlflow.set_tag("data_version", "v1")</code> · <code>mlflow.set_tags({...})</code></td></tr>
+        <tr><td>Files</td><td><code>mlflow.log_artifact("preds.csv")</code> · <code>mlflow.log_figure(fig, "plots/curve.png")</code></td></tr>
+        <tr><td>Log a model</td><td><code>mlflow.sklearn.log_model(m, name="model")</code> (older: <code>artifact_path=</code>)</td></tr>
+        <tr><td>Load a model</td><td><code>mlflow.pyfunc.load_model(uri)</code></td></tr>
+        <tr><td>Search runs</td><td><code>mlflow.search_runs(experiment_names=[...], filter_string=..., order_by=[...])</code> → DataFrame</td></tr>
+        <tr><td>Register</td><td><code>mlflow.register_model(model_uri, "name")</code></td></tr>
+        <tr><td>Set an alias</td><td><code>MlflowClient().set_registered_model_alias("name", "champion", 3)</code></td></tr>
+        <tr><td>Load by alias</td><td><code>mlflow.pyfunc.load_model("models:/name@champion")</code></td></tr>
+        <tr><td>Close a stuck run</td><td><code>mlflow.end_run()</code></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ============ 18. QUIZ ============ -->
+  <section id="quiz">
+    <h2><span class="num">18</span>Quiz</h2>
+    <div class="card quiz" id="quizBox"></div>
+    <p><strong id="quizScore"></strong> <button class="btn" type="button" id="quizReset">Try again</button></p>
+  </section>
+
+  <footer>Data Science &amp; Agentic AI Programme · Week 2 · <a href="../index.html">All course docs</a></footer>
+</main>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : "–");
+
+  /* ---------- theme ---------- */
+  const root = document.documentElement;
+  try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch {}
+  const redrawers = [];
+  $("themeToggle").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+    redrawers.forEach((f) => f());
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => redrawers.forEach((f) => f()));
+
+  /* ---------- table of contents highlight ---------- */
+  const tocLinks = [...document.querySelectorAll("aside.toc a")];
+  const sections = tocLinks.map((a) => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        tocLinks.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id));
+      }
+    });
+  }, { rootMargin: "0px 0px -70% 0px" });
+  sections.forEach((s) => obs.observe(s));
+
+  /* ---------- svg helpers ---------- */
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs = {}, text) {
+    const n = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+  function mulberry32(a) { return function () { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+  /* ---------- reusable quiz component ---------- */
+  function makeQuiz(boxId, scoreId, resetId, items) {
+    let answered = 0, correct = 0;
+    function render() {
+      answered = 0; correct = 0;
+      $(scoreId).textContent = `0 / ${items.length} answered`;
+      $(boxId).innerHTML = items.map((it, qi) => `<div class="q" data-q="${qi}"><div class="prompt">${qi + 1}. ${esc(it.q)}</div><div class="opts">${it.o.map((o, oi) => `<button class="opt" type="button" data-o="${oi}">${esc(o)}</button>`).join("")}</div><div class="why">${esc(it.w)}</div></div>`).join("");
+    }
+    $(boxId).addEventListener("click", (e) => {
+      const b = e.target.closest(".opt"); if (!b || b.disabled) return;
+      const qEl = b.closest(".q"), it = items[+qEl.dataset.q];
+      qEl.querySelectorAll(".opt").forEach((o) => { o.disabled = true; if (+o.dataset.o === it.a) o.classList.add("right"); });
+      if (+b.dataset.o !== it.a) b.classList.add("wrong"); else correct++;
+      qEl.classList.add("answered"); answered++;
+      $(scoreId).textContent = answered === items.length ? `Score: ${correct} / ${items.length}` : `${correct} correct · ${answered} / ${items.length} answered`;
+    });
+    $(resetId).addEventListener("click", render);
+    render();
+  }
+
+  /* ---------- vocabulary sorter ---------- */
+  const KINDS = ["Parameter", "Metric", "Artifact", "Tag"];
+  const VOCAB = [
+    { q: "learning_rate = 0.001", a: 0, w: "A setting chosen before training: a parameter." },
+    { q: "val_accuracy after every epoch", a: 1, w: "A score that changes over training: a metric, logged with step=epoch." },
+    { q: "training_curve.png", a: 2, w: "A file: an artifact, e.g. with mlflow.log_figure." },
+    { q: "data_version = openml-adult-v2", a: 3, w: "Metadata about the run rather than a model setting: a tag." },
+    { q: "batch_size = 256", a: 0, w: "A training setting you chose: a parameter." },
+    { q: "The saved Keras model", a: 2, w: "The model is stored as files in the run's artifacts (logged with log_model)." },
+    { q: "Test RMSE on California Housing = 0.53", a: 1, w: "A number measuring performance: a metric." },
+    { q: "purpose = baseline", a: 3, w: "A label to help you filter and organise runs: a tag." },
+  ].map((v) => ({ ...v, o: KINDS }));
+  makeQuiz("vocabBox", "vocabScore", "vocabReset", VOCAB);
+
+  /* ---------- mock runs table ---------- */
+  // Illustrative example data. Curve: floor + (start - floor)·e^(−(epoch−1)/tau) + overfit·max(0, epoch − k)² + noise
+  const RUN_DEFS = [
+    { name: "mlp-1x32-sgd-lr1e-2",          layers: 1, units: 32,  optimiser: "sgd",     learning_rate: 0.01,  dropout: 0,   epochs: 20, val_accuracy: 0.836, train_accuracy: 0.842, c: [0.58, 0.345, 6,   99, 0,       0.003] },
+    { name: "mlp-1x64-adam-lr1e-3",         layers: 1, units: 64,  optimiser: "adam",    learning_rate: 0.001, dropout: 0,   epochs: 20, val_accuracy: 0.851, train_accuracy: 0.858, c: [0.50, 0.318, 3,   99, 0,       0.003] },
+    { name: "mlp-2x128-adam-lr1e-3",        layers: 2, units: 128, optimiser: "adam",    learning_rate: 0.001, dropout: 0,   epochs: 20, val_accuracy: 0.846, train_accuracy: 0.902, c: [0.47, 0.286, 2.2, 7,  0.00035, 0.002] },
+    { name: "mlp-2x128-adam-lr1e-3-do0.3",  layers: 2, units: 128, optimiser: "adam",    learning_rate: 0.001, dropout: 0.3, epochs: 20, val_accuracy: 0.857, train_accuracy: 0.866, c: [0.49, 0.304, 3,   99, 0,       0.0015] },
+    { name: "mlp-3x256-adam-lr1e-3",        layers: 3, units: 256, optimiser: "adam",    learning_rate: 0.001, dropout: 0,   epochs: 15, val_accuracy: 0.839, train_accuracy: 0.935, c: [0.46, 0.300, 1.6, 4,  0.0008,  0.004] },
+    { name: "mlp-2x128-adam-lr1e-2-do0.3",  layers: 2, units: 128, optimiser: "adam",    learning_rate: 0.01,  dropout: 0.3, epochs: 20, val_accuracy: 0.848, train_accuracy: 0.859, c: [0.44, 0.325, 1.5, 99, 0,       0.018] },
+    { name: "mlp-2x64-rmsprop-lr1e-3-do0.2", layers: 2, units: 64, optimiser: "rmsprop", learning_rate: 0.001, dropout: 0.2, epochs: 20, val_accuracy: 0.854, train_accuracy: 0.861, c: [0.50, 0.307, 3.2, 99, 0,       0.003] },
+    { name: "mlp-2x128-sgd-lr1e-1-do0.2",   layers: 2, units: 128, optimiser: "sgd",     learning_rate: 0.1,   dropout: 0.2, epochs: 12, val_accuracy: 0.851, train_accuracy: 0.857, c: [0.52, 0.312, 3,   99, 0,       0.005] },
+  ];
+  const SERIES = [["--accent", ""], ["--pos", ""], ["--good", ""], ["--bad", ""], ["--warn", ""], ["--muted", ""], ["--text", ""], ["--accent", "7 5"]];
+  const RUNS = RUN_DEFS.map((d, i) => {
+    const [start, floor, tau, k, over, noise] = d.c;
+    const rand = mulberry32(100 + i);
+    const curve = Array.from({ length: d.epochs }, (_, j) => {
+      const e = j + 1;
+      return floor + (start - floor) * Math.exp(-(e - 1) / tau) + (e > k ? over * (e - k) ** 2 : 0) + noise * (2 * rand() - 1);
+    });
+    let minIdx = 0; curve.forEach((v, j) => { if (v < curve[minIdx]) minIdx = j; });
+    const { c, ...rest } = d;
+    return { ...rest, id: i, curve, val_loss: curve[curve.length - 1], min_val_loss: curve[minIdx], min_epoch: minIdx + 1, gap: d.train_accuracy - d.val_accuracy };
+  });
+  const COLS = [
+    { k: "name", l: "Run name" }, { k: "layers", l: "layers", n: 1 }, { k: "units", l: "units", n: 1 },
+    { k: "optimiser", l: "optimiser" }, { k: "learning_rate", l: "learning_rate", n: 1 }, { k: "dropout", l: "dropout", n: 1 },
+    { k: "epochs", l: "epochs", n: 1 }, { k: "val_loss", l: "val_loss", n: 1, d: 3 }, { k: "val_accuracy", l: "val_accuracy", n: 1, d: 3 },
+    { k: "train_accuracy", l: "train_accuracy", n: 1, d: 3 }, { k: "gap", l: "train − val", n: 1 },
+  ];
+  const OVERFIT_GAP = 0.03;
+  const KEY_ALIAS = { optimizer: "optimiser", lr: "learning_rate", run: "name", run_name: "name", runname: "name" };
+  const BEST_DIR = { val_loss: 1, val_accuracy: -1, min_val_loss: 1 };
+  let sortKey = "val_accuracy", sortDir = -1;
+  const selected = new Set([2, 3, 4]);
+  let compared = [2, 3, 4];
+
+  function cmp(a, op, b) {
+    switch (op) {
+      case "=": case "==": return a === b;
+      case "!=": return a !== b;
+      case ">": return a > b;
+      case "<": return a < b;
+      case ">=": return a >= b;
+      case "<=": return a <= b;
+    }
+    return false;
+  }
+  function parseFilter(text) {
+    const s = text.trim();
+    if (!s) return { preds: [] };
+    const preds = [];
+    for (const clause of s.split(/\s+and\s+/i)) {
+      const m = clause.match(/^\s*([A-Za-z_.]+)\s*(==|!=|>=|<=|=|>|<)\s*["']?(.*?)["']?\s*$/);
+      if (!m) {
+        const t = clause.trim().toLowerCase();
+        preds.push((r) => r.name.toLowerCase().includes(t));
+        continue;
+      }
+      let key = m[1].toLowerCase().replace(/^(params|metrics|tags|attributes)\./, "");
+      key = KEY_ALIAS[key] || key;
+      if (!(key in RUNS[0]) || key === "curve" || key === "id") {
+        return { error: `Unknown column "${m[1]}". Try one of: ${COLS.map((c) => c.k).join(", ")}, min_val_loss.` };
+      }
+      const op = m[2], raw = m[3];
+      if (typeof RUNS[0][key] === "number") {
+        const num = parseFloat(raw);
+        if (!Number.isFinite(num)) return { error: `"${m[1]}" is numeric: compare it with a number, e.g. ${m[1]} > 0.` };
+        preds.push((r) => cmp(r[key], op, num));
+      } else {
+        const b = raw.toLowerCase();
+        preds.push((r) => cmp(String(r[key]).toLowerCase(), op, b));
+      }
+    }
+    return { preds };
+  }
+  function visibleRuns() {
+    const f = parseFilter($("runFilter").value);
+    const msg = $("runFilterMsg");
+    let rows = RUNS;
+    if (f.error) { msg.textContent = f.error; msg.className = "filter-msg err"; }
+    else {
+      rows = RUNS.filter((r) => f.preds.every((p) => p(r)));
+      msg.textContent = `${rows.length} of ${RUNS.length} runs shown.` + (f.preds.length ? " Real MLflow syntax would be e.g. params.optimizer = 'adam' and metrics.val_accuracy > 0.85." : "");
+      msg.className = "filter-msg";
+    }
+    return [...rows].sort((a, b) => {
+      const x = a[sortKey], y = b[sortKey];
+      return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * sortDir;
+    });
+  }
+  function bestOf(rows) {
+    const key = $("runBestBy").value, dir = BEST_DIR[key];
+    return rows.reduce((best, r) => (best === null || (r[key] - best[key]) * dir < 0 ? r : best), null);
+  }
+  function cell(r, c) {
+    const v = r[c.k];
+    if (c.k === "gap") {
+      const pts = (v * 100).toFixed(1);
+      return v > OVERFIT_GAP ? `<span class="pill up" title="Training accuracy is far above validation accuracy">overfit? +${pts} pts</span>` : `<span class="pill neutral">+${pts} pts</span>`;
+    }
+    if (c.k === "learning_rate") return String(v);
+    if (c.d) return v.toFixed(c.d);
+    return esc(v);
+  }
+  function renderRuns() {
+    $("runHead").innerHTML = `<tr><th aria-label="Select"></th>${COLS.map((c) => {
+      const active = c.k === sortKey, arrow = active ? (sortDir === 1 ? " ▲" : " ▼") : "";
+      return `<th class="${c.n ? "num" : ""}" aria-sort="${active ? (sortDir === 1 ? "ascending" : "descending") : "none"}"><button type="button" data-sort="${c.k}">${esc(c.l)}${arrow}</button></th>`;
+    }).join("")}</tr>`;
+    const rows = visibleRuns();
+    const best = bestOf(rows);
+    $("runBody").innerHTML = rows.length ? rows.map((r) => `<tr class="${best && r.id === best.id ? "best" : ""}">
+      <td><input type="checkbox" data-run="${r.id}" ${selected.has(r.id) ? "checked" : ""} aria-label="Select ${esc(r.name)}"></td>
+      ${COLS.map((c) => `<td class="${c.n ? "num" : ""}">${cell(r, c)}${c.k === "name" && best && r.id === best.id ? ' <span class="pill down">best</span>' : ""}</td>`).join("")}
+    </tr>`).join("") : `<tr><td colspan="${COLS.length + 1}">No runs match this filter.</td></tr>`;
+  }
+  function drawCompare() {
+    const svg = $("runChart"); svg.innerHTML = "";
+    const runs = compared.map((i) => RUNS[i]);
+    const L = 52, R = 585, T = 14, B = 226;
+    if (!runs.length) {
+      svg.append(el("text", { x: 300, y: 130, class: "svg-text", "text-anchor": "middle" }, "Tick one or more runs, then press “Compare selected”."));
+      $("runLegend").innerHTML = ""; $("runVerdict").textContent = ""; $("runVerdict").style.background = "none";
+      return;
+    }
+    const maxE = Math.max(...runs.map((r) => r.epochs));
+    const all = runs.flatMap((r) => r.curve);
+    const lo = Math.floor((Math.min(...all) - 0.005) * 100) / 100, hi = Math.ceil((Math.max(...all) + 0.005) * 100) / 100;
+    const X = (e) => L + ((e - 1) / Math.max(1, maxE - 1)) * (R - L), Y = (v) => B - ((v - lo) / (hi - lo)) * (B - T);
+    for (let i = 0; i <= 4; i++) {
+      const v = lo + (i / 4) * (hi - lo);
+      svg.append(el("line", { x1: L, y1: Y(v), x2: R, y2: Y(v), stroke: css("--border"), "stroke-dasharray": "2 4" }));
+      svg.append(el("text", { x: L - 6, y: Y(v) + 4, class: "svg-text", "text-anchor": "end" }, v.toFixed(2)));
+    }
+    svg.append(el("line", { x1: L, y1: B, x2: R, y2: B, class: "svg-axis" }), el("line", { x1: L, y1: T, x2: L, y2: B, class: "svg-axis" }));
+    const step = maxE > 15 ? 5 : 2;
+    for (let e = 1; e <= maxE; e++) if (e === 1 || e % step === 0) svg.append(el("text", { x: X(e), y: B + 16, class: "svg-text", "text-anchor": "middle" }, e));
+    svg.append(el("text", { x: (L + R) / 2, y: 262, class: "svg-text", "text-anchor": "middle" }, "epoch (step)"));
+    svg.append(el("text", { x: 12, y: (T + B) / 2, class: "svg-text", "text-anchor": "middle", transform: `rotate(-90 12 ${(T + B) / 2})` }, "val_loss"));
+    const best = bestOf(runs);
+    [...runs].sort((a, b) => (a === best) - (b === best)).forEach((r) => {
+      const [col, dash] = SERIES[r.id], isBest = r === best;
+      const d = r.curve.map((v, j) => (j ? "L" : "M") + X(j + 1).toFixed(1) + "," + Y(v).toFixed(1)).join("");
+      svg.append(el("path", { d, fill: "none", stroke: css(col), "stroke-width": isBest ? 4 : 2, "stroke-dasharray": dash, opacity: isBest ? 1 : 0.8 }));
+      svg.append(el("circle", { cx: X(r.min_epoch), cy: Y(r.min_val_loss), r: isBest ? 5 : 3.5, fill: css(col), stroke: css("--surface"), "stroke-width": 1.5 }));
+      if (isBest) svg.append(el("text", { x: Math.min(X(r.epochs) , R) - 4, y: Y(r.curve[r.curve.length - 1]) - 8, class: "svg-text", "text-anchor": "end", style: "font-weight:700" }, "best"));
+    });
+    $("runLegend").innerHTML = runs.map((r) => {
+      const [col, dash] = SERIES[r.id];
+      const sw = dash ? `background:repeating-linear-gradient(90deg,var(${col}) 0 5px,transparent 5px 8px)` : `background:var(${col})`;
+      return `<span><span class="sw" style="${sw}"></span>${esc(r.name)}${r === best ? " <b>(best)</b>" : ""} · min ${r.min_val_loss.toFixed(3)} @ epoch ${r.min_epoch}</span>`;
+    }).join("");
+    const key = $("runBestBy").value;
+    const rising = runs.filter((r) => r.min_epoch < r.epochs - 2 && r.val_loss - r.min_val_loss > 0.015);
+    const gapRuns = runs.filter((r) => r.gap > OVERFIT_GAP);
+    const v = $("runVerdict");
+    let txt = `Best of the ${runs.length} compared run${runs.length > 1 ? "s" : ""} by ${key}: ${best.name} (${best[key].toFixed(3)}). Dots mark each run's lowest validation loss.`;
+    if (rising.length) txt += ` Overfitting signal: ${rising.map((r) => `${r.name} bottomed out at epoch ${r.min_epoch} (${r.min_val_loss.toFixed(3)}) then rose to ${r.val_loss.toFixed(3)}`).join("; ")}. EarlyStopping with restore_best_weights would have kept the better epoch.`;
+    else if (gapRuns.length) txt += ` Watch the train − val gap of ${gapRuns.map((r) => r.name).join(", ")}.`;
+    v.textContent = txt;
+    const warn = rising.length || gapRuns.length;
+    v.style.background = css(warn ? "--warn-soft" : "--good-soft"); v.style.color = css(warn ? "--warn" : "--good");
+  }
+  $("runHead").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-sort]"); if (!b) return;
+    const k = b.dataset.sort;
+    if (k === sortKey) sortDir = -sortDir; else { sortKey = k; sortDir = 1; }
+    renderRuns();
+  });
+  $("runBody").addEventListener("change", (e) => {
+    const cb = e.target.closest("input[data-run]"); if (!cb) return;
+    const id = +cb.dataset.run;
+    if (cb.checked) selected.add(id); else selected.delete(id);
+  });
+  $("runFilter").addEventListener("input", renderRuns);
+  $("runBestBy").addEventListener("change", () => { renderRuns(); drawCompare(); });
+  $("runCompare").addEventListener("click", () => { compared = [...selected].sort((a, b) => a - b); drawCompare(); });
+  $("runSelectAll").addEventListener("click", () => { const f = parseFilter($("runFilter").value); (f.error ? RUNS : RUNS.filter((r) => f.preds.every((p) => p(r)))).forEach((r) => selected.add(r.id)); renderRuns(); });
+  $("runClear").addEventListener("click", () => { selected.clear(); renderRuns(); });
+  renderRuns(); drawCompare(); redrawers.push(drawCompare);
+
+  /* ---------- champion vs challenger simulator ---------- */
+  const REG = "adult-income-classifier";
+  let cc;
+  const round1 = (x) => Math.round(x * 10) / 10;
+  function ccLog(text, code) { cc.log.unshift({ text, code }); }
+  function ccReset() {
+    cc = { rand: mulberry32(2026), versions: [{ v: 1, acc: 84.6, status: "champion" }], champion: 1, challenger: null, log: [], verdict: null };
+    ccLog("Registered the first model as version 1 (holdout accuracy 84.6%).", `mlflow.register_model(model_info.model_uri, "${REG}")  # → version 1`);
+    ccLog("Gave version 1 the alias champion.", `client.set_registered_model_alias("${REG}", "champion", 1)`);
+    ccRender();
+  }
+  const ver = (n) => cc.versions.find((x) => x.v === n);
+  function ccTrain() {
+    const champ = ver(cc.champion);
+    const n = cc.versions.length + 1;
+    // simulated: a challenger is usually within about ±1 point of the champion; gains get harder near ~86%
+    const acc = Math.min(92, Math.max(80, round1(champ.acc - 0.7 + 2.4 * cc.rand() - Math.max(0, champ.acc - 85.5) * 0.8)));
+    if (cc.challenger) {
+      const old = ver(cc.challenger); old.status = "superseded";
+    }
+    cc.versions.push({ v: n, acc, status: "candidate" });
+    ccLog(`Trained a challenger and registered it as version ${n} (holdout accuracy ${acc.toFixed(1)}%).`, `mlflow.register_model(model_info.model_uri, "${REG}")  # → version ${n}`);
+    ccLog(cc.challenger ? `Moved the alias challenger from version ${cc.challenger} to version ${n}.` : `Gave version ${n} the alias challenger.`, `client.set_registered_model_alias("${REG}", "challenger", ${n})`);
+    cc.challenger = n; cc.verdict = null;
+    ccRender();
+  }
+  function ccEvaluate() {
+    if (!cc.challenger) return;
+    const champ = ver(cc.champion), chall = ver(cc.challenger);
+    const rule = $("ccRule").value;
+    const diff = round1(chall.acc - champ.acc);
+    const pass = rule === "margin" ? diff >= 0.5 : diff > 0;
+    const ruleText = rule === "margin" ? "must win by ≥ 0.5 points" : "any improvement";
+    if (pass) {
+      champ.status = "former champion"; chall.status = "champion";
+      ccLog(`Evaluated on the same holdout: v${chall.v} ${chall.acc.toFixed(1)}% vs v${champ.v} ${champ.acc.toFixed(1)}% (${diff >= 0 ? "+" : ""}${diff.toFixed(1)} pts; rule: ${ruleText}). Promoted: champion moves to version ${chall.v}.`, `client.set_registered_model_alias("${REG}", "champion", ${chall.v})`);
+      cc.verdict = { good: true, text: `Promoted. Version ${chall.v} beat version ${champ.v} by ${diff.toFixed(1)} points. models:/${REG}@champion now loads version ${chall.v}; nothing else needed to change.` };
+      cc.champion = chall.v;
+    } else {
+      chall.status = "rejected";
+      ccLog(`Evaluated on the same holdout: v${chall.v} ${chall.acc.toFixed(1)}% vs v${champ.v} ${champ.acc.toFixed(1)}% (${diff >= 0 ? "+" : ""}${diff.toFixed(1)} pts; rule: ${ruleText}). Not promoted: version ${champ.v} stays champion.`, `# no change to the champion alias`);
+      cc.verdict = { good: false, text: diff > 0 ? `Kept the champion. Version ${chall.v} was only ${diff.toFixed(1)} points better, below the 0.5-point margin, which could easily be noise.` : `Kept the champion. Version ${chall.v} did not beat version ${champ.v} (${diff.toFixed(1)} points).` };
+    }
+    ccLog(`Removed the alias challenger from version ${chall.v}.`, `client.delete_registered_model_alias("${REG}", "challenger")`);
+    cc.challenger = null;
+    ccRender();
+  }
+  function ccRender() {
+    const champ = ver(cc.champion), chall = cc.challenger ? ver(cc.challenger) : null;
+    const rule = $("ccRule").value;
+    const need = rule === "margin" ? `≥ ${(champ.acc + 0.5).toFixed(1)}%` : `> ${champ.acc.toFixed(1)}%`;
+    $("ccMetrics").innerHTML = [
+      ["Champion", `v${champ.v} · ${champ.acc.toFixed(1)}%`], ["Challenger", chall ? `v${chall.v} · ${chall.acc.toFixed(1)}%` : "none"],
+      ["Needed to promote", need], ["@champion loads", `version ${champ.v}`],
+    ].map(([k, v]) => `<div class="metric"><div class="k">${k}</div><div class="v" style="font-size:1.05rem">${v}</div></div>`).join("");
+    $("ccVersions").innerHTML = [...cc.versions].reverse().map((x) => `<tr><td>Version ${x.v}</td><td>${x.acc.toFixed(1)}%</td><td>${x.v === cc.champion ? '<span class="alias champ">@champion</span>' : ""}${x.v === cc.challenger ? '<span class="alias chall">@challenger</span>' : ""}</td><td>${esc(x.status)}</td></tr>`).join("");
+    $("ccLog").innerHTML = cc.log.map((l) => `<li>${esc(l.text)}<code>${esc(l.code)}</code></li>`).join("");
+    $("ccEval").disabled = !cc.challenger;
+    const v = $("ccVerdict");
+    if (cc.verdict) {
+      v.textContent = cc.verdict.text;
+      v.style.background = css(cc.verdict.good ? "--good-soft" : "--warn-soft"); v.style.color = css(cc.verdict.good ? "--good" : "--warn");
+    } else if (chall) {
+      v.textContent = `Version ${chall.v} is the challenger. Press “Evaluate & promote” to compare it with version ${champ.v} on the holdout set.`;
+      v.style.background = css("--accent-soft"); v.style.color = css("--accent");
+    } else {
+      v.textContent = "No challenger yet. Press “Train challenger”.";
+      v.style.background = css("--surface-2"); v.style.color = css("--muted");
+    }
+  }
+  $("ccTrain").addEventListener("click", ccTrain);
+  $("ccEval").addEventListener("click", ccEvaluate);
+  $("ccReset").addEventListener("click", ccReset);
+  $("ccRule").addEventListener("change", ccRender);
+  ccReset(); redrawers.push(ccRender);
+
+  /* ---------- quiz ---------- */
+  const QUIZ = [
+    { q: "In MLflow, learning_rate = 0.001 should be logged as a…", o: ["Metric", "Parameter", "Artifact", "Run name"], a: 1, w: "It's a setting chosen before training, so it's a parameter (log_param / log_params)." },
+    { q: "How do you log validation loss so the UI can draw a per-epoch curve?", o: ["mlflow.log_param('val_loss', v)", "mlflow.log_metric('val_loss', v, step=epoch)", "mlflow.set_tag('val_loss', v)", "mlflow.log_artifact('val_loss')"], a: 1, w: "Metrics logged with a step build a curve; params and tags hold a single value." },
+    { q: "Your script logged runs, but the MLflow UI shows none. Most likely cause?", o: ["MLflow deletes runs after an hour", "The UI was started in a different folder or with a different tracking URI", "You need a GPU to view runs", "Autolog was turned on"], a: 1, w: "The UI reads from the store in the folder (or URI) it was started with. Check mlflow.get_tracking_uri()." },
+    { q: "What does mlflow.search_runs return by default?", o: ["A list of run IDs", "A pandas DataFrame with metrics.*, params.* and tags.* columns", "A JSON file", "The best model"], a: 1, w: "One row per run, with columns such as metrics.val_accuracy and params.learning_rate." },
+    { q: "Which URI loads whichever version currently holds the champion alias?", o: ["runs:/champion/model", "models:/adult-income-classifier@champion", "models:/adult-income-classifier/Production", "mlruns/champion"], a: 1, w: "models:/<name>@<alias> resolves the alias at load time, so the loading code never changes." },
+    { q: "Model stages such as 'Staging' and 'Production' are…", o: ["Required for every registered model", "Deprecated in favour of aliases and tags", "The same thing as experiments", "Only for scikit-learn models"], a: 1, w: "MLflow deprecated stages; use aliases (e.g. champion/challenger) and version tags instead." },
+    { q: "A challenger scores 85.3% and the champion 85.1% on the same holdout. The rule is 'beat by ≥ 0.5 points'. What happens?", o: ["The challenger is promoted", "The champion keeps the alias", "Both get the champion alias", "The champion is deleted"], a: 1, w: "0.2 points is below the 0.5-point margin, so the champion alias stays where it is." },
+    { q: "Why must the champion and challenger be evaluated on the same holdout set?", o: ["It is faster", "So the comparison is fair: same data, same metric", "MLflow requires it", "It avoids logging artifacts"], a: 1, w: "Scores on different data aren't comparable; a fair contest uses identical rows and metric." },
+    { q: "A run shows train_accuracy 0.935 and val_accuracy 0.839, and its val_loss rises after epoch 5. What is it?", o: ["Underfitting", "Overfitting", "A perfect fit", "A logging error"], a: 1, w: "A large train−validation gap and a rising validation loss are classic overfitting signs." },
+    { q: "Which belongs in your project's .gitignore this week?", o: ["pyproject.toml", "mlruns/ and mlartifacts/", "Your training script", "README.md"], a: 1, w: "The local MLflow stores can be huge and may contain data; push screenshots and code instead." },
+  ];
+  // vary the position of the right answer: rotate each question's options
+  const QUIZ_ROT = QUIZ.map((it, i) => {
+    const r = (i * 3 + 1) % it.o.length;
+    const o = it.o.map((_, j) => it.o[(j + r) % it.o.length]);
+    return { ...it, o, a: (it.a - r + it.o.length) % it.o.length };
+  });
+  makeQuiz("quizBox", "quizScore", "quizReset", QUIZ_ROT);
+})();
+</script>
+</body>
+</html>

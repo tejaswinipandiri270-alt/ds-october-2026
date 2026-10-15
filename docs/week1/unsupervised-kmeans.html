@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K-Means Clustering Guide</title>
+<meta name="description" content="Week 1 reference: unsupervised learning, clustering, distance and scaling, the K-Means algorithm, inertia, k-means++, choosing K with the elbow method and silhouette score, profiling clusters, limitations and alternatives, with scikit-learn code.">
+<style>
+  :root {
+    --bg: #f7f6f2; --surface: #ffffff; --surface-2: #f0eee8; --text: #1d1d1b; --muted: #5f5d57;
+    --border: #dcd9d0; --accent: #2f5bd3; --accent-soft: #e3eafc;
+    --pos: #c2410c; --pos-soft: #fde8dc; --neg: #2f5bd3; --neg-soft: #e3eafc;
+    --good: #1f7a4d; --good-soft: #ddf2e6; --bad: #b3261e; --bad-soft: #fbe3e1; --warn: #8a5a00; --warn-soft: #fbf0d9;
+    --code-bg: #f3f1ec; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05); --radius: 14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+      --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+      --pos: #ff9a62; --pos-soft: #3d2618; --neg: #8aa8ff; --neg-soft: #1f2a47;
+      --good: #6fd3a0; --good-soft: #173326; --bad: #ff8a80; --bad-soft: #3d1f1d; --warn: #f0c56b; --warn-soft: #3a2f17;
+      --code-bg: #232321; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+    --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+    --pos: #ff9a62; --pos-soft: #3d2618; --neg: #8aa8ff; --neg-soft: #1f2a47;
+    --good: #6fd3a0; --good-soft: #173326; --bad: #ff8a80; --bad-soft: #3d1f1d; --warn: #f0c56b; --warn-soft: #3a2f17;
+    --code-bg: #232321; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .layout { display: grid; grid-template-columns: 1fr; max-width: 1240px; margin: 0 auto; }
+  @media (min-width: 1000px) { .layout { grid-template-columns: 250px minmax(0, 1fr); gap: 32px; padding: 0 24px; } }
+  aside.toc { display: none; }
+  @media (min-width: 1000px) {
+    aside.toc { display: block; position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; padding: 28px 0 28px; }
+  }
+  aside.toc .toc-title { font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px 10px; }
+  aside.toc a { display: block; color: var(--muted); text-decoration: none; font-size: .9rem; padding: 4px 10px; border-left: 2px solid transparent; border-radius: 0 6px 6px 0; }
+  aside.toc a:hover { color: var(--text); background: var(--surface-2); }
+  aside.toc a.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+  aside.toc a.sub { padding-left: 22px; font-size: .84rem; }
+  details.mobile-toc { margin: 16px 0 0; }
+  @media (min-width: 1000px) { details.mobile-toc { display: none; } }
+  details.mobile-toc summary { cursor: pointer; font-weight: 600; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  details.mobile-toc nav { display: grid; gap: 2px; padding: 8px 4px; }
+  details.mobile-toc a { color: var(--text); text-decoration: none; padding: 4px 10px; font-size: .92rem; }
+  main { min-width: 0; padding: 28px 16px 96px; max-width: 880px; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.7rem); line-height: 1.12; margin: 4px 0 12px; letter-spacing: -0.02em; }
+  h2 { font-size: 1.6rem; margin: 0 0 8px; letter-spacing: -0.01em; line-height: 1.25; }
+  h3 { font-size: 1.15rem; margin: 26px 0 8px; }
+  h4 { font-size: 1rem; margin: 18px 0 6px; }
+  p { margin: 0 0 12px; }
+  ul, ol { margin: 0 0 12px; padding-left: 22px; }
+  li { margin: 3px 0; }
+  a { color: var(--accent); }
+  .eyebrow { color: var(--muted); font-size: .82rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; }
+  .lede { color: var(--muted); font-size: 1.12rem; max-width: 64ch; }
+  section { margin-top: 56px; }
+  .num { color: var(--accent); margin-right: 6px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin: 16px 0; }
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 16px 0; }
+  .callout.good { border-color: var(--good); background: var(--good-soft); }
+  .callout.bad { border-color: var(--bad); background: var(--bad-soft); }
+  .callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+  .callout > :last-child { margin-bottom: 0; }
+  .intuition { font-size: 1.05rem; border-left: 4px solid var(--good); background: var(--good-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 12px 0 16px; }
+  .intuition strong:first-child { color: var(--good); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 5px; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: .85rem; line-height: 1.55; margin: 12px 0 16px; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .table-scroll { overflow-x: auto; margin: 12px 0 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  th { font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); }
+  td code { white-space: nowrap; }
+  .grid-2 { display: grid; gap: 14px; grid-template-columns: 1fr; }
+  @media (min-width: 720px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+  .grid-2 .card { margin: 0; }
+  .pill { display: inline-block; font-size: .74rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+  .pill.up { background: var(--bad-soft); color: var(--bad); }
+  .pill.down { background: var(--good-soft); color: var(--good); }
+  .pill.neutral { background: var(--surface-2); color: var(--muted); }
+  .proscons { display: grid; gap: 12px; grid-template-columns: 1fr; margin: 12px 0; }
+  @media (min-width: 640px) { .proscons { grid-template-columns: 1fr 1fr; } }
+  .proscons > div { border-radius: 10px; padding: 12px 14px; }
+  .proscons .pros { background: var(--good-soft); }
+  .proscons .cons { background: var(--bad-soft); }
+  .proscons h4 { margin: 0 0 6px; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+  .proscons .pros h4 { color: var(--good); } .proscons .cons h4 { color: var(--bad); }
+  .proscons ul { margin: 0; }
+  .theme-toggle { position: fixed; top: 12px; right: 12px; z-index: 5; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  /* widgets */
+  .widget { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; margin: 18px 0; }
+  .widget-title { font-weight: 700; margin-bottom: 4px; }
+  .widget-sub { color: var(--muted); font-size: .9rem; margin-bottom: 12px; }
+  .controls { display: grid; gap: 10px 18px; grid-template-columns: 1fr; margin-bottom: 12px; }
+  @media (min-width: 640px) { .controls { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }
+  .controls label { display: grid; gap: 2px; font-size: .86rem; color: var(--muted); }
+  .controls label span b { color: var(--text); }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .widget svg { width: 100%; height: auto; display: block; }
+  .svg-text { fill: var(--muted); font-size: 11px; font-family: system-ui, sans-serif; }
+  .svg-axis { stroke: var(--border); stroke-width: 1; }
+  .metrics-row { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); margin-top: 12px; }
+  .metric { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+  .metric .k { font-size: .74rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+  .metric .v { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .metric.hl { outline: 2px solid var(--bad); }
+  .cm { display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px; font-size: .85rem; max-width: 360px; }
+  .cm div { padding: 8px; border-radius: 8px; text-align: center; }
+  .cm .h { color: var(--muted); font-size: .75rem; font-weight: 700; background: none; }
+  .cm .tp { background: var(--good-soft); } .cm .tn { background: var(--good-soft); }
+  .cm .fp { background: var(--bad-soft); } .cm .fn { background: var(--bad-soft); }
+  .cm b { display: block; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+  .sim-grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .sim-grid { grid-template-columns: 1.4fr 1fr; } }
+  .verdict { font-weight: 700; padding: 8px 12px; border-radius: 10px; margin-top: 10px; }
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 6px 12px; border-radius: 9px; cursor: pointer; font: inherit; font-size: .9rem; }
+  .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .folds { display: grid; gap: 4px; }
+  .fold-row { display: grid; gap: 3px; align-items: center; grid-template-columns: 64px 1fr 70px; font-size: .8rem; color: var(--muted); }
+  .fold-cells { display: grid; gap: 3px; }
+  .fold-cells div { height: 22px; border-radius: 5px; background: var(--accent-soft); border: 1px solid var(--accent); opacity: .55; }
+  .fold-cells div.val { background: var(--pos); border-color: var(--pos); opacity: 1; }
+  .diagram { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 14px 0; font-size: .85rem; }
+  .diagram .box { border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px; padding: 6px 10px; text-align: center; }
+  .diagram .arrow { color: var(--muted); }
+  .quiz .q { margin-bottom: 16px; }
+  .quiz .prompt { font-weight: 600; margin-bottom: 6px; }
+  .quiz .opts { display: grid; gap: 6px; }
+  .quiz .opt { text-align: left; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); padding: 8px 12px; border-radius: 9px; cursor: pointer; font: inherit; }
+  .quiz .opt:disabled { cursor: default; }
+  .quiz .opt.right { border-color: var(--good); background: var(--good-soft); color: var(--good); font-weight: 600; }
+  .quiz .opt.wrong { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
+  .quiz .why { display: none; color: var(--muted); font-size: .88rem; margin-top: 4px; }
+  .quiz .q.answered .why { display: block; }
+  footer { margin-top: 64px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 16px; }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+
+  /* cluster palette (6 colours, tuned for both themes) */
+  :root { --c1: #2f6fdf; --c2: #d9621f; --c3: #1f8f55; --c4: #c0398a; --c5: #7a52cc; --c6: #9a7a10; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --c1: #7aa5ff; --c2: #ff9a5c; --c3: #5fcf93; --c4: #f07ac0; --c5: #b393ff; --c6: #e3c35a; }
+  }
+  :root[data-theme="dark"] { --c1: #7aa5ff; --c2: #ff9a5c; --c3: #5fcf93; --c4: #f07ac0; --c5: #b393ff; --c6: #e3c35a; }
+  .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+  .btn-row .lbl { align-self: center; color: var(--muted); font-size: .86rem; margin-right: 2px; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .panel-title { font-size: .82rem; font-weight: 700; color: var(--muted); margin: 0 0 4px; }
+  .formula { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; margin: 10px 0 14px; overflow-x: auto; white-space: nowrap; }
+</style>
+
+<style>
+  /* Phone-width fixes: let grid/flex children shrink so wide code scrolls inside its box,
+     and let long inline code (e.g. module paths) wrap instead of widening the page. */
+  main div, main section, main details { min-width: 0; }
+  :not(pre) > code { overflow-wrap: anywhere; }
+</style>
+<style>
+  /* theme-toggle clearance: the fixed Theme button would otherwise overlap the first line on phones */
+  @media (max-width: 999px) { main { padding-top: 56px; } }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">◐ Theme</button>
+<div class="layout">
+  <aside class="toc" aria-label="Contents">
+    <p class="toc-title">Contents</p>
+    <a href="#unsupervised">1 · Supervised vs unsupervised</a>
+    <a href="#clustering">2 · What clustering is for</a>
+    <a href="#distance">3 · Distance &amp; scaling</a>
+    <a href="#algorithm">4 · The K-Means algorithm</a>
+    <a href="#inertia">5 · Inertia (WCSS)</a>
+    <a href="#init">6 · Initialisation &amp; k-means++</a>
+    <a href="#choosing-k">7 · Choosing K</a>
+    <a class="sub" href="#elbow">Elbow method</a>
+    <a class="sub" href="#silhouette">Silhouette score</a>
+    <a class="sub" href="#domain">Domain knowledge</a>
+    <a href="#preprocessing">8 · Preprocessing</a>
+    <a href="#profiling">9 · Interpreting clusters</a>
+    <a href="#limitations">10 · Limitations &amp; alternatives</a>
+    <a href="#with-labels">11 · Evaluating with labels</a>
+    <a href="#sklearn">12 · scikit-learn end to end</a>
+    <a class="sub" href="#pca">PCA for 2-D plots</a>
+    <a href="#cheatsheet">13 · Cheat sheet</a>
+    <a href="#quiz">14 · Quiz</a>
+  </aside>
+
+<main>
+  <header>
+    <div class="eyebrow">Week 1 · Traditional Machine Learning</div>
+    <h1>Unsupervised learning and K-Means clustering</h1>
+    <p class="lede">How to find natural groups in data when nobody has told you the answers: what clustering is for, how K-Means works step by step, how to choose the number of clusters, how to prepare the data, how to turn clusters into business segments, and when to reach for a different algorithm.</p>
+    <details class="mobile-toc">
+      <summary>Contents</summary>
+      <nav>
+        <a href="#unsupervised">1 · Supervised vs unsupervised</a><a href="#clustering">2 · What clustering is for</a><a href="#distance">3 · Distance &amp; scaling</a>
+        <a href="#algorithm">4 · The K-Means algorithm</a><a href="#inertia">5 · Inertia (WCSS)</a><a href="#init">6 · Initialisation &amp; k-means++</a>
+        <a href="#choosing-k">7 · Choosing K</a><a href="#preprocessing">8 · Preprocessing</a><a href="#profiling">9 · Interpreting clusters</a>
+        <a href="#limitations">10 · Limitations &amp; alternatives</a><a href="#with-labels">11 · Evaluating with labels</a><a href="#sklearn">12 · scikit-learn end to end</a>
+        <a href="#cheatsheet">13 · Cheat sheet</a><a href="#quiz">14 · Quiz</a>
+      </nav>
+    </details>
+  </header>
+
+  <!-- ============ 1. SUPERVISED VS UNSUPERVISED ============ -->
+  <section id="unsupervised">
+    <h2><span class="num">1</span>Supervised vs unsupervised learning</h2>
+    <p class="intuition"><strong>Intuition.</strong> In supervised learning you have the answers (labels) and teach the model to reproduce them. In unsupervised learning there are no answers: the model looks for structure on its own, such as groups of similar rows.</p>
+
+    <p>A <strong>label</strong> (or <em>target</em>) is the column you want to predict: "churned yes/no", "house price". A <strong>feature</strong> is an input column used to make the prediction: age, income, number of orders. Supervised learning needs both. Unsupervised learning only has features.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th></th><th>Supervised</th><th>Unsupervised</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Data</strong></td><td>Features <em>and</em> a label for each row</td><td>Features only, no label</td></tr>
+        <tr><td><strong>Goal</strong></td><td>Predict the label for new rows</td><td>Discover structure: groups, patterns, unusual rows, a simpler representation</td></tr>
+        <tr><td><strong>Typical tasks</strong></td><td>Classification ("which class?"), regression ("how much?")</td><td>Clustering, dimensionality reduction, anomaly detection, association rules</td></tr>
+        <tr><td><strong>Example algorithms</strong></td><td>Logistic regression, decision trees, random forest, XGBoost</td><td>K-Means, DBSCAN, hierarchical clustering, Gaussian mixtures, PCA</td></tr>
+        <tr><td><strong>How you evaluate</strong></td><td>Compare predictions with the true labels (accuracy, F1, RMSE)</td><td>No answer key. Use internal measures (inertia, silhouette), stability checks, and above all whether the result is <em>useful</em></td></tr>
+        <tr><td><strong>Business question</strong></td><td>"Will this customer churn?"</td><td>"What kinds of customers do we have?"</td></tr>
+        <tr><td><strong>Main risk</strong></td><td>Overfitting, leakage</td><td>Finding "groups" that are artefacts of scaling or of the algorithm, not real</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout"><p><strong>They work well together.</strong> Clusters found without labels often become <em>features</em> for a later supervised model (for example "segment" as an input to a churn model), and a supervised model is often trained separately inside each segment.</p></div>
+  </section>
+
+  <!-- ============ 2. CLUSTERING ============ -->
+  <section id="clustering">
+    <h2><span class="num">2</span>What clustering is, and what it's for</h2>
+    <p class="intuition"><strong>Intuition.</strong> Clustering sorts rows into groups so that rows in the same group are similar to each other and different from rows in other groups, like sorting a pile of laundry without being told the categories.</p>
+
+    <p>A <strong>cluster</strong> is a group of rows that are close together in feature space (the imaginary space where each feature is one axis). The algorithm gives each row a <strong>cluster label</strong>: just a number (0, 1, 2…) with no meaning of its own. <em>You</em> give the clusters meaning afterwards by studying what their members have in common (see <a href="#profiling">Interpreting clusters</a>).</p>
+
+    <h3>Common business uses</h3>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0">Customer segmentation</h4><p style="margin:0">Group customers by behaviour (spend, frequency, recency, channel) to tailor marketing, pricing or service. "Loyal big spenders" get a VIP offer; "lapsed customers" get a win-back email.</p></div>
+      <div class="card"><h4 style="margin-top:0">Grouping documents</h4><p style="margin:0">Turn support tickets, reviews or articles into numeric vectors (TF-IDF or embeddings) and cluster them to discover topics: "delivery problems", "billing questions", "login issues", without reading every one.</p></div>
+      <div class="card"><h4 style="margin-top:0">Anomaly hints</h4><p style="margin:0">Rows that sit far from every cluster centre, or that form tiny clusters of their own, are worth a closer look: possible fraud, faulty sensors, data-entry errors. Clustering gives <em>hints</em>; it is not a dedicated anomaly detector.</p></div>
+      <div class="card"><h4 style="margin-top:0">Image colour compression</h4><p style="margin:0">Treat every pixel as a point with three features (red, green, blue). Cluster the pixels into, say, 16 colours and replace each pixel by its cluster centre. The image now needs a 16-colour palette instead of millions of colours.</p></div>
+    </div>
+    <p>Other uses: grouping shops or branches with similar sales patterns, grouping products that sell together, compressing many similar sensor readings, and creating a starting point for labelling data (label a few examples per cluster).</p>
+
+    <h3>Hard vs soft clustering</h3>
+    <ul>
+      <li><strong>Hard clustering</strong> gives each row exactly one cluster. K-Means is hard.</li>
+      <li><strong>Soft clustering</strong> gives each row a probability of belonging to each cluster (for example 70% segment A, 30% segment B). Gaussian mixture models are soft.</li>
+    </ul>
+    <div class="callout warn"><p><strong>There is no "correct" clustering.</strong> The same customers can be grouped by spending, by product taste or by geography, and each answer can be valid. The features you choose decide which structure the algorithm can find. A good clustering is one that is stable and useful for the decision you need to make.</p></div>
+  </section>
+
+  <!-- ============ 3. DISTANCE ============ -->
+  <section id="distance">
+    <h2><span class="num">3</span>Distance and similarity, and why scaling matters</h2>
+    <p class="intuition"><strong>Intuition.</strong> "Similar" has to be turned into a number. Most clustering algorithms measure the distance between rows, and a feature with big numbers (income in pounds) will drown out a feature with small numbers (age in years) unless you put them on the same scale.</p>
+
+    <h3>Measuring distance</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Measure</th><th>Formula (two rows <em>p</em> and <em>q</em>)</th><th>Plain English</th><th>Used by</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Euclidean</strong></td><td><code>√ Σ (pᵢ − qᵢ)²</code></td><td>Straight-line distance "as the crow flies"</td><td>K-Means (in fact it minimises <em>squared</em> Euclidean distance)</td></tr>
+        <tr><td>Manhattan</td><td><code>Σ |pᵢ − qᵢ|</code></td><td>Distance walking along a city grid; less affected by one big difference</td><td>K-Medians, DBSCAN (option)</td></tr>
+        <tr><td>Cosine distance</td><td><code>1 − (p · q) / (‖p‖ ‖q‖)</code></td><td>Compares direction, not size: two documents about the same topic are similar even if one is longer</td><td>Text and embeddings</td></tr>
+      </tbody>
+    </table></div>
+    <p><strong>Similarity</strong> is the opposite of distance: small distance = high similarity. K-Means uses Euclidean distance and cannot be switched to another measure in scikit-learn. If cosine similarity is what you want (for text), normalise each row to length 1 first: Euclidean distance on unit-length vectors ranks pairs the same way cosine does.</p>
+
+    <h3>Worked example: income vs age</h3>
+    <p>Three customers, two features:</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Customer</th><th>Age</th><th>Income</th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td>30</td><td>£40,000</td></tr>
+        <tr><td>B</td><td>60</td><td>£41,000</td></tr>
+        <tr><td>C</td><td>31</td><td>£45,000</td></tr>
+      </tbody>
+    </table></div>
+    <p>Intuitively, A and C are the similar pair: nearly the same age and similar incomes. B is 30 years older. Now compute Euclidean distances on the raw numbers:</p>
+    <ul>
+      <li>A to B: <code>√(30² + 1,000²) ≈ 1,000.4</code></li>
+      <li>A to C: <code>√(1² + 5,000²) ≈ 5,000.0</code></li>
+    </ul>
+    <p>On raw numbers, A looks <strong>five times closer to B</strong>. A 30-year age gap counts for the same as a £30 income gap, so age has effectively been ignored. Now <strong>standardise</strong> each feature: subtract its mean and divide by its standard deviation, giving a <em>z-score</em> (how many standard deviations from average). Suppose age has a standard deviation of 12 years and income £15,000:</p>
+    <ul>
+      <li>A to B: <code>√((30/12)² + (1,000/15,000)²) = √(2.5² + 0.07²) ≈ 2.50</code></li>
+      <li>A to C: <code>√((1/12)² + (5,000/15,000)²) = √(0.08² + 0.33²) ≈ 0.34</code></li>
+    </ul>
+    <p>After scaling, C is the nearest neighbour of A, as common sense says. Both features now get a fair vote.</p>
+
+    <div class="widget" id="scaleWidget">
+      <div class="widget-title">Try it: why scaling matters</div>
+      <div class="widget-sub">90 synthetic customers in three real groups: young customers (about 25, around £40k), older customers (about 60, also around £40k) and mid-career high earners (about 42, around £95k). K-Means with K = 3 is run on the same data, either on the raw numbers or after standardising both features.</div>
+      <div class="btn-row" role="group" aria-label="Scaling">
+        <button class="btn" type="button" data-scale="raw" aria-pressed="true">Unscaled (raw £ and years)</button>
+        <button class="btn" type="button" data-scale="scaled">Scaled (StandardScaler)</button>
+      </div>
+      <div class="grid-2">
+        <div><p class="panel-title">The data in original units</p><svg id="scOrig" viewBox="0 0 320 260" role="img" aria-label="Customers by age and income, coloured by cluster"></svg></div>
+        <div><p class="panel-title">What K-Means "sees": both axes in the same units</p><svg id="scSeen" viewBox="0 0 320 260" role="img" aria-label="The same customers drawn with equal units on both axes"></svg></div>
+      </div>
+      <div class="table-scroll" id="scTable"></div>
+      <div class="verdict" id="scVerdict"></div>
+    </div>
+    <div class="callout warn"><p><strong>Rule:</strong> always scale numeric features before K-Means (and before any other distance-based method: KNN, SVM, DBSCAN, hierarchical clustering). <code>StandardScaler</code> is the usual choice. Use <code>RobustScaler</code> if there are strong outliers. Tree-based models don't need scaling, but clustering almost always does.</p></div>
+  </section>
+
+  <!-- ============ 4. ALGORITHM ============ -->
+  <section id="algorithm">
+    <h2><span class="num">4</span>The K-Means algorithm, step by step</h2>
+    <p class="intuition"><strong>Intuition.</strong> Drop K pins on the map. Every point joins its nearest pin. Move each pin to the middle of its group. Repeat until nothing changes.</p>
+
+    <p>A <strong>centroid</strong> is the centre of a cluster: the average (mean) of all the points in it, feature by feature. K-Means is named after these: <strong>K</strong> clusters, each represented by its <strong>mean</strong>. The classic version is called <strong>Lloyd's algorithm</strong>.</p>
+    <div class="diagram">
+      <div class="box">1. Choose K</div><span class="arrow">→</span>
+      <div class="box">2. Initialise<br><small>place K centroids</small></div><span class="arrow">→</span>
+      <div class="box">3. Assign<br><small>each point → nearest centroid</small></div><span class="arrow">→</span>
+      <div class="box">4. Update<br><small>centroid = mean of its points</small></div><span class="arrow">→</span>
+      <div class="box">5. Repeat 3–4<br><small>until nothing changes</small></div>
+    </div>
+    <ol>
+      <li><strong>Choose K</strong>, the number of clusters. K-Means cannot work this out for you (see <a href="#choosing-k">Choosing K</a>).</li>
+      <li><strong>Initialise:</strong> place K starting centroids. The simplest way is to pick K random data points; the better way is <a href="#init">k-means++</a>.</li>
+      <li><strong>Assign step:</strong> compute the distance from every point to every centroid and give each point the label of its <em>nearest</em> centroid.</li>
+      <li><strong>Update step:</strong> move each centroid to the mean of the points now assigned to it.</li>
+      <li><strong>Repeat</strong> steps 3 and 4. Moving the centroids changes which centroid is nearest for some points, which changes the means again, and so on.</li>
+      <li><strong>Converge:</strong> stop when no point changes cluster (so the centroids stop moving), when the centroids move less than a small tolerance (<code>tol</code>), or after a maximum number of iterations (<code>max_iter</code>, 300 by default).</li>
+    </ol>
+
+    <div class="widget" id="kmWidget">
+      <div class="widget-title">Try it: K-Means one step at a time</div>
+      <div class="widget-sub">150 synthetic points forming four natural groups. Initialise, then alternate Assign and Update and watch the centroids (✕) travel. Dashed trails show where each centroid has been. Try "Initialise (random)" several times: sometimes two centroids start in the same group and the result is poor.</div>
+      <div class="btn-row" role="group" aria-label="Number of clusters K">
+        <span class="lbl">Clusters K:</span>
+        <button class="btn" type="button" data-km-k="2">2</button>
+        <button class="btn" type="button" data-km-k="3">3</button>
+        <button class="btn" type="button" data-km-k="4" aria-pressed="true">4</button>
+        <button class="btn" type="button" data-km-k="5">5</button>
+        <button class="btn" type="button" data-km-k="6">6</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn" type="button" id="kmInitRand">Initialise (random)</button>
+        <button class="btn" type="button" id="kmInitPP">Initialise (k-means++)</button>
+        <button class="btn" type="button" id="kmAssign">Assign step</button>
+        <button class="btn" type="button" id="kmUpdate">Update step</button>
+        <button class="btn" type="button" id="kmRun">Run to convergence</button>
+        <button class="btn" type="button" id="kmReset">Reset</button>
+      </div>
+      <svg id="kmSvg" viewBox="0 0 480 400" role="img" aria-label="Scatter plot of points, cluster centroids and their movement" style="max-width:600px;margin:0 auto"></svg>
+      <div class="metrics-row" id="kmMetrics"></div>
+      <p id="kmText" style="font-size:.92rem;margin:10px 0 0" aria-live="polite"></p>
+    </div>
+
+    <h3>Why it always stops</h3>
+    <p>Both steps can only lower (or keep) the total squared distance from points to their centroids, called <a href="#inertia">inertia</a>:</p>
+    <ul>
+      <li>The <strong>assign</strong> step moves a point only if another centroid is closer, so its squared distance can only fall.</li>
+      <li>The <strong>update</strong> step puts each centroid at the mean of its points, and the mean is exactly the position that minimises the sum of squared distances to a set of points.</li>
+    </ul>
+    <p>There is only a finite number of ways to split the points into K groups, and inertia never goes up, so the algorithm must stop. But it stops at a <strong>local minimum</strong>: the best solution reachable from where it started, not necessarily the best solution overall. That is why <a href="#init">initialisation</a> matters.</p>
+
+    <h3>What the boundaries look like</h3>
+    <p>Each point goes to its nearest centroid, so the boundary between two clusters is the straight line (in more dimensions, a flat plane) exactly halfway between their centroids. The space is carved into convex "cells" around the centroids, known as a <strong>Voronoi diagram</strong>. This is the root of K-Means' main <a href="#limitations">limitation</a>: it can only produce compact, roughly round groups separated by straight boundaries.</p>
+    <div class="callout"><p><strong>Cost:</strong> each iteration computes n × K distances in d dimensions (n rows, d features), so K-Means is fast and scales to hundreds of thousands of rows. For millions of rows, <code>MiniBatchKMeans</code> updates the centroids from small random batches and is much faster, at a small cost in quality.</p></div>
+  </section>
+
+  <!-- ============ 5. INERTIA ============ -->
+  <section id="inertia">
+    <h2><span class="num">5</span>Inertia (WCSS): what K-Means minimises</h2>
+    <p class="intuition"><strong>Intuition.</strong> Inertia measures how tightly packed the clusters are: add up, for every point, the squared distance to its own centroid. Smaller means tighter clusters.</p>
+
+    <p><strong>Inertia</strong>, also called the <strong>within-cluster sum of squares (WCSS)</strong>, is the quantity K-Means tries to make as small as possible:</p>
+    <div class="formula">WCSS = Σ<sub>clusters k</sub> Σ<sub>points x in cluster k</sub> ‖x − μ<sub>k</sub>‖²</div>
+    <p>where μ<sub>k</sub> (mu k) is the centroid of cluster k and ‖x − μ<sub>k</sub>‖² is the squared Euclidean distance from point x to it. In scikit-learn it is stored in <code>kmeans.inertia_</code> after fitting.</p>
+    <div class="callout">
+      <p><strong>Worked example:</strong> one cluster on a number line with points 1, 2 and 6.</p>
+      <p>Centroid = (1 + 2 + 6) / 3 = 3. Squared distances: (1−3)² = 4, (2−3)² = 1, (6−3)² = 9. This cluster contributes 4 + 1 + 9 = <strong>14</strong> to the inertia. The total inertia is the sum of this over all clusters.</p>
+    </div>
+
+    <h3>Why inertia always goes down as K goes up</h3>
+    <ul>
+      <li>With <strong>K = 1</strong>, inertia is the total spread of the data around its overall mean, the <em>total sum of squares</em> (TSS).</li>
+      <li>With <strong>K = n</strong> (one cluster per point), every point is its own centroid and inertia is <strong>0</strong>.</li>
+      <li>In between, adding a cluster can never make the <em>best possible</em> solution worse: at the very least you could put the extra centroid on top of one point, reducing that point's distance to zero and leaving everyone else unchanged.</li>
+    </ul>
+    <p>So <strong>you cannot choose K by picking the lowest inertia</strong>: that would always choose the largest K you try. Instead you look for the point where adding clusters stops helping much (the <a href="#elbow">elbow</a>). In practice a single run at K + 1 can occasionally come out slightly worse than at K, because each run only finds a local minimum; using <code>n_init</code> restarts makes this rare.</p>
+
+    <h3>Other useful facts about inertia</h3>
+    <ul>
+      <li><strong>It depends on scale and size.</strong> Inertia grows with the number of rows and with the units of the features. Compare inertia values only between runs on the <em>same</em> scaled data.</li>
+      <li><strong>Total = within + between.</strong> TSS = WCSS + BCSS, where BCSS (between-cluster sum of squares) measures how far the centroids are from the overall mean. The ratio BCSS / TSS is the share of the total variation "explained" by the clusters.</li>
+      <li><strong>It favours round clusters of similar spread,</strong> because squared distance to one centre is what it measures.</li>
+      <li><code>kmeans.score(X)</code> returns the <em>negative</em> inertia of X (so that "higher is better" like other scikit-learn scores).</li>
+    </ul>
+  </section>
+
+  <!-- ============ 6. INITIALISATION ============ -->
+  <section id="init">
+    <h2><span class="num">6</span>Initialisation problems, k-means++ and n_init</h2>
+    <p class="intuition"><strong>Intuition.</strong> Where the pins start decides where they end. Start them spread out (k-means++), and try several starts and keep the best one (n_init).</p>
+
+    <h3>The problem with random starts</h3>
+    <p>If the starting centroids are K random data points, two of them can easily land in the same natural group while another group gets none. K-Means then gets stuck: one real group is split in two, and two other real groups are merged. Each step still lowers inertia, but only down to a poor <strong>local minimum</strong>. You can see this in the <a href="#kmWidget">step-through widget</a>: press "Initialise (random)" a few times and compare the final inertia.</p>
+
+    <h3>k-means++: spread the starting centroids out</h3>
+    <ol>
+      <li>Pick the first centroid uniformly at random from the data points.</li>
+      <li>For every point, compute <em>D(x)</em>: its distance to the nearest centroid chosen so far.</li>
+      <li>Pick the next centroid at random, with probability <strong>proportional to D(x)²</strong>. Points far from all existing centroids are much more likely to be chosen; points right next to one are very unlikely.</li>
+      <li>Repeat steps 2–3 until K centroids are chosen, then run normal K-Means.</li>
+    </ol>
+    <p>The starts are random but spread out, so each natural group is likely to get its own centroid. k-means++ also comes with a mathematical guarantee: on average its result is within a factor of about log K of the best possible inertia. It is the default in scikit-learn (<code>init="k-means++"</code>), which uses a "greedy" version that tries several candidates at each step and keeps the one that lowers inertia most.</p>
+
+    <h3>n_init: run it several times and keep the best</h3>
+    <p>Even k-means++ is random, so the safest approach is to run the whole algorithm several times from different starts and keep the run with the <strong>lowest inertia</strong>. That is what <code>n_init</code> does: <code>n_init=10</code> runs K-Means 10 times and returns the best of the 10.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Parameter</th><th>Default (scikit-learn ≥ 1.4)</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>n_clusters</code></td><td>8</td><td>K, the number of clusters. Always set it yourself</td></tr>
+        <tr><td><code>init</code></td><td><code>"k-means++"</code></td><td>How to place the starting centroids: <code>"k-means++"</code>, <code>"random"</code>, or an array of your own starting centroids</td></tr>
+        <tr><td><code>n_init</code></td><td><code>"auto"</code></td><td>Number of complete runs; the lowest-inertia run is kept. <code>"auto"</code> means 1 run with k-means++ and 10 with random init</td></tr>
+        <tr><td><code>max_iter</code></td><td>300</td><td>Maximum assign/update iterations per run</td></tr>
+        <tr><td><code>tol</code></td><td>1e-4</td><td>Stop when the centroids move less than this (relative to the data's variance)</td></tr>
+        <tr><td><code>random_state</code></td><td>None</td><td>Seed for the random starts. Set it for reproducible results</td></tr>
+        <tr><td><code>algorithm</code></td><td><code>"lloyd"</code></td><td><code>"elkan"</code> can be faster on well-separated clusters</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout good"><p><strong>Good habit:</strong> write <code>KMeans(n_clusters=k, n_init=10, random_state=42)</code>. Setting <code>n_init=10</code> explicitly makes the result robust (one unlucky start no longer matters) and keeps it the same across scikit-learn versions, whose defaults have changed. <code>random_state</code> makes it reproducible.</p></div>
+  </section>
+
+  <!-- ============ 7. CHOOSING K ============ -->
+  <section id="choosing-k">
+    <h2><span class="num">7</span>Choosing K</h2>
+    <p class="intuition"><strong>Intuition.</strong> There is rarely one right answer. Use the elbow method and the silhouette score to find candidate values of K, then let the business decide which version is most useful.</p>
+
+    <h3 id="elbow">The elbow method</h3>
+    <p>Run K-Means for K = 1, 2, …, 10 and plot inertia against K. Inertia always falls, but at first it falls steeply (each new cluster separates a real group) and then it flattens (new clusters only split real groups into pieces). The bend in the curve, the <strong>elbow</strong>, is a good candidate for K.</p>
+    <p>The elbow is often unclear in real data: the curve can bend gradually with no obvious kink. Treat it as a hint, not a rule.</p>
+
+    <h3 id="silhouette">The silhouette score</h3>
+    <p>The silhouette score asks, for every point: "am I much closer to my own cluster than to the next nearest cluster?"</p>
+    <ul>
+      <li><strong>a</strong> = the average distance from the point to the <em>other points in its own cluster</em> (how well it fits where it is).</li>
+      <li><strong>b</strong> = the average distance from the point to the points in the <em>nearest other cluster</em> (the lowest such average among all other clusters).</li>
+    </ul>
+    <div class="formula">s = (b − a) / max(a, b)</div>
+    <p>Each point gets a value between −1 and +1. The <strong>silhouette score</strong> of the whole clustering is the average over all points (<code>silhouette_score</code> in scikit-learn). A point alone in its cluster gets 0 by convention. It needs at least 2 clusters.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Value of s</th><th>Meaning for a point</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Close to +1</strong></td><td>Much closer to its own cluster than to any other: well clustered (a is small compared with b)</td></tr>
+        <tr><td><strong>Around 0</strong></td><td>On the border between two clusters (a ≈ b)</td></tr>
+        <tr><td><strong>Negative</strong></td><td>Closer, on average, to another cluster than to its own: probably in the wrong cluster</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout">
+      <p><strong>Worked example:</strong> a point has a = 2 (average distance to its own cluster) and b = 6 (to the nearest other cluster). s = (6 − 2) / max(2, 6) = 4 / 6 ≈ <strong>0.67</strong>: a well-placed point.</p>
+      <p style="margin:0">A common rule of thumb for the average score: above 0.7 strong structure, 0.5–0.7 reasonable, 0.25–0.5 weak (check whether it is useful), below 0.25 little real structure. Real customer data often scores 0.2–0.4 and can still be useful.</p>
+    </div>
+    <p>Choose the K with the <strong>highest average silhouette</strong> as a candidate. Unlike inertia, silhouette does not automatically improve with more clusters. It is slower to compute (every pair of points is compared), so on large data use <code>silhouette_score(X, labels, sample_size=10000, random_state=42)</code>. Like inertia, it prefers compact, round, well-separated clusters.</p>
+
+    <div class="widget" id="ebWidget">
+      <div class="widget-title">Try it: elbow and silhouette, computed live</div>
+      <div class="widget-sub">The same 150 points as the step-through widget. For each K from 1 to 8 this page runs k-means++ five times and keeps the best run, just like <code>n_init=5</code>. Move the slider to inspect each K.</div>
+      <div class="controls"><label><span>Number of clusters K: <b id="ebKV">4</b></span><input type="range" id="ebK" min="1" max="8" step="1" value="4"></label></div>
+      <div class="grid-2">
+        <div><svg id="ebElbow" viewBox="0 0 320 220" role="img" aria-label="Elbow chart: inertia against K"></svg></div>
+        <div><svg id="ebSil" viewBox="0 0 320 220" role="img" aria-label="Silhouette score against K"></svg></div>
+      </div>
+      <div class="metrics-row" id="ebMetrics"></div>
+      <svg id="ebScatter" viewBox="0 0 480 400" role="img" aria-label="Clustering at the selected K" style="max-width:360px;margin:12px auto 0"></svg>
+      <p id="ebText" style="font-size:.92rem;margin:10px 0 0"></p>
+    </div>
+
+    <h3 id="domain">Domain knowledge</h3>
+    <p>The statistics suggest candidates; the business chooses. Questions to ask:</p>
+    <ul>
+      <li><strong>Can we act on K groups?</strong> A marketing team that can run four campaigns doesn't need twelve segments.</li>
+      <li><strong>Can each cluster be described in one sentence?</strong> If two clusters have the same description, merge them (lower K). If one cluster contains obviously different kinds of customer, split it (higher K).</li>
+      <li><strong>Is each cluster big enough to matter?</strong> A segment of 0.3% of customers may not justify its own strategy.</li>
+      <li><strong>Is it stable?</strong> Rerun with a different <code>random_state</code> or on a different sample. If the clusters change a lot, the structure is weak.</li>
+    </ul>
+    <p>Other internal measures you may meet: the <strong>Davies–Bouldin index</strong> (<code>davies_bouldin_score</code>, lower is better), the <strong>Calinski–Harabasz index</strong> (<code>calinski_harabasz_score</code>, higher is better) and the <strong>gap statistic</strong>. They all reward compact, well-separated clusters and should be read alongside the elbow and silhouette, not instead of judgement.</p>
+  </section>
+
+  <!-- ============ 8. PREPROCESSING ============ -->
+  <section id="preprocessing">
+    <h2><span class="num">8</span>Preprocessing for K-Means</h2>
+    <p class="intuition"><strong>Intuition.</strong> K-Means only sees distances between numbers. Anything that distorts those distances (different units, made-up numbers for categories, extreme values) distorts the clusters.</p>
+
+    <h3>1. Choose the features deliberately</h3>
+    <p>Every feature you include gets a vote in "similarity". Include only features that describe the kind of similarity you care about. For behavioural segmentation, use behaviour (spend, frequency, recency) and keep demographics aside to describe the segments afterwards. Drop ID columns, and drop near-duplicate features (spend in £ and spend in $) because they double-count the same thing.</p>
+
+    <h3>2. Handle missing values</h3>
+    <p>K-Means can't handle missing values. Impute them (median for numbers) or drop the rows, and consider adding a "was missing" flag if missingness itself means something.</p>
+
+    <h3>3. Transform skewed features and handle outliers</h3>
+    <p>A centroid is a <strong>mean</strong>, and means are pulled by extreme values. One customer who spent £2 million can drag a centroid towards them or end up as a cluster of one. Money and count features are usually <strong>right-skewed</strong> (a few very large values), so:</p>
+    <ul>
+      <li>Apply a <strong>log transform</strong> (<code>np.log1p</code>) to skewed money and count features.</li>
+      <li><strong>Cap</strong> extreme values at a percentile (for example the 1st and 99th), known as winsorising.</li>
+      <li>Use <code>RobustScaler</code> (based on the median and interquartile range) instead of <code>StandardScaler</code>.</li>
+      <li>Investigate genuine outliers separately rather than letting them shape the segments.</li>
+    </ul>
+
+    <h3>4. Scale</h3>
+    <p>Standardise all numeric features so each has mean 0 and standard deviation 1 (<code>StandardScaler</code>). See the <a href="#scaleWidget">scaling widget</a> for what happens if you don't. If one feature really should count more, you can multiply its scaled values by a weight, but do it on purpose.</p>
+
+    <h3>5. Be careful with categorical features</h3>
+    <p>K-Means needs numbers, and the mean of a category doesn't make sense.</p>
+    <ul>
+      <li><strong>Never</strong> code categories as 1, 2, 3 (London = 1, Leeds = 2, Bristol = 3): K-Means would treat Bristol as "further" from London than Leeds is, which is meaningless.</li>
+      <li><strong>One-hot encoding</strong> (a 0/1 column per category) works for a few categories, but many 0/1 columns can dominate the distances, and centroids become fractions ("0.4 London") that are hard to interpret. Consider down-weighting them.</li>
+      <li>Often the better choice is to <strong>leave categories out</strong> of the clustering and use them afterwards to describe the clusters ("segment 2 is 70% London").</li>
+      <li>For mostly categorical data, use an algorithm designed for it: <strong>K-Modes</strong> (all categorical) or <strong>K-Prototypes</strong> (mixed), available in the third-party <code>kmodes</code> package, or hierarchical clustering with Gower distance.</li>
+    </ul>
+
+    <h3>6. Consider reducing dimensions</h3>
+    <p>With many features (dozens or more), distances become less meaningful, because all points start to look roughly equally far apart (the "curse of dimensionality"). Removing irrelevant features or applying <a href="#pca">PCA</a> before clustering often gives cleaner clusters.</p>
+<pre><code>import numpy as np
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import FunctionTransformer, StandardScaler, RobustScaler
+from sklearn.impute import SimpleImputer
+from sklearn.cluster import KMeans
+
+skewed = ["annual_spend", "orders_per_year"]          # illustrative column names
+other  = ["days_since_last_order", "tenure_months"]
+
+prep = ColumnTransformer([
+    ("skewed", make_pipeline(SimpleImputer(strategy="median"),
+                             FunctionTransformer(np.log1p), StandardScaler()), skewed),
+    ("other",  make_pipeline(SimpleImputer(strategy="median"), RobustScaler()), other),
+])
+pipe = make_pipeline(prep, KMeans(n_clusters=4, n_init=10, random_state=42))
+segments = pipe.fit_predict(df)</code></pre>
+  </section>
+
+  <!-- ============ 9. PROFILING ============ -->
+  <section id="profiling">
+    <h2><span class="num">9</span>Interpreting and profiling clusters</h2>
+    <p class="intuition"><strong>Intuition.</strong> The algorithm only says "these customers belong together". Profiling answers "who are they?" so that each cluster becomes a segment with a name and an action.</p>
+
+    <h3>A profiling routine</h3>
+    <ol>
+      <li><strong>Size:</strong> how many rows are in each cluster, and what share of the total? Very small clusters are often outliers.</li>
+      <li><strong>Averages:</strong> compute the mean (and median, for skewed features) of every feature per cluster, in the <em>original</em> units, not the scaled ones.</li>
+      <li><strong>Compare with the overall average:</strong> divide each cluster's mean by the overall mean. 1.8 means "80% above average"; 0.4 means "60% below". This shows what makes each cluster distinctive.</li>
+      <li><strong>Describe with extra columns:</strong> bring back columns you didn't cluster on (region, age band, acquisition channel) to describe each segment.</li>
+      <li><strong>Name each segment</strong> in plain language and agree an action for it.</li>
+      <li><strong>Check stability:</strong> rerun with different seeds or on another month's data. Segments that come and go are not ready for decisions.</li>
+    </ol>
+<pre><code># df has the original (unscaled) columns plus the cluster labels
+df["segment"] = kmeans.labels_
+
+profile = df.groupby("segment")[features].mean().round(1)
+profile["customers"] = df["segment"].value_counts().sort_index()
+profile["share_%"] = (100 * profile["customers"] / len(df)).round(1)
+print(profile)
+
+# Relative to the overall average: &gt; 1 above average, &lt; 1 below
+print((df.groupby("segment")[features].mean() / df[features].mean()).round(2))
+
+# Centroids back in original units (if StandardScaler was used)
+centres = pd.DataFrame(scaler.inverse_transform(kmeans.cluster_centers_), columns=features)</code></pre>
+
+    <h3>Example: naming segments</h3>
+    <p>An <strong>illustrative</strong> profile of an online retailer's customers (made-up numbers, for teaching only):</p>
+    <div class="table-scroll"><table style="min-width:720px">
+      <thead><tr><th>Segment</th><th>Share</th><th>Annual spend</th><th>Orders / year</th><th>Days since last order</th><th>Tenure (months)</th><th>Name</th><th>Possible action</th></tr></thead>
+      <tbody>
+        <tr><td><span class="swatch" style="background:var(--c1)"></span>0</td><td>18%</td><td>£2,450</td><td>24</td><td>9</td><td>41</td><td><strong>Loyal big spenders</strong></td><td>VIP programme, early access</td></tr>
+        <tr><td><span class="swatch" style="background:var(--c2)"></span>1</td><td>34%</td><td>£380</td><td>5</td><td>45</td><td>22</td><td><strong>Occasional regulars</strong></td><td>Personalised recommendations</td></tr>
+        <tr><td><span class="swatch" style="background:var(--c3)"></span>2</td><td>27%</td><td>£210</td><td>2</td><td>240</td><td>30</td><td><strong>Lapsed customers</strong></td><td>Win-back offer</td></tr>
+        <tr><td><span class="swatch" style="background:var(--c4)"></span>3</td><td>21%</td><td>£95</td><td>1</td><td>20</td><td>2</td><td><strong>New and curious</strong></td><td>Onboarding emails, second-order discount</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn"><p><strong>Cluster numbers are arbitrary.</strong> Segment 0 in one run can be segment 3 in the next. Never hard-code "segment 2 = lapsed" in a report or pipeline without fixing the model (save it, or refit with the same <code>random_state</code> on the same data) and checking the profile.</p></div>
+    <p><strong>Assigning new rows:</strong> a fitted K-Means can label new customers with <code>kmeans.predict(X_new_scaled)</code>, which gives each one the nearest existing centroid. Remember to apply the <em>same fitted scaler</em> first (a pipeline does this for you). Refit periodically, because customer behaviour drifts.</p>
+  </section>
+
+  <!-- ============ 10. LIMITATIONS ============ -->
+  <section id="limitations">
+    <h2><span class="num">10</span>Limitations and alternatives</h2>
+    <p class="intuition"><strong>Intuition.</strong> K-Means assumes clusters are round blobs of similar size around a centre. When the real groups are rings, long strips, very different sizes, or full of noise, it will still return K groups, just the wrong ones.</p>
+
+    <div class="proscons">
+      <div class="pros"><h4>Strengths</h4><ul><li>Simple to understand and explain</li><li>Fast; scales to large data (and MiniBatchKMeans to very large data)</li><li>Centroids are easy to interpret as "typical members"</li><li>Can assign new rows to existing clusters with <code>predict</code></li></ul></div>
+      <div class="cons"><h4>Weaknesses</h4><ul><li><strong>You must choose K</strong> in advance</li><li>Assumes <strong>spherical, similar-sized</strong> clusters with similar spread</li><li><strong>Sensitive to outliers</strong> (centroids are means) and to scaling</li><li>Depends on the starting centroids (local minima)</li><li><strong>Numeric features only</strong>; Euclidean distance only</li><li>Every point is forced into a cluster; there is no "noise" label</li></ul></div>
+    </div>
+
+    <div class="widget" id="failWidget">
+      <div class="widget-title">Try it: where K-Means goes wrong</div>
+      <div class="widget-sub">Each dataset has obvious groups (first chart). K-Means with the right K, k-means++ and ten restarts still splits them badly (second chart), because the groups aren't round blobs of similar size.</div>
+      <div class="btn-row" role="group" aria-label="Dataset shape">
+        <button class="btn" type="button" data-fail="rings" aria-pressed="true">Rings</button>
+        <button class="btn" type="button" data-fail="strips">Long thin strips</button>
+        <button class="btn" type="button" data-fail="sizes">Different sizes</button>
+      </div>
+      <div class="grid-2">
+        <div><p class="panel-title">The real groups</p><svg id="failTrue" viewBox="0 0 480 400" role="img" aria-label="True groups"></svg></div>
+        <div><p class="panel-title">K-Means result</p><svg id="failKm" viewBox="0 0 480 400" role="img" aria-label="K-Means clusters"></svg></div>
+      </div>
+      <p id="failText" style="font-size:.92rem;margin:10px 0 0"></p>
+    </div>
+
+    <h3>Alternatives at a glance</h3>
+    <div class="table-scroll"><table style="min-width:720px">
+      <thead><tr><th></th><th>K-Means</th><th>DBSCAN</th><th>Hierarchical (agglomerative)</th><th>Gaussian mixture (GMM)</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Idea</strong></td><td>K centroids; each point joins the nearest</td><td>Clusters are dense regions; points in sparse regions are noise</td><td>Start with every point alone and repeatedly merge the two closest clusters, building a tree (dendrogram)</td><td>Data comes from K overlapping bell-shaped (Gaussian) distributions, each with its own shape</td></tr>
+        <tr><td><strong>Need to choose K?</strong></td><td>Yes</td><td>No (choose <code>eps</code> and <code>min_samples</code> instead)</td><td>Yes, or cut the tree at a distance threshold</td><td>Yes (BIC/AIC can help choose)</td></tr>
+        <tr><td><strong>Cluster shapes</strong></td><td>Round, similar size</td><td>Any shape</td><td>Depends on linkage: <code>ward</code> ≈ round; <code>single</code> follows chains and rings</td><td>Ellipses of any orientation and size</td></tr>
+        <tr><td><strong>Outliers / noise</strong></td><td>Pulls centroids; no noise label</td><td>Labels them as noise (<code>-1</code>)</td><td>Sensitive (especially single linkage)</td><td>Sensitive</td></tr>
+        <tr><td><strong>Soft assignments</strong></td><td>No</td><td>No</td><td>No</td><td><strong>Yes</strong>: probability per cluster</td></tr>
+        <tr><td><strong>Scale</strong></td><td>Very large data</td><td>Medium to large</td><td>Small to medium (memory grows with n²)</td><td>Medium</td></tr>
+        <tr><td><strong>Weak spot</strong></td><td>Non-round shapes, outliers</td><td>Clusters of very different density; choosing <code>eps</code></td><td>Slow on big data; merges can't be undone</td><td>Can overfit; sensitive to initialisation</td></tr>
+        <tr><td><strong>scikit-learn</strong></td><td><code>KMeans</code></td><td><code>DBSCAN</code>, <code>HDBSCAN</code></td><td><code>AgglomerativeClustering</code></td><td><code>GaussianMixture</code></td></tr>
+      </tbody>
+    </table></div>
+<pre><code>from sklearn.cluster import DBSCAN, HDBSCAN, AgglomerativeClustering
+from sklearn.mixture import GaussianMixture
+
+db_labels   = DBSCAN(eps=0.5, min_samples=5).fit_predict(X_scaled)        # -1 = noise
+hdb_labels  = HDBSCAN(min_cluster_size=20).fit_predict(X_scaled)          # scikit-learn &gt;= 1.3
+agg_labels  = AgglomerativeClustering(n_clusters=4, linkage="ward").fit_predict(X_scaled)
+gmm         = GaussianMixture(n_components=4, covariance_type="full", random_state=42).fit(X_scaled)
+gmm_labels  = gmm.predict(X_scaled)
+gmm_probs   = gmm.predict_proba(X_scaled)      # soft assignment: one probability per cluster</code></pre>
+    <p>Other relatives: <strong>K-Medoids</strong> uses actual data points as centres (more robust to outliers; in the third-party <code>scikit-learn-extra</code> package), and <strong>MiniBatchKMeans</strong> is the fast version for very large data.</p>
+  </section>
+
+  <!-- ============ 11. WITH LABELS ============ -->
+  <section id="with-labels">
+    <h2><span class="num">11</span>Evaluating clusters when you do have labels</h2>
+    <p class="intuition"><strong>Intuition.</strong> Sometimes you have a "known answer" for some rows (product category, fraud flag, a customer type from the CRM). Compare the clusters with it to see whether the algorithm rediscovered it, but remember cluster numbers don't line up with label names.</p>
+
+    <h3>Crosstab: the cluster-by-label table</h3>
+    <p>A <strong>crosstab</strong> (contingency table) counts how many rows of each true label fell into each cluster. Ideally each cluster is dominated by one label.</p>
+<pre><code>pd.crosstab(df["true_type"], df["segment"])
+
+# segment       0    1    2
+# true_type
+# budget       12  180    5
+# family        8   10  151
+# premium     140    6    9</code></pre>
+    <p>Here cluster 0 is mostly "premium", cluster 1 "budget" and cluster 2 "family": a good match, even though the numbers (0, 1, 2) say nothing by themselves.</p>
+
+    <h3>Adjusted Rand index (ARI)</h3>
+    <p>The <strong>adjusted Rand index</strong> compares two groupings by checking every pair of rows: do both groupings agree on whether the pair is together or apart? It is "adjusted" so that random labelling scores about 0.</p>
+    <ul>
+      <li><strong>1.0</strong> = identical groupings (cluster numbers can be swapped freely; only who-is-with-whom matters).</li>
+      <li><strong>About 0</strong> = no better than random. It can be slightly negative.</li>
+    </ul>
+<pre><code>from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
+
+adjusted_rand_score(df["true_type"], df["segment"])          # 1.0 = perfect agreement
+normalized_mutual_info_score(df["true_type"], df["segment"]) # 0 to 1, another common choice
+
+# Stability check without any labels: compare two runs with different seeds
+a = KMeans(n_clusters=4, n_init=10, random_state=1).fit_predict(X_scaled)
+b = KMeans(n_clusters=4, n_init=10, random_state=2).fit_predict(X_scaled)
+adjusted_rand_score(a, b)   # close to 1 = stable clusters</code></pre>
+    <div class="callout warn"><p><strong>Don't use accuracy</strong> to compare clusters with labels: cluster 0 has no reason to correspond to label 0. And if you have labels for all the data and want to predict them, you have a supervised problem, so train a classifier instead.</p></div>
+  </section>
+
+  <!-- ============ 12. SKLEARN ============ -->
+  <section id="sklearn">
+    <h2><span class="num">12</span>scikit-learn end to end: a customer segmentation example</h2>
+    <p class="intuition"><strong>Intuition.</strong> Scale → try several K → pick K → fit → read inertia, centroids and labels → profile → visualise.</p>
+    <p>The column names and the file below are <strong>illustrative</strong>: a made-up online retailer with one row per customer. Swap in your own data.</p>
+
+    <h3>1. Prepare and scale</h3>
+<pre><code>import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+
+df = pd.read_csv("customers.csv")      # illustrative file
+features = ["annual_spend", "orders_per_year", "avg_basket_value",
+            "days_since_last_order", "tenure_months"]
+X = df[features].dropna()
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)     # mean 0, standard deviation 1 per column</code></pre>
+
+    <h3>2. Elbow and silhouette loop</h3>
+<pre><code>ks = range(2, 11)
+inertias, silhouettes = [], []
+for k in ks:
+    km = KMeans(n_clusters=k, n_init=10, random_state=42).fit(X_scaled)
+    inertias.append(km.inertia_)
+    silhouettes.append(silhouette_score(X_scaled, km.labels_))
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+ax1.plot(ks, inertias, "o-");    ax1.set(xlabel="K", ylabel="Inertia (WCSS)", title="Elbow")
+ax2.plot(ks, silhouettes, "o-"); ax2.set(xlabel="K", ylabel="Silhouette", title="Silhouette")
+plt.show()</code></pre>
+
+    <h3>3. Fit the chosen model and read the results</h3>
+<pre><code>kmeans = KMeans(n_clusters=4, init="k-means++", n_init=10, random_state=42)
+kmeans.fit(X_scaled)
+
+kmeans.labels_            # cluster number for each training row, e.g. array([2, 0, 0, 3, ...])
+kmeans.cluster_centers_   # one row per cluster, in SCALED units
+kmeans.inertia_           # WCSS of the best of the 10 runs
+kmeans.n_iter_            # iterations the best run needed to converge
+
+silhouette_score(X_scaled, kmeans.labels_)
+
+centres = pd.DataFrame(scaler.inverse_transform(kmeans.cluster_centers_),
+                       columns=features).round(1)   # back to £, days, months
+print(centres)</code></pre>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Attribute / method</th><th>What it gives you</th></tr></thead>
+      <tbody>
+        <tr><td><code>fit(X)</code></td><td>Runs K-Means (n_init times) and keeps the best run</td></tr>
+        <tr><td><code>fit_predict(X)</code></td><td>Fits and returns the labels in one call</td></tr>
+        <tr><td><code>predict(X_new)</code></td><td>Labels new rows with their nearest centroid</td></tr>
+        <tr><td><code>transform(X)</code></td><td>Distance from each row to every centroid (useful for anomaly hints: large distance to own centroid)</td></tr>
+        <tr><td><code>labels_</code></td><td>Cluster of each training row</td></tr>
+        <tr><td><code>cluster_centers_</code></td><td>Centroid coordinates, in the units the model was trained on</td></tr>
+        <tr><td><code>inertia_</code></td><td>Within-cluster sum of squares of the final solution</td></tr>
+        <tr><td><code>n_iter_</code></td><td>Number of iterations of the best run</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>4. Profile and put it in a pipeline</h3>
+<pre><code>import numpy as np
+
+df.loc[X.index, "segment"] = kmeans.labels_
+print(df.groupby("segment")[features].median())
+
+# For production: one object that scales and clusters
+from sklearn.pipeline import make_pipeline
+seg_model = make_pipeline(StandardScaler(), KMeans(n_clusters=4, n_init=10, random_state=42))
+seg_model.fit(X)
+new_segments = seg_model.predict(new_customers[features])   # same scaling applied automatically
+
+# Anomaly hint: customers unusually far from their own centroid
+dist = seg_model.transform(X).min(axis=1)    # distance to nearest centroid (scaled units)
+suspicious = X[dist &gt; np.percentile(dist, 99)]</code></pre>
+
+    <h3 id="pca">PCA for 2-D visualisation</h3>
+    <p>With five features you can't draw the clusters directly. <strong>Principal component analysis (PCA)</strong> creates new axes (principal components) that are combinations of the original features, ordered by how much of the data's variation they capture. Projecting the scaled data onto the first two components gives a 2-D scatter plot you can colour by cluster. Check <code>pca.explained_variance_ratio_</code>: if the two components capture, say, only 45% of the variation, clusters that overlap in the plot may still be well separated in the full data. Use PCA for <em>looking</em>; fit K-Means on the full scaled features unless you deliberately chose to cluster on the components.</p>
+<pre><code>from sklearn.decomposition import PCA
+
+pca = PCA(n_components=2, random_state=42)
+X_2d = pca.fit_transform(X_scaled)
+print(pca.explained_variance_ratio_)          # e.g. [0.31, 0.24]
+
+plt.scatter(X_2d[:, 0], X_2d[:, 1], c=kmeans.labels_, s=10, cmap="tab10")
+centres_2d = pca.transform(kmeans.cluster_centers_)
+plt.scatter(centres_2d[:, 0], centres_2d[:, 1], marker="X", s=200, c="black")
+plt.xlabel("PC1"); plt.ylabel("PC2"); plt.show()</code></pre>
+  </section>
+
+  <!-- ============ 13. CHEAT SHEET ============ -->
+  <section id="cheatsheet">
+    <h2><span class="num">13</span>Cheat sheet</h2>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Topic</th><th>Remember</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Unsupervised</strong></td><td>No labels; find structure. Judge results by stability and usefulness</td></tr>
+        <tr><td><strong>K-Means loop</strong></td><td>Choose K → initialise → assign to nearest centroid → move centroid to mean → repeat until no change</td></tr>
+        <tr><td><strong>Inertia / WCSS</strong></td><td>Σ squared distance from each point to its centroid. Lower = tighter. Always falls as K rises, so never choose K by minimum inertia</td></tr>
+        <tr><td><strong>Local minima</strong></td><td>Result depends on the start. Use <code>init="k-means++"</code> and <code>n_init=10</code>, set <code>random_state</code></td></tr>
+        <tr><td><strong>k-means++</strong></td><td>First centre random; each next centre chosen with probability ∝ D(x)², squared distance to the nearest chosen centre</td></tr>
+        <tr><td><strong>Elbow</strong></td><td>Plot inertia vs K; pick where the curve bends. Often fuzzy</td></tr>
+        <tr><td><strong>Silhouette</strong></td><td><code>s = (b − a) / max(a, b)</code>; −1 to 1; higher is better; pick K with the highest average</td></tr>
+        <tr><td><strong>Scaling</strong></td><td>Always scale (<code>StandardScaler</code>, or <code>RobustScaler</code> with outliers); log-transform skewed money/count features</td></tr>
+        <tr><td><strong>Categoricals</strong></td><td>Never code as 1, 2, 3. One-hot sparingly, or leave out and use for profiling; K-Prototypes for mixed data</td></tr>
+        <tr><td><strong>Profiling</strong></td><td>Size, means/medians in original units, ratio to overall mean, name and action per segment</td></tr>
+        <tr><td><strong>Labels available?</strong></td><td><code>pd.crosstab</code> and <code>adjusted_rand_score</code> (1 = identical, ≈ 0 = random); never accuracy</td></tr>
+        <tr><td><strong>Visualise</strong></td><td>PCA to 2 components, colour by cluster; check explained variance</td></tr>
+        <tr><td><strong>When not K-Means</strong></td><td>Odd shapes or noise → DBSCAN/HDBSCAN · want a hierarchy → agglomerative · elliptical or overlapping clusters, soft membership → Gaussian mixture</td></tr>
+      </tbody>
+    </table></div>
+<pre><code>from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+
+pipe = make_pipeline(StandardScaler(), KMeans(n_clusters=4, n_init=10, random_state=42))
+labels = pipe.fit_predict(X)
+km = pipe[-1]
+print(km.inertia_, silhouette_score(pipe[:-1].transform(X), labels))</code></pre>
+    <div class="callout good"><p><strong>A sensible workflow:</strong> choose features for the similarity you care about → clean, log-transform skewed columns, scale → run K = 2…10 with <code>n_init=10</code> → shortlist K from elbow and silhouette → profile each candidate → pick the K the business can act on → check stability with another seed → document the segment names and refit schedule.</p></div>
+  </section>
+
+  <!-- ============ 14. QUIZ ============ -->
+  <section id="quiz">
+    <h2><span class="num">14</span>Quiz</h2>
+    <div class="card quiz" id="quizBox"></div>
+    <p><strong id="quizScore"></strong> <button class="btn" type="button" id="quizReset">Try again</button></p>
+  </section>
+
+  <footer>Data Science &amp; Agentic AI Programme · Week 1 · <a href="../index.html">All course docs</a></footer>
+</main>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : "–");
+  const money = (x) => "£" + Math.round(x).toLocaleString("en-GB");
+
+  /* ---------- theme ---------- */
+  const root = document.documentElement;
+  try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch {}
+  const redrawers = [];
+  $("themeToggle").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+    redrawers.forEach((f) => f());
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => redrawers.forEach((f) => f()));
+
+  /* ---------- table of contents highlight ---------- */
+  const tocLinks = [...document.querySelectorAll("aside.toc a")];
+  const sections = tocLinks.map((a) => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        tocLinks.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id));
+      }
+    });
+  }, { rootMargin: "0px 0px -70% 0px" });
+  sections.forEach((s) => obs.observe(s));
+
+  /* ---------- svg helpers ---------- */
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs = {}, text) {
+    const n = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+  const palette = () => [1, 2, 3, 4, 5, 6].map((i) => css("--c" + i));
+  function drawCross(svg, x, y, colour, size = 10) {
+    const d = `M${x - size},${y - size}L${x + size},${y + size}M${x - size},${y + size}L${x + size},${y - size}`;
+    svg.append(el("path", { d, stroke: css("--surface"), "stroke-width": 8, "stroke-linecap": "round" }));
+    svg.append(el("path", { d, stroke: colour, "stroke-width": 4, "stroke-linecap": "round" }));
+  }
+
+  /* ---------- seeded random numbers ---------- */
+  function mulberry32(a) { return function () { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const gaussFrom = (rand) => () => { let u = 0, v = 0; while (!u) u = rand(); while (!v) v = rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+  /* ---------- k-means engine (Lloyd's algorithm) ---------- */
+  const d2 = (p, q) => { let s = 0; for (let j = 0; j < p.length; j++) s += (p[j] - q[j]) ** 2; return s; };
+  function randomInitIdx(pts, k, rand) {
+    const idx = [];
+    while (idx.length < k) { const i = Math.floor(rand() * pts.length); if (!idx.includes(i)) idx.push(i); }
+    return idx;
+  }
+  function kmeansPPIdx(pts, k, rand) {
+    const idx = [Math.floor(rand() * pts.length)];
+    while (idx.length < k) {
+      const D = pts.map((p) => Math.min(...idx.map((j) => d2(p, pts[j]))));   // squared distance to nearest chosen centre
+      const total = D.reduce((a, b) => a + b, 0);
+      let r = rand() * total, i = 0;
+      while (i < pts.length - 1 && (r -= D[i]) > 0) i++;
+      idx.push(i);
+    }
+    return idx;
+  }
+  function assignPts(pts, cents) {
+    return pts.map((p) => { let best = 0, bd = Infinity; cents.forEach((c, j) => { const d = d2(p, c); if (d < bd) { bd = d; best = j; } }); return best; });
+  }
+  function updateCents(pts, labels, cents) {
+    return cents.map((old, j) => {
+      const sum = new Array(old.length).fill(0); let n = 0;
+      pts.forEach((p, i) => { if (labels[i] === j) { n++; p.forEach((v, t) => (sum[t] += v)); } });
+      return n ? sum.map((s) => s / n) : old.slice();   // an empty cluster keeps its old centroid here
+    });
+  }
+  const inertiaOf = (pts, labels, cents) => pts.reduce((s, p, i) => s + d2(p, cents[labels[i]]), 0);
+  function kmeansRun(pts, k, rand, usePP = true, maxIter = 100) {
+    let cents = (usePP ? kmeansPPIdx : randomInitIdx)(pts, k, rand).map((i) => pts[i].slice());
+    let labels = null;
+    for (let it = 0; it < maxIter; it++) {
+      const nl = assignPts(pts, cents);
+      if (labels && nl.every((v, i) => v === labels[i])) break;
+      labels = nl; cents = updateCents(pts, labels, cents);
+    }
+    return { cents, labels, inertia: inertiaOf(pts, labels, cents) };
+  }
+  function bestOf(pts, k, nInit, seed, usePP = true) {
+    const rand = mulberry32(seed); let best = null;
+    for (let r = 0; r < nInit; r++) { const res = kmeansRun(pts, k, rand, usePP); if (!best || res.inertia < best.inertia) best = res; }
+    return best;
+  }
+  function silhouette(pts, labels, k) {
+    if (k < 2) return NaN;
+    const n = pts.length; let total = 0;
+    for (let i = 0; i < n; i++) {
+      const sum = new Array(k).fill(0), cnt = new Array(k).fill(0);
+      for (let j = 0; j < n; j++) { if (i !== j) { sum[labels[j]] += Math.sqrt(d2(pts[i], pts[j])); cnt[labels[j]]++; } }
+      if (!cnt[labels[i]]) continue;                       // a point alone in its cluster scores 0
+      const a = sum[labels[i]] / cnt[labels[i]];
+      let b = Infinity;
+      for (let c = 0; c < k; c++) if (c !== labels[i] && cnt[c]) b = Math.min(b, sum[c] / cnt[c]);
+      if (Number.isFinite(b)) total += (b - a) / Math.max(a, b);
+    }
+    return total / n;
+  }
+  const countsOf = (labels, k) => { const c = new Array(k).fill(0); labels.forEach((l) => c[l]++); return c; };
+
+  /* ---------- shared dataset: 150 points in 4 blobs (x 0–12, y 0–10) ---------- */
+  const BLOBS = (() => {
+    const rand = mulberry32(42), g = gaussFrom(rand);
+    const spec = [[1.7, 4.4, 0.65, 38], [5.2, 5.9, 0.65, 36], [9.2, 8.4, 0.7, 40], [9.6, 1.8, 0.7, 36]];
+    const pts = [], truth = [];
+    spec.forEach(([cx, cy, sd, n], b) => { for (let i = 0; i < n; i++) { pts.push([clamp(cx + sd * g(), 0.2, 11.8), clamp(cy + sd * g(), 0.2, 9.8)]); truth.push(b); } });
+    return { pts, truth };
+  })();
+  const P = BLOBS.pts;
+  const SX = (x) => x * 40, SY = (y) => 400 - y * 40;   // data → 480 × 400 viewBox, equal scale
+
+  function drawScatter(svg, pts, labels, cents, opts = {}) {
+    const pal = palette();
+    svg.append(el("rect", { x: 0.5, y: 0.5, width: 479, height: 399, fill: "none", class: "svg-axis" }));
+    pts.forEach((p, i) => svg.append(el("circle", {
+      cx: SX(p[0]).toFixed(1), cy: SY(p[1]).toFixed(1), r: opts.r || 4.5,
+      fill: labels ? pal[labels[i] % 6] : css("--muted"), opacity: labels ? 0.85 : 0.5,
+      stroke: css("--surface"), "stroke-width": 1,
+    })));
+    if (cents) cents.forEach((c, j) => drawCross(svg, SX(c[0]), SY(c[1]), pal[j % 6]));
+  }
+
+  /* ---------- widget (a): step-through K-Means ---------- */
+  const KM = { k: 4, cents: null, labels: null, iter: 0, trails: [], phase: "empty", converged: false, changed: null, msg: "", best: {}, timer: null, initCount: 0 };
+  const START_MSG = "Choose K, then press one of the Initialise buttons to place the starting centroids. Grey dots have no cluster yet.";
+  function stopRun() { if (KM.timer) { clearInterval(KM.timer); KM.timer = null; } }
+  function kmReset(msg) {
+    Object.assign(KM, { cents: null, labels: null, iter: 0, trails: [], phase: "empty", converged: false, changed: null });
+    KM.msg = msg || START_MSG; drawKM();
+  }
+  function kmInit(usePP) {
+    KM.initCount++;
+    const rand = mulberry32(500 + KM.initCount * 7919 + KM.k * 31);
+    const idx = (usePP ? kmeansPPIdx : randomInitIdx)(P, KM.k, rand);
+    KM.cents = idx.map((i) => P[i].slice());
+    Object.assign(KM, { labels: null, iter: 0, phase: "init", converged: false, changed: null });
+    KM.trails = KM.cents.map((c) => [c.slice()]);
+    const hit = new Set(idx.map((i) => BLOBS.truth[i])).size, want = Math.min(KM.k, 4);
+    const where = `They start in ${hit} of the 4 natural groups.`;
+    const warn = hit < want ? " Some group has no centroid nearby while another has two, so expect a poor final result." : "";
+    KM.msg = usePP
+      ? `k-means++: the first centroid is a random point; each next one is a point picked with probability proportional to its squared distance from the nearest centroid already chosen, so they spread out. ${where}${warn} Next: Assign step.`
+      : `Random initialisation: ${KM.k} centroids placed on ${KM.k} randomly chosen data points. ${where}${warn} Next: Assign step.`;
+    drawKM();
+  }
+  function converge() {
+    KM.converged = true;
+    const final = inertiaOf(P, KM.labels, KM.cents), prev = KM.best[KM.k];
+    KM.best[KM.k] = prev === undefined ? final : Math.min(prev, final);
+    let tail = " Try a different initialisation and compare the final inertia.";
+    if (prev !== undefined && final > prev * 1.02) tail = ` That is worse than the best run so far (${fmt(prev, 1)}): this run got stuck in a local minimum. This is exactly why n_init runs K-Means several times and keeps the lowest inertia.`;
+    else if (prev !== undefined && final < prev * 0.98) tail = ` That beats the previous best (${fmt(prev, 1)}).`;
+    KM.msg = `Converged after ${KM.iter} iteration${KM.iter === 1 ? "" : "s"}: no point changed cluster, so the centroids will not move again. Final inertia ${fmt(final, 1)}.${tail}`;
+  }
+  function kmAssign() {
+    if (!KM.cents) { KM.msg = "Initialise first: there are no centroids to assign points to."; return drawKM(); }
+    if (KM.converged) { KM.msg = "Already converged. Initialise again or Reset to start over."; return drawKM(); }
+    if (KM.phase === "assigned") { KM.msg = "Every point is already assigned to its nearest centroid. Now run the Update step."; return drawKM(); }
+    const nl = assignPts(P, KM.cents);
+    const changed = KM.labels ? nl.filter((v, i) => v !== KM.labels[i]).length : P.length;
+    KM.labels = nl; KM.phase = "assigned"; KM.changed = changed;
+    if (KM.iter > 0 && changed === 0) { converge(); return drawKM(); }
+    const sizes = countsOf(nl, KM.k);
+    KM.msg = `Assign step: every point joined its nearest centroid (faint lines). ${KM.iter ? `${changed} point${changed === 1 ? "" : "s"} switched cluster. ` : ""}Cluster sizes: ${sizes.join(", ")}. Inertia = ${fmt(inertiaOf(P, nl, KM.cents), 1)}. Next: Update step.`;
+    drawKM();
+  }
+  function kmUpdate() {
+    if (!KM.cents) { KM.msg = "Initialise first."; return drawKM(); }
+    if (KM.converged) { KM.msg = "Already converged. Initialise again or Reset to start over."; return drawKM(); }
+    if (KM.phase !== "assigned") { KM.msg = "Run the Assign step first: the update needs to know which points belong to each centroid."; return drawKM(); }
+    const before = inertiaOf(P, KM.labels, KM.cents);
+    const nc = updateCents(P, KM.labels, KM.cents);
+    const shift = Math.max(...nc.map((c, j) => Math.sqrt(d2(c, KM.cents[j]))));
+    KM.cents = nc; KM.trails.forEach((t, j) => t.push(nc[j].slice())); KM.iter++; KM.phase = "updated";
+    if (shift < 1e-9) { converge(); return drawKM(); }
+    const empty = countsOf(KM.labels, KM.k).filter((c) => c === 0).length;
+    KM.msg = `Update step (iteration ${KM.iter}): each centroid moved to the mean of its points. Largest move: ${fmt(shift, 2)} units. Inertia fell from ${fmt(before, 1)} to ${fmt(inertiaOf(P, KM.labels, nc), 1)}.${empty ? " One centroid has no points, so it stays put (scikit-learn would move it to a far-away point)." : ""} Next: Assign step, to see whether any point now has a closer centroid.`;
+    drawKM();
+  }
+  function kmStep() { if (KM.phase === "assigned") kmUpdate(); else kmAssign(); return KM.converged || KM.iter > 100; }
+  function kmRun() {
+    if (!KM.cents) kmInit(true);
+    if (KM.converged) { KM.msg = "Already converged. Initialise again or Reset to start over."; return drawKM(); }
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) { while (!kmStep()); return; }
+    KM.timer = setInterval(() => { if (kmStep()) stopRun(); }, 380);
+  }
+  function drawKM() {
+    const svg = $("kmSvg"); svg.innerHTML = "";
+    const pal = palette();
+    if (KM.phase === "assigned" && KM.labels) {
+      P.forEach((p, i) => { const c = KM.cents[KM.labels[i]]; svg.append(el("line", { x1: SX(p[0]), y1: SY(p[1]), x2: SX(c[0]), y2: SY(c[1]), stroke: pal[KM.labels[i]], "stroke-width": 1, opacity: 0.2 })); });
+    }
+    drawScatter(svg, P, KM.labels, null);
+    KM.trails.forEach((t, j) => {
+      if (t.length < 2) return;
+      svg.append(el("polyline", { points: t.map((c) => SX(c[0]).toFixed(1) + "," + SY(c[1]).toFixed(1)).join(" "), fill: "none", stroke: pal[j], "stroke-width": 2, "stroke-dasharray": "5 4" }));
+      t.slice(0, -1).forEach((c) => svg.append(el("circle", { cx: SX(c[0]), cy: SY(c[1]), r: 4, fill: css("--surface"), stroke: pal[j], "stroke-width": 2 })));
+      const a = t[t.length - 2], b = t[t.length - 1];
+      const ax = SX(a[0]), ay = SY(a[1]), bx = SX(b[0]), by = SY(b[1]), len = Math.hypot(bx - ax, by - ay);
+      if (len > 18) {   // arrowhead just before the centroid marker
+        const ux = (bx - ax) / len, uy = (by - ay) / len, tx = bx - ux * 14, ty = by - uy * 14;
+        svg.append(el("polygon", { points: `${tx},${ty} ${tx - ux * 9 - uy * 5},${ty - uy * 9 + ux * 5} ${tx - ux * 9 + uy * 5},${ty - uy * 9 - ux * 5}`, fill: pal[j] }));
+      }
+    });
+    if (KM.cents) KM.cents.forEach((c, j) => drawCross(svg, SX(c[0]), SY(c[1]), pal[j]));
+    else svg.append(el("text", { x: 240, y: 22, class: "svg-text", "text-anchor": "middle" }, "Press an Initialise button to place the centroids"));
+    const inertia = KM.labels ? inertiaOf(P, KM.labels, KM.cents) : NaN;
+    const status = !KM.cents ? "not started" : KM.converged ? "converged" : KM.phase === "assigned" ? "assigned" : KM.phase === "updated" ? "centroids moved" : "initialised";
+    $("kmMetrics").innerHTML = [
+      ["K", KM.k], ["Iteration", KM.iter], ["Inertia", KM.labels ? fmt(inertia, 1) : "–"],
+      ["Points changed", KM.changed === null ? "–" : KM.changed], ["Best final (this K)", KM.best[KM.k] === undefined ? "–" : fmt(KM.best[KM.k], 1)], ["Status", status],
+    ].map(([k, v]) => `<div class="metric${k === "Status" && KM.converged ? " hl" : ""}"><div class="k">${k}</div><div class="v" style="${k === "Status" ? "font-size:1rem" : ""}">${esc(v)}</div></div>`).join("");
+    $("kmText").textContent = KM.msg;
+  }
+  document.querySelectorAll("#kmWidget [data-km-k]").forEach((b) => b.addEventListener("click", () => {
+    stopRun();
+    KM.k = +b.dataset.kmK;
+    document.querySelectorAll("#kmWidget [data-km-k]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    kmReset(`K is now ${KM.k}. Press an Initialise button to place ${KM.k} centroids.`);
+  }));
+  $("kmInitRand").addEventListener("click", () => { stopRun(); kmInit(false); });
+  $("kmInitPP").addEventListener("click", () => { stopRun(); kmInit(true); });
+  $("kmAssign").addEventListener("click", () => { stopRun(); kmAssign(); });
+  $("kmUpdate").addEventListener("click", () => { stopRun(); kmUpdate(); });
+  $("kmRun").addEventListener("click", () => { stopRun(); kmRun(); });
+  $("kmReset").addEventListener("click", () => { stopRun(); kmReset(); });
+  kmReset(); redrawers.push(drawKM);
+
+  /* ---------- widget (b): elbow and silhouette ---------- */
+  const EB = [];
+  for (let k = 1; k <= 8; k++) { const r = bestOf(P, k, 5, 9000 + k); EB.push({ k, inertia: r.inertia, sil: silhouette(P, r.labels, k), labels: r.labels, cents: r.cents }); }
+  const bestSilK = EB.filter((r) => r.k >= 2).reduce((a, b) => (b.sil > a.sil ? b : a)).k;
+  function lineChart(svg, points, selK, { title, yMax, yFmt, colour }) {
+    svg.innerHTML = "";
+    const L = 50, R = 306, T = 28, B = 186;
+    const X = (k) => L + ((k - 1) / 7) * (R - L), Y = (v) => B - (v / yMax) * (B - T);
+    svg.append(el("text", { x: L, y: 14, class: "svg-text", style: "font-weight:700" }, title));
+    svg.append(el("line", { x1: L, y1: B, x2: R, y2: B, class: "svg-axis" }), el("line", { x1: L, y1: T, x2: L, y2: B, class: "svg-axis" }));
+    for (let k = 1; k <= 8; k++) svg.append(el("text", { x: X(k), y: B + 15, class: "svg-text", "text-anchor": "middle" }, k));
+    svg.append(el("text", { x: (L + R) / 2, y: 214, class: "svg-text", "text-anchor": "middle" }, "number of clusters K"));
+    [0, 0.5, 1].forEach((f) => {
+      svg.append(el("text", { x: L - 6, y: Y(f * yMax) + 4, class: "svg-text", "text-anchor": "end" }, yFmt(f * yMax)));
+      if (f) svg.append(el("line", { x1: L, y1: Y(f * yMax), x2: R, y2: Y(f * yMax), stroke: css("--border"), "stroke-dasharray": "2 4" }));
+    });
+    svg.append(el("line", { x1: X(selK), y1: T, x2: X(selK), y2: B, stroke: css("--text"), "stroke-dasharray": "4 3", opacity: 0.6 }));
+    const pts = points.filter((p) => Number.isFinite(p.v));
+    svg.append(el("path", { d: pts.map((p, i) => (i ? "L" : "M") + X(p.k).toFixed(1) + "," + Y(p.v).toFixed(1)).join(""), fill: "none", stroke: colour, "stroke-width": 2.5 }));
+    pts.forEach((p) => svg.append(el("circle", { cx: X(p.k), cy: Y(p.v), r: p.k === selK ? 7 : 4, fill: p.k === selK ? colour : css("--surface"), stroke: colour, "stroke-width": 2 })));
+    const sel = points.find((p) => p.k === selK);
+    const label = sel && Number.isFinite(sel.v) ? yFmt(sel.v, true) : "n/a for K = 1";
+    svg.append(el("text", { x: selK > 5 ? X(selK) - 8 : X(selK) + 8, y: T + 10, class: "svg-text", "text-anchor": selK > 5 ? "end" : "start", style: "font-weight:700" }, label));
+  }
+  function drawElbow() {
+    const k = +$("ebK").value; $("ebKV").textContent = k;
+    const maxIn = EB[0].inertia * 1.05;
+    lineChart($("ebElbow"), EB.map((r) => ({ k: r.k, v: r.inertia })), k, { title: "Elbow: inertia (WCSS)", yMax: maxIn, yFmt: (v) => Math.round(v), colour: css("--accent") });
+    lineChart($("ebSil"), EB.map((r) => ({ k: r.k, v: r.sil })), k, { title: "Silhouette score (higher is better)", yMax: 1, yFmt: (v, exact) => (exact ? v.toFixed(3) : v.toFixed(1)), colour: css("--pos") });
+    const r = EB[k - 1];
+    const drop = k > 1 ? (1 - r.inertia / EB[k - 2].inertia) * 100 : NaN;
+    const nextDrop = k < 8 ? (1 - EB[k].inertia / r.inertia) * 100 : NaN;
+    $("ebMetrics").innerHTML = [
+      ["Inertia", fmt(r.inertia, 1)], ["Drop from K−1", k > 1 ? fmt(drop, 0) + "%" : "–"], ["Drop to K+1", k < 8 ? fmt(nextDrop, 0) + "%" : "–"], ["Silhouette", k > 1 ? fmt(r.sil, 3) : "n/a"],
+    ].map(([a, b]) => `<div class="metric${a === "Silhouette" && k === bestSilK ? " hl" : ""}"><div class="k">${a}</div><div class="v">${b}</div></div>`).join("");
+    const sc = $("ebScatter"); sc.innerHTML = "";
+    drawScatter(sc, P, r.labels, r.cents, { r: 4 });
+    let text;
+    if (k === 1) text = "K = 1 puts every point in one cluster, so inertia is the total spread of the data around its mean (the total sum of squares). Silhouette is undefined with a single cluster.";
+    else {
+      text = `Going from K = ${k - 1} to K = ${k} cut inertia by ${fmt(drop, 0)}%.`;
+      if (k < 8) text += ` Going on to K = ${k + 1} would cut it by only ${fmt(nextDrop, 0)}%.`;
+      text += k === bestSilK ? ` K = ${k} has the highest silhouette score (${fmt(r.sil, 3)}), and it sits at the elbow: both methods agree.` : ` The highest silhouette is at K = ${bestSilK}.`;
+      if (k > bestSilK) text += " Extra clusters here just cut real groups into pieces: inertia still falls, but silhouette drops.";
+      if (k < bestSilK) text += " With too few clusters, separate groups are being merged.";
+    }
+    $("ebText").textContent = text;
+  }
+  $("ebK").addEventListener("input", drawElbow);
+  drawElbow(); redrawers.push(drawElbow);
+
+  /* ---------- widget (c): why scaling matters ---------- */
+  const SC = (() => {
+    const rand = mulberry32(2026), g = gaussFrom(rand), rows = [];
+    // three groups: young (~25, ~£40k), older (~60, ~£40k), mid-career high earners (~42, ~£95k)
+    [[25, 3, 40000, 12000], [60, 4, 40000, 12000], [42, 3, 95000, 8000]].forEach(([age, asd, inc, isd]) => {
+      for (let i = 0; i < 30; i++) rows.push([clamp(age + asd * g(), 18, 75), clamp(inc + isd * g(), 12000, 118000)]);
+    });
+    const mean = [0, 1].map((j) => rows.reduce((s, r) => s + r[j], 0) / rows.length);
+    const sd = [0, 1].map((j) => Math.sqrt(rows.reduce((s, r) => s + (r[j] - mean[j]) ** 2, 0) / rows.length));
+    const z = rows.map((r) => [(r[0] - mean[0]) / sd[0], (r[1] - mean[1]) / sd[1]]);
+    // Run K-Means (K = 3) on raw and on standardised data; renumber clusters so colours are ordered
+    const relabel = (labels, col) => {
+      const means = [0, 1, 2].map((c) => { const m = rows.filter((_, i) => labels[i] === c); return m.reduce((s, r) => s + r[col], 0) / Math.max(1, m.length); });
+      const order = [0, 1, 2].sort((a, b) => means[a] - means[b]);
+      return labels.map((l) => order.indexOf(l));
+    };
+    const raw = relabel(bestOf(rows, 3, 10, 77).labels, 1);
+    const scaled = relabel(bestOf(z, 3, 10, 77).labels, 0);
+    return { rows, z, raw, scaled, mode: "raw" };
+  })();
+  function drawScale() {
+    const pal = palette(), labels = SC.mode === "raw" ? SC.raw : SC.scaled;
+    // left: original units
+    const s1 = $("scOrig"); s1.innerHTML = "";
+    const L = 52, R = 310, T = 10, B = 224;
+    const X = (a) => L + ((a - 15) / 60) * (R - L), Y = (inc) => B - (inc / 120000) * (B - T);
+    s1.append(el("line", { x1: L, y1: B, x2: R, y2: B, class: "svg-axis" }), el("line", { x1: L, y1: T, x2: L, y2: B, class: "svg-axis" }));
+    [20, 30, 40, 50, 60, 70].forEach((a) => s1.append(el("text", { x: X(a), y: B + 14, class: "svg-text", "text-anchor": "middle" }, a)));
+    [0, 40000, 80000, 120000].forEach((v) => s1.append(el("text", { x: L - 5, y: Y(v) + 4, class: "svg-text", "text-anchor": "end" }, "£" + v / 1000 + "k")));
+    s1.append(el("text", { x: (L + R) / 2, y: 254, class: "svg-text", "text-anchor": "middle" }, "age (years)"));
+    SC.rows.forEach((r, i) => s1.append(el("circle", { cx: X(r[0]).toFixed(1), cy: Y(r[1]).toFixed(1), r: 4.5, fill: pal[labels[i]], opacity: 0.85, stroke: css("--surface"), "stroke-width": 1 })));
+    // right: equal units on both axes
+    const s2 = $("scSeen"); s2.innerHTML = "";
+    const L2 = 10, R2 = 310, T2 = 10, B2 = 236, h = B2 - T2, w = R2 - L2;
+    s2.append(el("rect", { x: L2, y: T2, width: w, height: h, fill: "none", class: "svg-axis" }));
+    let xy;
+    if (SC.mode === "raw") {
+      const yLo = 5000, yHi = 125000, upp = (yHi - yLo) / h, xMid = 45;
+      xy = (r) => [L2 + w / 2 + (r[0] - xMid) / upp, B2 - ((r[1] - yLo) / upp)];
+      s2.append(el("text", { x: L2 + 8, y: T2 + 16, class: "svg-text" }, "1 year of age = £1"));
+      s2.append(el("text", { x: L2 + w / 2 - 10, y: T2 + h / 2 + 4, class: "svg-text", "text-anchor": "end" }, "every age is in this line →"));
+      s2.append(el("text", { x: L2 + 8, y: B2 - 10, class: "svg-text" }, "x: age · y: income"));
+    } else {
+      const zr = 2.6, upp = (2 * zr) / h;
+      xy = (r, i) => [L2 + w / 2 + SC.z[i][0] / upp, T2 + h / 2 - SC.z[i][1] / upp];
+      s2.append(el("text", { x: L2 + 8, y: T2 + 16, class: "svg-text" }, "z-scores: 1 SD of age = 1 SD of income"));
+      s2.append(el("text", { x: L2 + 8, y: B2 - 10, class: "svg-text" }, "x: age (z) · y: income (z)"));
+    }
+    SC.rows.forEach((r, i) => { const [cx, cy] = xy(r, i); s2.append(el("circle", { cx: cx.toFixed(1), cy: cy.toFixed(1), r: 4, fill: pal[labels[i]], opacity: 0.8, stroke: css("--surface"), "stroke-width": 1 })); });
+    // profile table
+    const prof = [0, 1, 2].map((c) => {
+      const m = SC.rows.filter((_, i) => labels[i] === c), ages = m.map((r) => r[0]);
+      return { c, n: m.length, age: ages.reduce((s, a) => s + a, 0) / m.length, inc: m.reduce((s, r) => s + r[1], 0) / m.length, lo: Math.min(...ages), hi: Math.max(...ages) };
+    });
+    $("scTable").innerHTML = `<table><thead><tr><th>Cluster</th><th>Customers</th><th>Mean age</th><th>Age range</th><th>Mean income</th></tr></thead><tbody>${
+      prof.map((p) => `<tr><td><span class="swatch" style="background:var(--c${p.c + 1})"></span>${p.c}</td><td>${p.n}</td><td>${p.age.toFixed(0)}</td><td>${p.lo.toFixed(0)}–${p.hi.toFixed(0)}</td><td>${money(p.inc)}</td></tr>`).join("")
+    }</tbody></table>`;
+    const v = $("scVerdict");
+    if (SC.mode === "raw") {
+      v.style.background = css("--bad-soft"); v.style.color = css("--bad");
+      v.textContent = "Unscaled: the clusters are horizontal bands of income. Income differences are thousands of pounds, age differences only tens of years, so distance is almost entirely income. The young and the older customers, who earn similar amounts, are mixed together and cut into a lower-income and a higher-income band: age has been ignored.";
+    } else {
+      v.style.background = css("--good-soft"); v.style.color = css("--good");
+      v.textContent = "Scaled: both features now count equally. K-Means finds the three real groups: young customers, older customers and the mid-career high earners, each with a narrow age range.";
+    }
+  }
+  document.querySelectorAll("#scaleWidget [data-scale]").forEach((b) => b.addEventListener("click", () => {
+    SC.mode = b.dataset.scale;
+    document.querySelectorAll("#scaleWidget [data-scale]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    drawScale();
+  }));
+  drawScale(); redrawers.push(drawScale);
+
+  /* ---------- widget (d): where K-Means fails ---------- */
+  const FAIL = (() => {
+    const make = (seed, fn) => { const rand = mulberry32(seed), g = gaussFrom(rand), pts = [], truth = []; fn(rand, g, (x, y, t) => { pts.push([clamp(x, 0.2, 11.8), clamp(y, 0.2, 9.8)]); truth.push(t); }); return { pts, truth }; };
+    const sets = {
+      rings: make(11, (rand, g, add) => {
+        for (let i = 0; i < 60; i++) { const a = rand() * 2 * Math.PI, r = 1.1 + 0.25 * g(); add(6 + r * Math.cos(a), 5 + r * Math.sin(a), 0); }
+        for (let i = 0; i < 110; i++) { const a = rand() * 2 * Math.PI, r = 3.9 + 0.25 * g(); add(6 + r * Math.cos(a), 5 + r * Math.sin(a), 1); }
+      }),
+      strips: make(12, (rand, g, add) => { [3.5, 5, 6.5].forEach((y, t) => { for (let i = 0; i < 50; i++) add(6 + 2.2 * g(), y + 0.22 * g(), t); }); }),
+      sizes: make(13, (rand, g, add) => {
+        for (let i = 0; i < 150; i++) add(4 + 1.9 * g(), 5 + 1.9 * g(), 0);
+        for (let i = 0; i < 15; i++) add(10.3 + 0.3 * g(), 7 + 0.3 * g(), 1);
+        for (let i = 0; i < 15; i++) add(10.3 + 0.3 * g(), 3 + 0.3 * g(), 2);
+      }),
+    };
+    const K = { rings: 2, strips: 3, sizes: 3 };
+    Object.entries(sets).forEach(([name, s]) => {
+      const r = bestOf(s.pts, K[name], 10, 4242);
+      // renumber K-Means clusters to best match the true groups so colours are comparable
+      const used = new Set(), map = new Array(K[name]).fill(-1);
+      for (let c = 0; c < K[name]; c++) {
+        const votes = new Array(K[name]).fill(0); r.labels.forEach((l, i) => { if (l === c) votes[s.truth[i]]++; });
+        let best = -1; votes.forEach((v, t) => { if (!used.has(t) && (best < 0 || v > votes[best])) best = t; });
+        map[c] = best; used.add(best);
+      }
+      s.km = r.labels.map((l) => map[l]); s.cents = r.cents.map((c, j) => ({ c, t: map[j] }));
+    });
+    return { sets, mode: "rings" };
+  })();
+  const FAIL_TEXT = {
+    rings: "Two rings, one inside the other. K-Means (K = 2) cuts straight through both, because the boundary between two centroids is always a straight line, and both rings have their mean in the same place. Better: DBSCAN / HDBSCAN, or agglomerative clustering with single linkage, which follow connected, dense shapes.",
+    strips: "Three long, thin, parallel strips. Inertia is lower if K-Means chops the picture into three vertical pieces than if it follows the strips, because each strip is very spread out along its length. Better: a Gaussian mixture with full covariance (elliptical clusters) or DBSCAN.",
+    sizes: "One large, spread-out group and two small tight ones. K-Means (K = 3) prefers to split the big group, because that lowers inertia more than keeping the small groups apart; the boundary also sits halfway between centroids, so the big group 'loses' points to its small neighbours. Better: a Gaussian mixture, which lets each cluster have its own size and spread.",
+  };
+  function drawFail() {
+    const s = FAIL.sets[FAIL.mode], pal = palette();
+    const a = $("failTrue"); a.innerHTML = ""; drawScatter(a, s.pts, s.truth, null, { r: 4 });
+    const b = $("failKm"); b.innerHTML = ""; drawScatter(b, s.pts, s.km, null, { r: 4 });
+    s.cents.forEach(({ c, t }) => drawCross(b, SX(c[0]), SY(c[1]), pal[t]));
+    $("failText").textContent = FAIL_TEXT[FAIL.mode];
+  }
+  document.querySelectorAll("#failWidget [data-fail]").forEach((b) => b.addEventListener("click", () => {
+    FAIL.mode = b.dataset.fail;
+    document.querySelectorAll("#failWidget [data-fail]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    drawFail();
+  }));
+  drawFail(); redrawers.push(drawFail);
+
+  /* ---------- quiz ---------- */
+  const QUIZ = [
+    { q: "Which of these is an unsupervised learning task?", o: ["Predicting next month's sales from past sales", "Grouping customers by purchasing behaviour without any predefined segments", "Classifying emails as spam or not spam using labelled examples", "Predicting house prices from size and location"], a: 1, w: "There is no label to predict: the algorithm discovers the groups itself. The others all learn from known answers." },
+    { q: "What does K-Means inertia (WCSS) measure?", o: ["The number of iterations until convergence", "The sum of squared distances from each point to its own cluster's centroid", "The average distance between centroids", "The share of points that changed cluster"], a: 1, w: "Inertia = within-cluster sum of squares. Lower means tighter clusters." },
+    { q: "Why can't you choose K by picking the value with the lowest inertia?", o: ["Inertia is random", "Inertia (almost) always decreases as K increases, reaching 0 when every point is its own cluster", "Inertia only works for K = 2", "Inertia increases with K"], a: 1, w: "More clusters always fit tighter, so the lowest inertia would always be the largest K. Look for the elbow instead." },
+    { q: "A point has a = 2 (mean distance to its own cluster) and b = 6 (mean distance to the nearest other cluster). What is its silhouette value?", o: ["−0.67", "0.33", "0.67", "3.0"], a: 2, w: "s = (b − a) / max(a, b) = (6 − 2) / 6 ≈ 0.67: a well-placed point." },
+    { q: "A point's silhouette value is close to 0. What does that mean?", o: ["It is perfectly clustered", "It lies on the border between two clusters", "It is definitely an outlier", "It is in the wrong cluster for certain"], a: 1, w: "s ≈ 0 means a ≈ b: the point is about as close to the neighbouring cluster as to its own. Negative values suggest the wrong cluster." },
+    { q: "How does k-means++ choose each new starting centroid after the first?", o: ["The point closest to the overall mean", "Uniformly at random", "At random, with probability proportional to the squared distance to the nearest centroid already chosen", "The point furthest from every other point, always"], a: 2, w: "Far-away points are much more likely to be picked, which spreads the starting centroids out while keeping some randomness." },
+    { q: "What does KMeans(n_clusters=4, n_init=10) do with n_init=10?", o: ["Runs 10 iterations only", "Runs the whole algorithm 10 times from different starting centroids and keeps the run with the lowest inertia", "Creates 10 clusters and merges them to 4", "Averages the centroids of 10 runs"], a: 1, w: "Each run can end in a different local minimum; keeping the best of several makes the result robust." },
+    { q: "You cluster customers on age (years) and income (£) without scaling. What is most likely?", o: ["Both features contribute equally", "Age dominates the clusters", "Income dominates: clusters split almost only by income", "K-Means refuses to run"], a: 2, w: "Income differences are thousands, age differences tens, so Euclidean distance is almost entirely income. Standardise first." },
+    { q: "Your data contains two interlocking crescent shapes plus scattered noise points. Which algorithm is the best first choice?", o: ["K-Means with K = 2", "DBSCAN (or HDBSCAN)", "K-Means with K = 10", "Linear regression"], a: 1, w: "DBSCAN follows dense regions of any shape and labels sparse points as noise (−1). K-Means only makes round clusters with straight boundaries." },
+    { q: "You have true product categories for every row and want to see how well the clusters match them. Which is appropriate?", o: ["Accuracy score between labels and cluster numbers", "A crosstab and the adjusted Rand index", "Inertia", "R²"], a: 1, w: "Cluster numbers are arbitrary, so accuracy is meaningless. ARI compares who-is-grouped-with-whom: 1 = identical, about 0 = random." },
+  ];
+  let answered = 0, correct = 0;
+  function renderQuiz() {
+    answered = 0; correct = 0;
+    $("quizScore").textContent = `0 / ${QUIZ.length} answered`;
+    $("quizBox").innerHTML = QUIZ.map((it, qi) => `<div class="q" data-q="${qi}"><div class="prompt">${qi + 1}. ${esc(it.q)}</div><div class="opts">${it.o.map((o, oi) => `<button class="opt" type="button" data-o="${oi}">${esc(o)}</button>`).join("")}</div><div class="why">${esc(it.w)}</div></div>`).join("");
+  }
+  $("quizBox").addEventListener("click", (e) => {
+    const b = e.target.closest(".opt"); if (!b || b.disabled) return;
+    const qEl = b.closest(".q"), it = QUIZ[+qEl.dataset.q];
+    qEl.querySelectorAll(".opt").forEach((o) => { o.disabled = true; if (+o.dataset.o === it.a) o.classList.add("right"); });
+    if (+b.dataset.o !== it.a) b.classList.add("wrong"); else correct++;
+    qEl.classList.add("answered"); answered++;
+    $("quizScore").textContent = answered === QUIZ.length ? `Score: ${correct} / ${QUIZ.length}` : `${correct} correct · ${answered} / ${QUIZ.length} answered`;
+  });
+  $("quizReset").addEventListener("click", renderQuiz);
+  renderQuiz();
+})();
+</script>
+</body>
+</html>

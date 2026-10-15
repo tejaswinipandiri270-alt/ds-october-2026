@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python, uv and Jupyter</title>
+<meta name="description" content="Week 0 reference: Python projects and virtual environments with uv, VS Code and Jupyter, with a terminal simulator, a command picker, common errors and a quiz.">
+<style>
+  :root {
+    --bg: #f7f6f2; --surface: #ffffff; --surface-2: #f0eee8; --text: #1d1d1b; --muted: #5f5d57;
+    --border: #dcd9d0; --accent: #2f5bd3; --accent-soft: #e3eafc;
+    --pos: #c2410c; --pos-soft: #fde8dc; --neg: #2f5bd3; --neg-soft: #e3eafc;
+    --good: #1f7a4d; --good-soft: #ddf2e6; --bad: #b3261e; --bad-soft: #fbe3e1; --warn: #8a5a00; --warn-soft: #fbf0d9;
+    --code-bg: #f3f1ec; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05); --radius: 14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+      --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+      --pos: #ff9a62; --pos-soft: #3d2618; --neg: #8aa8ff; --neg-soft: #1f2a47;
+      --good: #6fd3a0; --good-soft: #173326; --bad: #ff8a80; --bad-soft: #3d1f1d; --warn: #f0c56b; --warn-soft: #3a2f17;
+      --code-bg: #232321; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+    --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+    --pos: #ff9a62; --pos-soft: #3d2618; --neg: #8aa8ff; --neg-soft: #1f2a47;
+    --good: #6fd3a0; --good-soft: #173326; --bad: #ff8a80; --bad-soft: #3d1f1d; --warn: #f0c56b; --warn-soft: #3a2f17;
+    --code-bg: #232321; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .layout { display: grid; grid-template-columns: 1fr; max-width: 1240px; margin: 0 auto; }
+  @media (min-width: 1000px) { .layout { grid-template-columns: 250px minmax(0, 1fr); gap: 32px; padding: 0 24px; } }
+  aside.toc { display: none; }
+  @media (min-width: 1000px) {
+    aside.toc { display: block; position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; padding: 28px 0 28px; }
+  }
+  aside.toc .toc-title { font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px 10px; }
+  aside.toc a { display: block; color: var(--muted); text-decoration: none; font-size: .9rem; padding: 4px 10px; border-left: 2px solid transparent; border-radius: 0 6px 6px 0; }
+  aside.toc a:hover { color: var(--text); background: var(--surface-2); }
+  aside.toc a.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+  aside.toc a.sub { padding-left: 22px; font-size: .84rem; }
+  details.mobile-toc { margin: 16px 0 0; }
+  @media (min-width: 1000px) { details.mobile-toc { display: none; } }
+  details.mobile-toc summary { cursor: pointer; font-weight: 600; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  details.mobile-toc nav { display: grid; gap: 2px; padding: 8px 4px; }
+  details.mobile-toc a { color: var(--text); text-decoration: none; padding: 4px 10px; font-size: .92rem; }
+  main { min-width: 0; padding: 28px 16px 96px; max-width: 880px; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.7rem); line-height: 1.12; margin: 4px 0 12px; letter-spacing: -0.02em; }
+  h2 { font-size: 1.6rem; margin: 0 0 8px; letter-spacing: -0.01em; line-height: 1.25; }
+  h3 { font-size: 1.15rem; margin: 26px 0 8px; }
+  h4 { font-size: 1rem; margin: 18px 0 6px; }
+  p { margin: 0 0 12px; }
+  ul, ol { margin: 0 0 12px; padding-left: 22px; }
+  li { margin: 3px 0; }
+  a { color: var(--accent); }
+  .eyebrow { color: var(--muted); font-size: .82rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; }
+  .lede { color: var(--muted); font-size: 1.12rem; max-width: 64ch; }
+  section { margin-top: 56px; }
+  .num { color: var(--accent); margin-right: 6px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin: 16px 0; }
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 16px 0; }
+  .callout.good { border-color: var(--good); background: var(--good-soft); }
+  .callout.bad { border-color: var(--bad); background: var(--bad-soft); }
+  .callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+  .callout > :last-child { margin-bottom: 0; }
+  .intuition { font-size: 1.05rem; border-left: 4px solid var(--good); background: var(--good-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 12px 0 16px; }
+  .intuition strong:first-child { color: var(--good); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 5px; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: .85rem; line-height: 1.55; margin: 12px 0 16px; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .table-scroll { overflow-x: auto; margin: 12px 0 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  th { font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); }
+  td code { white-space: nowrap; }
+  .grid-2 { display: grid; gap: 14px; grid-template-columns: 1fr; }
+  @media (min-width: 720px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+  .grid-2 .card { margin: 0; }
+  .pill { display: inline-block; font-size: .74rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+  .pill.up { background: var(--bad-soft); color: var(--bad); }
+  .pill.down { background: var(--good-soft); color: var(--good); }
+  .pill.neutral { background: var(--surface-2); color: var(--muted); }
+  .proscons { display: grid; gap: 12px; grid-template-columns: 1fr; margin: 12px 0; }
+  @media (min-width: 640px) { .proscons { grid-template-columns: 1fr 1fr; } }
+  .proscons > div { border-radius: 10px; padding: 12px 14px; }
+  .proscons .pros { background: var(--good-soft); }
+  .proscons .cons { background: var(--bad-soft); }
+  .proscons h4 { margin: 0 0 6px; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+  .proscons .pros h4 { color: var(--good); } .proscons .cons h4 { color: var(--bad); }
+  .proscons ul { margin: 0; }
+  .theme-toggle { position: fixed; top: 12px; right: 12px; z-index: 5; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  /* widgets */
+  .widget { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; margin: 18px 0; }
+  .widget-title { font-weight: 700; margin-bottom: 4px; }
+  .widget-sub { color: var(--muted); font-size: .9rem; margin-bottom: 12px; }
+  .controls { display: grid; gap: 10px 18px; grid-template-columns: 1fr; margin-bottom: 12px; }
+  @media (min-width: 640px) { .controls { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }
+  .controls label { display: grid; gap: 2px; font-size: .86rem; color: var(--muted); }
+  .controls label span b { color: var(--text); }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .widget svg { width: 100%; height: auto; display: block; }
+  .svg-text { fill: var(--muted); font-size: 11px; font-family: system-ui, sans-serif; }
+  .svg-axis { stroke: var(--border); stroke-width: 1; }
+  .metrics-row { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); margin-top: 12px; }
+  .metric { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+  .metric .k { font-size: .74rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+  .metric .v { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .metric.hl { outline: 2px solid var(--bad); }
+  .sim-grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .sim-grid { grid-template-columns: 1.4fr 1fr; } }
+  .verdict { font-weight: 700; padding: 8px 12px; border-radius: 10px; margin-top: 10px; }
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 6px 12px; border-radius: 9px; cursor: pointer; font: inherit; font-size: .9rem; }
+  .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .diagram { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 14px 0; font-size: .85rem; }
+  .diagram .box { border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px; padding: 6px 10px; text-align: center; }
+  .diagram .arrow { color: var(--muted); }
+  .quiz .q { margin-bottom: 16px; }
+  .quiz .prompt { font-weight: 600; margin-bottom: 6px; }
+  .quiz .opts { display: grid; gap: 6px; }
+  .quiz .opt { text-align: left; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); padding: 8px 12px; border-radius: 9px; cursor: pointer; font: inherit; }
+  .quiz .opt:disabled { cursor: default; }
+  .quiz .opt.right { border-color: var(--good); background: var(--good-soft); color: var(--good); font-weight: 600; }
+  .quiz .opt.wrong { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
+  .quiz .why { display: none; color: var(--muted); font-size: .88rem; margin-top: 4px; }
+  .quiz .q.answered .why { display: block; }
+  footer { margin-top: 64px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 16px; }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+
+  /* page-specific: terminal simulator and file tree (built from the same tokens) */
+  .sim-grid > *, .grid-2 > * { min-width: 0; }
+  .term { margin: 0; min-height: 260px; max-height: 380px; overflow: auto; white-space: pre; font-size: .8rem; }
+  .term .prompt-line { color: var(--accent); font-weight: 600; }
+  .term .ok { color: var(--good); }
+  .term .dim { color: var(--muted); }
+  .panel-label { font-size: .74rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; margin: 0 0 6px; }
+  .tree { margin: 0 0 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .82rem; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; overflow-x: auto; white-space: pre; line-height: 1.6; }
+  .tree .new { color: var(--good); font-weight: 700; }
+  .tree .chg { color: var(--warn); font-weight: 700; }
+  .tree .dim { color: var(--muted); }
+  .step-note { font-size: .92rem; margin-top: 10px; }
+  .pick-out { background: var(--surface-2); border-radius: 10px; padding: 12px 14px; }
+  .pick-out pre { margin: 6px 0 10px; }
+  .pick-out .k { font-size: .74rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+</style>
+<style>
+  /* Phone-width fixes: let grid/flex children shrink so wide code scrolls inside its box,
+     and let long inline code (e.g. module paths) wrap instead of widening the page. */
+  main div, main section, main details { min-width: 0; }
+  :not(pre) > code { overflow-wrap: anywhere; }
+</style>
+<style>
+  /* theme-toggle clearance: the fixed Theme button would otherwise overlap the first line on phones */
+  @media (max-width: 999px) { main { padding-top: 56px; } }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">◐ Theme</button>
+<div class="layout">
+  <aside class="toc" aria-label="Contents">
+    <p class="toc-title">Contents</p>
+    <a href="#why">1 · Why environments exist</a>
+    <a href="#vocab">2 · Interpreters, packages, environments</a>
+    <a href="#vscode">3 · Install VS Code</a>
+    <a href="#install-uv">4 · Install uv</a>
+    <a href="#init">5 · Start a project: uv init</a>
+    <a href="#venv">6 · Virtual environments: uv venv</a>
+    <a href="#add">7 · Dependencies: uv add / remove</a>
+    <a href="#run">8 · Running code: uv run</a>
+    <a href="#sync">9 · uv sync and uv.lock</a>
+    <a href="#python">10 · Pinning a Python version</a>
+    <a href="#simulator">11 · Walk-through simulator</a>
+    <a href="#vscode-uv">12 · uv in VS Code</a>
+    <a href="#jupyter">13 · Jupyter with uv</a>
+    <a href="#colab">14 · Google Colab</a>
+    <a href="#pip">15 · pip vs uv</a>
+    <a class="sub" href="#picker">Which command do I need?</a>
+    <a href="#structure">16 · Project structure</a>
+    <a href="#errors">17 · Common errors &amp; fixes</a>
+    <a href="#cheatsheet">18 · Cheat sheet</a>
+    <a href="#quiz">19 · Quiz</a>
+  </aside>
+
+<main>
+  <header>
+    <div class="eyebrow">Week 0 · Onboarding</div>
+    <h1>Python projects and environments with uv, VS Code and Jupyter</h1>
+    <p class="lede">Before you write any data science code, you need a reliable place to run it. This page explains why every project gets its own environment, how to install VS Code and uv, the handful of uv commands you will use every day (<code>uv init</code>, <code>uv venv</code>, <code>uv add</code>, <code>uv run</code>, <code>uv sync</code>), and how to connect it all to VS Code and Jupyter. Come back to it whenever something "can't find a module".</p>
+    <details class="mobile-toc">
+      <summary>Contents</summary>
+      <nav>
+        <a href="#why">1 · Why environments exist</a><a href="#vocab">2 · Interpreters, packages, environments</a><a href="#vscode">3 · Install VS Code</a>
+        <a href="#install-uv">4 · Install uv</a><a href="#init">5 · Start a project: uv init</a><a href="#venv">6 · Virtual environments: uv venv</a>
+        <a href="#add">7 · Dependencies: uv add / remove</a><a href="#run">8 · Running code: uv run</a><a href="#sync">9 · uv sync and uv.lock</a>
+        <a href="#python">10 · Pinning a Python version</a><a href="#simulator">11 · Walk-through simulator</a><a href="#vscode-uv">12 · uv in VS Code</a>
+        <a href="#jupyter">13 · Jupyter with uv</a><a href="#colab">14 · Google Colab</a><a href="#pip">15 · pip vs uv</a>
+        <a href="#structure">16 · Project structure</a><a href="#errors">17 · Common errors &amp; fixes</a><a href="#cheatsheet">18 · Cheat sheet</a><a href="#quiz">19 · Quiz</a>
+      </nav>
+    </details>
+  </header>
+
+  <!-- ============ 1. WHY ============ -->
+  <section id="why">
+    <h2><span class="num">1</span>Why environments exist</h2>
+    <p class="intuition"><strong>Intuition.</strong> Each project gets its own sealed toolbox. What you install for one project can never break another, and a teammate can rebuild exactly the same toolbox from a list.</p>
+
+    <p>Python code almost always depends on other people's code: <strong>packages</strong> such as pandas, NumPy or scikit-learn. Each package comes in many <strong>versions</strong>, and versions change behaviour. Three problems follow from that.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Problem</th><th>What it looks like</th><th>How environments help</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Dependency conflicts</strong></td><td>Last year's project needs pandas 1.5. This year's needs pandas 2.2. There is only one "pandas" slot on your computer, so installing one breaks the other.</td><td>Each project has its own folder of packages, so both versions can exist side by side.</td></tr>
+        <tr><td><strong>Reproducibility</strong></td><td>Your model scored 0.87 in March. In June, after "a few updates", it scores 0.84 and nobody knows why.</td><td>A <strong>lock file</strong> records the exact version of every package, so you can rebuild the March environment.</td></tr>
+        <tr><td><strong>"Works on my machine"</strong></td><td>Your notebook runs for you but crashes for your teammate with <code>ModuleNotFoundError</code> or a strange error deep inside a library.</td><td>Everyone builds their environment from the same files in the repository, so everyone runs the same code.</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="widget" id="conflictWidget">
+      <div class="widget-title">Try it: one shared Python vs one environment per project</div>
+      <div class="widget-sub">Project A needs <code>pandas&lt;2</code>. Project B needs <code>pandas&gt;=2.2</code>. Choose a set-up, then install each project's requirements and see which projects still run.</div>
+      <div class="btn-row" role="group" aria-label="Set-up">
+        <button class="btn" type="button" data-mode="global" aria-pressed="true">One shared (global) Python</button>
+        <button class="btn" type="button" data-mode="venv" aria-pressed="false">One environment per project</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn" type="button" id="cfA">Install for project A</button>
+        <button class="btn" type="button" id="cfB">Install for project B</button>
+        <button class="btn" type="button" id="cfReset">Reset</button>
+      </div>
+      <svg id="cfSvg" viewBox="0 0 600 256" role="img" aria-label="Diagram of projects and where their packages are installed"></svg>
+      <div class="verdict" id="cfVerdict"></div>
+    </div>
+  </section>
+
+  <!-- ============ 2. VOCAB ============ -->
+  <section id="vocab">
+    <h2><span class="num">2</span>Interpreters, packages and virtual environments</h2>
+    <p class="intuition"><strong>Intuition.</strong> The <em>interpreter</em> is the engine, <em>packages</em> are the add-ons, and a <em>virtual environment</em> is a private garage that pairs one engine with one set of add-ons for one project.</p>
+
+    <div class="table-scroll"><table>
+      <thead><tr><th>Term</th><th>What it is</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Python interpreter</strong></td><td>The program that reads and runs your <code>.py</code> files. It has a version number.</td><td>CPython 3.12.13 at <code>/usr/bin/python3</code></td></tr>
+        <tr><td><strong>Standard library</strong></td><td>Modules that ship with every interpreter. Nothing to install.</td><td><code>json</code>, <code>pathlib</code>, <code>csv</code>, <code>math</code></td></tr>
+        <tr><td><strong>Package</strong> (third-party)</td><td>Code written by others, downloaded from <strong>PyPI</strong> (the Python Package Index, the public package registry).</td><td><code>pandas</code>, <code>numpy</code>, <code>scikit-learn</code></td></tr>
+        <tr><td><strong>Dependency</strong></td><td>A package your project needs. Packages have their own dependencies too (<em>transitive</em> dependencies).</td><td>pandas depends on numpy and python-dateutil</td></tr>
+        <tr><td><strong>site-packages</strong></td><td>The folder where installed packages live for a given interpreter or environment.</td><td><code>.venv/lib/python3.12/site-packages/</code></td></tr>
+        <tr><td><strong>Virtual environment</strong> ("venv")</td><td>A folder containing a link to an interpreter plus its own private <code>site-packages</code>. By convention it is called <code>.venv</code>.</td><td><code>my-project/.venv/</code></td></tr>
+        <tr><td><strong>Package manager</strong></td><td>The tool that downloads, installs and removes packages.</td><td><code>pip</code>, <code>uv</code>, <code>conda</code></td></tr>
+        <tr><td><strong>Lock file</strong></td><td>A machine-written file listing the exact version of every package (direct and transitive) that was installed.</td><td><code>uv.lock</code></td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="diagram">
+      <div class="box">Python interpreter<br><small>3.12</small></div><span class="arrow">+</span>
+      <div class="box">Private site-packages<br><small>pandas 2.2, numpy 2.1…</small></div><span class="arrow">=</span>
+      <div class="box"><b>.venv</b><br><small>one per project</small></div>
+    </div>
+
+    <p>When a virtual environment is <strong>active</strong> (or when you use <code>uv run</code>), typing <code>python</code> runs that environment's interpreter, and <code>import pandas</code> looks only in that environment's <code>site-packages</code>. That is why "it's installed but Python can't find it" almost always means <em>it's installed somewhere else</em>.</p>
+    <div class="callout warn"><p><strong>The system Python is not yours.</strong> macOS and Linux ship a Python that the operating system itself uses. Installing packages into it can break system tools, and recent Linux distributions block it outright (an "externally managed environment" error). Always work inside a project environment.</p></div>
+  </section>
+
+  <!-- ============ 3. VS CODE ============ -->
+  <section id="vscode">
+    <h2><span class="num">3</span>Install VS Code</h2>
+    <p class="intuition"><strong>Intuition.</strong> VS Code is the editor where you write code, run notebooks and use a terminal, all in one window. It is free and works on macOS, Windows and Linux.</p>
+    <ol>
+      <li>Go to <strong>code.visualstudio.com</strong> and download the installer for your operating system. Make sure the address really is that site (Microsoft's official page).</li>
+      <li><strong>macOS:</strong> open the downloaded <code>.zip</code>, drag <strong>Visual Studio Code.app</strong> into <strong>Applications</strong>. <strong>Windows:</strong> run the User Installer and tick <em>"Add to PATH"</em> (it is ticked by default). <strong>Linux:</strong> use the <code>.deb</code> or <code>.rpm</code> package for your distribution.</li>
+      <li>Open VS Code. Open the <strong>Extensions</strong> view (the four-squares icon on the left, or <code>Ctrl+Shift+X</code> / <code>Cmd+Shift+X</code>) and install:
+        <ul>
+          <li><strong>Python</strong> (publisher: Microsoft). It also installs Pylance for autocompletion and the Python Debugger.</li>
+          <li><strong>Jupyter</strong> (publisher: Microsoft) for <code>.ipynb</code> notebooks.</li>
+        </ul>
+      </li>
+      <li>Optional on macOS: open the Command Palette (<code>Cmd+Shift+P</code>) and run <strong>"Shell Command: Install 'code' command in PATH"</strong>. You can then type <code>code .</code> in a terminal to open the current folder.</li>
+    </ol>
+    <div class="table-scroll"><table>
+      <thead><tr><th>You want to…</th><th>Windows / Linux</th><th>macOS</th></tr></thead>
+      <tbody>
+        <tr><td>Open the Command Palette (run any command by name)</td><td><code>Ctrl+Shift+P</code></td><td><code>Cmd+Shift+P</code></td></tr>
+        <tr><td>Open / close the built-in terminal</td><td><code>Ctrl+`</code></td><td><code>Ctrl+`</code></td></tr>
+        <tr><td>Open a folder (a project)</td><td>File → Open Folder…</td><td>File → Open…</td></tr>
+        <tr><td>Quick-open a file by name</td><td><code>Ctrl+P</code></td><td><code>Cmd+P</code></td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout"><p><strong>Always open the project folder</strong>, not a single file. VS Code looks for <code>.venv</code> inside the open folder, and the built-in terminal starts there too.</p></div>
+  </section>
+
+  <!-- ============ 4. INSTALL UV ============ -->
+  <section id="install-uv">
+    <h2><span class="num">4</span>Install uv</h2>
+    <p class="intuition"><strong>Intuition.</strong> uv is one small, very fast program that replaces a whole drawer of older Python tools: pip, venv, pyenv, pip-tools and pipx.</p>
+
+    <p><strong>uv</strong> is a Python package and project manager made by Astral and written in Rust. It is typically 10–100× faster than pip, and it does several jobs that used to need separate tools:</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Job</th><th>Older tool</th><th>uv command</th></tr></thead>
+      <tbody>
+        <tr><td>Install packages</td><td><code>pip</code></td><td><code>uv add</code> (or <code>uv pip install</code>)</td></tr>
+        <tr><td>Create virtual environments</td><td><code>python -m venv</code>, virtualenv</td><td><code>uv venv</code> (or automatically)</td></tr>
+        <tr><td>Install and switch Python versions</td><td>pyenv</td><td><code>uv python install</code>, <code>uv python pin</code></td></tr>
+        <tr><td>Lock exact versions</td><td>pip-tools, Poetry</td><td><code>uv lock</code> (or automatically)</td></tr>
+        <tr><td>Run command-line tools in isolation</td><td>pipx</td><td><code>uvx</code> / <code>uv tool</code></td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Install commands</h3>
+    <p><strong>macOS and Linux</strong>: open Terminal and run:</p>
+<pre><code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></pre>
+    <p><strong>Windows</strong>: open PowerShell (not Command Prompt) and run:</p>
+<pre><code>powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</code></pre>
+    <p>Both download Astral's official installer script and run it. It puts <code>uv</code> and <code>uvx</code> in a folder in your home directory (<code>~/.local/bin</code> on macOS/Linux) and adds that folder to your <strong>PATH</strong>: the list of folders your terminal searches when you type a command name.</p>
+    <p>Alternatives, if you prefer a package manager: <code>brew install uv</code> (macOS Homebrew) or <code>winget install --id=astral-sh.uv -e</code> (Windows).</p>
+
+    <h3>Check it worked</h3>
+    <p><strong>Close the terminal and open a new one</strong> (so it picks up the new PATH), then:</p>
+<pre><code>uv --version
+# uv 0.11.x (…)</code></pre>
+    <div class="callout warn"><p><strong>"command not found: uv"</strong> straight after installing? The terminal you used was opened before PATH changed. Open a new terminal (or restart VS Code). On macOS/Linux you can also run <code>source $HOME/.local/bin/env</code> in the current terminal.</p></div>
+    <p>To update uv later (if you used the installer script): <code>uv self update</code>. With Homebrew, use <code>brew upgrade uv</code> instead.</p>
+    <div class="callout"><p><strong>You do not need to install Python separately.</strong> If a project needs a Python version you don't have, uv downloads a suitable one automatically.</p></div>
+  </section>
+
+  <!-- ============ 5. UV INIT ============ -->
+  <section id="init">
+    <h2><span class="num">5</span>Start a project: <code>uv init</code></h2>
+    <p class="intuition"><strong>Intuition.</strong> <code>uv init</code> creates a new project folder with a "label on the box" (<code>pyproject.toml</code>) that says what the project is and what it needs.</p>
+<pre><code>uv init demo        # creates a new folder called demo/
+cd demo
+
+# or, inside an existing empty folder:
+uv init</code></pre>
+    <p>Output:</p>
+<pre><code>Initialized project `demo` at `/Users/you/projects/demo`</code></pre>
+
+    <h3>What it creates</h3>
+<pre><code>demo/
+├── .git/              ← a new Git repository
+├── .gitignore
+├── .python-version
+├── README.md
+├── main.py
+└── pyproject.toml</code></pre>
+    <div class="table-scroll"><table>
+      <thead><tr><th>File</th><th>Purpose</th><th>Commit to Git?</th></tr></thead>
+      <tbody>
+        <tr><td><code>pyproject.toml</code></td><td>The project's settings: name, version, required Python version and the list of dependencies. The standard Python project file, read by many tools.</td><td>Yes</td></tr>
+        <tr><td><code>.python-version</code></td><td>One line, such as <code>3.12</code>: the Python version uv should use for this project.</td><td>Yes</td></tr>
+        <tr><td><code>main.py</code></td><td>A tiny "Hello from demo!" script to prove everything works. Rename or delete it.</td><td>Your choice</td></tr>
+        <tr><td><code>README.md</code></td><td>Empty. Describe the project and how to run it here.</td><td>Yes</td></tr>
+        <tr><td><code>.gitignore</code></td><td>Tells Git which files to ignore: <code>.venv</code>, <code>__pycache__/</code>, build folders.</td><td>Yes</td></tr>
+        <tr><td><code>.git/</code></td><td>The Git repository itself. Created only if Git is installed and you are not already inside a Git repository (skip it with <code>--vcs none</code>).</td><td>(it <em>is</em> Git)</td></tr>
+      </tbody>
+    </table></div>
+    <p>Note what is <strong>not</strong> created yet: no <code>.venv</code> and no <code>uv.lock</code>. They appear the first time you run <code>uv venv</code>, <code>uv add</code>, <code>uv run</code> or <code>uv sync</code>.</p>
+
+    <h3>The new <code>pyproject.toml</code></h3>
+<pre><code>[project]
+name = "demo"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "&gt;=3.12"
+dependencies = []</code></pre>
+    <p><code>requires-python</code> is set from the Python version uv picked (normally the newest one you have). <code>dependencies</code> is empty until you <code>uv add</code> something. <strong>TOML</strong> is a simple configuration-file format: <code>[section]</code> headings, then <code>key = value</code> lines.</p>
+    <div class="callout"><p><strong>Useful options:</strong> <code>uv init --python 3.12 demo</code> starts the project on Python 3.12 (see <a href="#python">section 10</a>). <code>uv init --package demo</code> creates a <code>src/demo/</code> layout, useful when the project will be installed or imported as a package.</p></div>
+  </section>
+
+  <!-- ============ 6. UV VENV ============ -->
+  <section id="venv">
+    <h2><span class="num">6</span>Virtual environments: <code>uv venv</code> and activation</h2>
+    <p class="intuition"><strong>Intuition.</strong> <code>uv venv</code> builds the empty private garage (<code>.venv</code>). <em>Activating</em> it tells your current terminal "when I type <code>python</code>, use this one".</p>
+<pre><code>uv venv</code></pre>
+<pre><code>Using CPython 3.12.13
+Creating virtual environment at: .venv
+Activate with: source .venv/bin/activate</code></pre>
+    <p>Choose the Python version with <code>uv venv --python 3.12</code>. Without it, uv uses the version in <code>.python-version</code>.</p>
+
+    <h3>Activating</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Shell</th><th>Activate</th><th>Deactivate</th></tr></thead>
+      <tbody>
+        <tr><td>macOS / Linux (bash, zsh)</td><td><code>source .venv/bin/activate</code></td><td><code>deactivate</code></td></tr>
+        <tr><td>Windows PowerShell</td><td><code>.venv\Scripts\activate</code></td><td><code>deactivate</code></td></tr>
+        <tr><td>Windows Command Prompt</td><td><code>.venv\Scripts\activate</code></td><td><code>deactivate</code></td></tr>
+      </tbody>
+    </table></div>
+    <p>Note the differences: <strong><code>bin</code></strong> and forward slashes on macOS/Linux, <strong><code>Scripts</code></strong> and backslashes on Windows. Once active, your prompt shows the environment name, for example <code>(demo) you@laptop demo %</code>. Check which Python you are using with <code>which python</code> (macOS/Linux) or <code>where python</code> (Windows): it should point inside <code>.venv</code>.</p>
+
+    <div class="callout good"><p><strong>With uv you rarely need to activate.</strong> <code>uv run</code>, <code>uv add</code> and <code>uv sync</code> find and use the project's <code>.venv</code> automatically, and create it if it is missing. Activation is still handy when you want to type <code>python</code> or <code>pytest</code> directly, and VS Code activates it for you in its terminal.</p></div>
+    <div class="callout warn"><p><strong>Never edit or commit <code>.venv</code>.</strong> It is disposable: hundreds of megabytes of machine-specific files. If it gets into a mess, delete it and run <code>uv sync</code> to rebuild it in seconds.</p></div>
+  </section>
+
+  <!-- ============ 7. UV ADD ============ -->
+  <section id="add">
+    <h2><span class="num">7</span>Managing dependencies: <code>uv add</code>, <code>uv add --dev</code>, <code>uv remove</code></h2>
+    <p class="intuition"><strong>Intuition.</strong> <code>uv add</code> does three things in one go: writes the package into <code>pyproject.toml</code>, records exact versions in <code>uv.lock</code>, and installs it into <code>.venv</code>.</p>
+<pre><code>uv add pandas</code></pre>
+<pre><code>Resolved 6 packages in 412ms
+Prepared 4 packages in 1.21s
+Installed 4 packages in 58ms
+ + numpy==2.5.4
+ + pandas==3.0.6
+ + python-dateutil==2.9.0.post0
+ + six==1.17.0</code></pre>
+    <p>(Version numbers on your machine will differ: uv picks the newest versions that fit.) You asked for one package and got four: pandas's own dependencies came too. <strong>Resolving</strong> means working out a set of versions that are all compatible with each other.</p>
+    <p><code>pyproject.toml</code> now contains:</p>
+<pre><code>dependencies = [
+    "pandas&gt;=3.0.6",
+]</code></pre>
+    <p>The <code>&gt;=</code> is a <strong>version constraint</strong>: "this version or newer". The exact version actually installed is in <code>uv.lock</code>.</p>
+
+    <h3>More ways to add</h3>
+<pre><code>uv add pandas numpy matplotlib scikit-learn   # several at once
+uv add "pandas&lt;3"                             # with a constraint (quote it!)
+uv add "pandas==2.2.3"                        # an exact version
+uv add -r requirements.txt                    # everything listed in an old requirements file
+
+uv add --dev pytest ipykernel ruff            # development-only tools
+uv remove matplotlib                          # remove from pyproject.toml, uv.lock and .venv</code></pre>
+
+    <h3>Normal vs development dependencies</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th></th><th>Normal: <code>uv add</code></th><th>Development: <code>uv add --dev</code></th></tr></thead>
+      <tbody>
+        <tr><td><strong>Meaning</strong></td><td>The code needs it to run</td><td>Only people working on the code need it</td></tr>
+        <tr><td><strong>Examples</strong></td><td>pandas, scikit-learn, fastapi</td><td>pytest, ruff, ipykernel, jupyterlab</td></tr>
+        <tr><td><strong>Stored in</strong></td><td><code>[project] dependencies</code></td><td><code>[dependency-groups] dev</code></td></tr>
+        <tr><td><strong>Installed by <code>uv sync</code>?</strong></td><td>Yes</td><td>Yes by default; skipped with <code>uv sync --no-dev</code> (for example in a production Docker image)</td></tr>
+      </tbody>
+    </table></div>
+<pre><code>[dependency-groups]
+dev = [
+    "ipykernel&gt;=7.4.0",
+    "pytest&gt;=8.4.0",
+]</code></pre>
+    <div class="callout bad"><p><strong>Don't mix <code>pip install</code> into a uv project.</strong> <code>pip install x</code> (or <code>uv pip install x</code>) installs into the environment but does not update <code>pyproject.toml</code> or <code>uv.lock</code>. Your code works today, then breaks for your teammate, and for you the next time <code>uv sync</code> removes the unlisted package. In a uv project, always use <code>uv add</code>.</p></div>
+  </section>
+
+  <!-- ============ 8. UV RUN ============ -->
+  <section id="run">
+    <h2><span class="num">8</span>Running code: <code>uv run</code></h2>
+    <p class="intuition"><strong>Intuition.</strong> <code>uv run</code> means "make sure the environment is up to date, then run this command inside it". No activation, no forgetting.</p>
+<pre><code>uv run python main.py          # run a script
+uv run main.py                 # shorter: uv knows .py files need Python
+uv run python                  # an interactive Python prompt in the project's environment
+uv run pytest                  # run a tool installed in the environment
+uv run jupyter lab             # start Jupyter from the environment</code></pre>
+    <p>Every time, before running your command, <code>uv run</code>:</p>
+    <ol>
+      <li>finds the project (the nearest <code>pyproject.toml</code> in this folder or a parent folder);</li>
+      <li>creates <code>.venv</code> if it doesn't exist;</li>
+      <li>checks that <code>uv.lock</code> matches <code>pyproject.toml</code> and that <code>.venv</code> matches <code>uv.lock</code>, fixing either if needed;</li>
+      <li>runs the command with the environment's Python.</li>
+    </ol>
+    <p>So if a teammate pushes a new dependency and you pull it, <code>uv run</code> simply installs it before running. This is why <code>uv run</code> is the recommended habit.</p>
+    <div class="callout"><p><strong>One-off tools:</strong> <code>uvx ruff check .</code> runs a tool in a temporary, isolated environment without adding it to your project (the uv version of <code>pipx run</code>). <code>uv run --with rich script.py</code> adds a package for that one run only.</p></div>
+  </section>
+
+  <!-- ============ 9. UV SYNC ============ -->
+  <section id="sync">
+    <h2><span class="num">9</span><code>uv sync</code> and <code>uv.lock</code></h2>
+    <p class="intuition"><strong>Intuition.</strong> <code>pyproject.toml</code> is the shopping list ("pandas, version 3 or newer"). <code>uv.lock</code> is the receipt ("pandas 3.0.6, numpy 2.5.4, …"). <code>uv sync</code> makes your <code>.venv</code> match the receipt exactly.</p>
+
+    <div class="diagram">
+      <div class="box"><b>pyproject.toml</b><br><small>what you asked for<br>(you edit, via uv add)</small></div><span class="arrow">→ uv lock →</span>
+      <div class="box"><b>uv.lock</b><br><small>exact versions<br>(uv writes it)</small></div><span class="arrow">→ uv sync →</span>
+      <div class="box"><b>.venv</b><br><small>what is installed<br>(never commit)</small></div>
+    </div>
+
+    <h3>What <code>uv sync</code> does</h3>
+    <ul>
+      <li>Creates <code>.venv</code> if missing (with the right Python version, downloading it if needed).</li>
+      <li>Updates <code>uv.lock</code> if <code>pyproject.toml</code> changed.</li>
+      <li>Installs exactly the locked versions, and <strong>removes anything not in the lock file</strong>. That makes it an "exact" sync: stray packages don't survive.</li>
+    </ul>
+
+    <h3>The teammate workflow</h3>
+<pre><code>git clone https://github.com/your-team/churn-model.git
+cd churn-model
+uv sync                 # creates .venv and installs the exact locked versions
+uv run python train.py</code></pre>
+    <div class="callout good"><p><strong>Commit <code>uv.lock</code> to Git.</strong> It is what makes "works on my machine" work on every machine. It is cross-platform: one lock file covers macOS, Windows and Linux. Never edit it by hand.</p></div>
+
+    <h3>Related commands</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>uv lock</code></td><td>Update <code>uv.lock</code> from <code>pyproject.toml</code> without installing anything.</td></tr>
+        <tr><td><code>uv lock --upgrade-package pandas</code></td><td>Move pandas (only) to the newest version allowed by its constraint. Follow with <code>uv sync</code>.</td></tr>
+        <tr><td><code>uv lock --upgrade</code></td><td>Upgrade everything that the constraints allow. Do this deliberately, and re-run your tests.</td></tr>
+        <tr><td><code>uv sync --locked</code></td><td>Fail if <code>uv.lock</code> is out of date instead of updating it. Good for CI (automated checks).</td></tr>
+        <tr><td><code>uv sync --no-dev</code></td><td>Install only normal dependencies, not the dev group.</td></tr>
+        <tr><td><code>uv tree</code></td><td>Show the dependency tree: what depends on what.</td></tr>
+        <tr><td><code>uv export --format requirements-txt</code></td><td>Write the locked versions as a <code>requirements.txt</code> for tools that need one.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ============ 10. PYTHON VERSIONS ============ -->
+  <section id="python">
+    <h2><span class="num">10</span>Pinning a Python version</h2>
+    <p class="intuition"><strong>Intuition.</strong> Packages are built for particular Python versions. Pinning tells uv "this project uses Python 3.12", and uv fetches and uses exactly that.</p>
+<pre><code>uv python list           # versions installed, and versions available to download
+uv python install 3.12   # download and install Python 3.12 (managed by uv)
+uv python pin 3.12       # write "3.12" into .python-version for this project</code></pre>
+    <p>After pinning, <code>uv venv</code>, <code>uv sync</code> and <code>uv run</code> all use 3.12. If <code>.venv</code> was built with a different version, uv rebuilds it on the next <code>uv sync</code> or <code>uv run</code>.</p>
+
+    <h3>Why pin 3.12? The TensorFlow example</h3>
+    <p>Large libraries with compiled code, such as <strong>TensorFlow</strong>, publish ready-built files (<strong>wheels</strong>) for specific Python versions only, and often take months to support a brand-new Python release. If your newest Python is too new, <code>uv add tensorflow</code> fails with <em>"No solution found when resolving dependencies"</em>. Python 3.12 is widely supported by the data science and deep learning stack, so it is the safe choice for this course. Always check the versions listed on the library's PyPI page or install guide.</p>
+
+    <div class="callout warn">
+      <p><strong>Gotcha: <code>requires-python</code> must allow the version you pin.</strong> If <code>uv init</code> wrote <code>requires-python = "&gt;=3.14"</code>, then <code>uv python pin 3.12</code> fails with:</p>
+<pre><code>error: The requested Python version `3.12` is incompatible with the project `requires-python` value of `&gt;=3.14`.</code></pre>
+      <p>Fix: edit <code>pyproject.toml</code> to <code>requires-python = "&gt;=3.12"</code> and pin again. Easier: start the project on 3.12 from the beginning with <code>uv init --python 3.12 my-project</code>, which sets both files for you.</p>
+    </div>
+  </section>
+
+  <!-- ============ 11. SIMULATOR ============ -->
+  <section id="simulator">
+    <h2><span class="num">11</span>Walk-through: the whole workflow in a simulated terminal</h2>
+    <p class="intuition"><strong>Intuition.</strong> Watch which files appear, and when. Most confusion about uv disappears once you have seen the order: project files first, then <code>.venv</code>, then <code>uv.lock</code>.</p>
+
+    <div class="widget" id="termWidget">
+      <div class="widget-title">Try it: terminal simulator</div>
+      <div class="widget-sub">Click each command in order (or "Next command"). The output is illustrative: realistic, but your paths, timings and version numbers will differ. Green = just created, amber = just changed.</div>
+      <div class="btn-row" id="termSteps"></div>
+      <div class="btn-row">
+        <button class="btn" type="button" id="termNext">Next command ▸</button>
+        <button class="btn" type="button" id="termReset">Reset</button>
+      </div>
+      <div class="sim-grid">
+        <div>
+          <p class="panel-label">Terminal</p>
+          <pre class="term" id="termOut" aria-live="polite"></pre>
+        </div>
+        <div>
+          <p class="panel-label">Files in ~/projects</p>
+          <div class="tree" id="termTree"></div>
+          <p class="panel-label">demo/pyproject.toml</p>
+          <div class="tree" id="termToml"></div>
+        </div>
+      </div>
+      <div class="callout step-note" id="termNote"></div>
+    </div>
+  </section>
+
+  <!-- ============ 12. VS CODE + UV ============ -->
+  <section id="vscode-uv">
+    <h2><span class="num">12</span>Using uv in VS Code</h2>
+    <p class="intuition"><strong>Intuition.</strong> VS Code needs to be told which interpreter to use. Point it at the project's <code>.venv</code> once and everything (running, debugging, autocompletion, notebooks) uses the right packages.</p>
+    <ol>
+      <li><strong>File → Open Folder</strong> and choose the project folder (the one containing <code>pyproject.toml</code>).</li>
+      <li>Make sure <code>.venv</code> exists: in the VS Code terminal run <code>uv sync</code>.</li>
+      <li>Open the Command Palette (<code>Ctrl+Shift+P</code> / <code>Cmd+Shift+P</code>) → <strong>Python: Select Interpreter</strong>.</li>
+      <li>Choose the entry that shows <code>./.venv/bin/python</code> (macOS/Linux) or <code>.\.venv\Scripts\python.exe</code> (Windows), usually labelled "Recommended". If it isn't listed, choose <em>Enter interpreter path…</em> and browse to it.</li>
+      <li>Check the bottom-right status bar: it should show the Python version and <code>.venv</code>.</li>
+      <li>Open a <strong>new</strong> terminal (<code>Ctrl+`</code>): the prompt should start with the environment name, because VS Code activates it for you.</li>
+    </ol>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0">Signs it is set up correctly</h4><ul style="margin:0"><li>No yellow squiggle under <code>import pandas</code></li><li>The Run ▶ button works without <code>ModuleNotFoundError</code></li><li>Status bar shows <code>3.12.x (.venv)</code> or similar</li></ul></div>
+      <div class="card"><h4 style="margin-top:0">Signs it is not</h4><ul style="margin:0"><li><em>"Import 'pandas' could not be resolved"</em></li><li>Status bar shows a system or Homebrew Python</li><li>The terminal prompt has no <code>(demo)</code> prefix</li></ul></div>
+    </div>
+    <div class="callout"><p>If you created <code>.venv</code> <em>after</em> opening the folder, VS Code may not notice it. Run <strong>Python: Select Interpreter</strong> again, or <strong>Developer: Reload Window</strong>.</p></div>
+  </section>
+
+  <!-- ============ 13. JUPYTER ============ -->
+  <section id="jupyter">
+    <h2><span class="num">13</span>Jupyter notebooks with uv</h2>
+    <p class="intuition"><strong>Intuition.</strong> A notebook runs on a <em>kernel</em>: a Python process started from some environment. To use your project's packages, the kernel must come from the project's <code>.venv</code>.</p>
+    <p>A <strong>kernel</strong> is the engine behind a notebook that actually runs each cell. <strong>ipykernel</strong> is the package that lets a Python environment act as a kernel. Two ways to work:</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h4 style="margin-top:0">Option A: notebooks inside VS Code (recommended)</h4>
+<pre><code>uv add --dev ipykernel</code></pre>
+        <ol style="margin:0">
+          <li>Create or open a <code>.ipynb</code> file in VS Code.</li>
+          <li>Click <strong>Select Kernel</strong> (top right) → <strong>Python Environments</strong> → choose <code>.venv</code>.</li>
+          <li>Run a cell with <code>import pandas</code> to check.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h4 style="margin-top:0">Option B: JupyterLab in the browser</h4>
+<pre><code>uv add --dev jupyterlab
+uv run jupyter lab</code></pre>
+        <p style="margin:0">Opens JupyterLab at <code>http://localhost:8888</code>. Because it was started with <code>uv run</code>, its default kernel is the project's environment. (<code>uv add jupyter</code> installs the full Jupyter bundle: JupyterLab, classic Notebook and ipykernel.)</p>
+      </div>
+    </div>
+
+    <h3>Other useful patterns</h3>
+<pre><code># Start JupyterLab without adding it to the project (temporary, for this run only)
+uv run --with jupyter jupyter lab
+
+# Register the project's environment as a named kernel for a Jupyter installed elsewhere
+uv add --dev ipykernel
+uv run python -m ipykernel install --user --name demo --display-name "Python (demo)"</code></pre>
+    <div class="callout warn"><p><strong>Don't run <code>!pip install</code> in a notebook cell inside a uv project.</strong> It may install into a different Python from the kernel's, and it never updates <code>pyproject.toml</code>. Stop, run <code>uv add package</code> in the terminal, then restart the kernel.</p></div>
+    <div class="callout"><p><strong>After adding a package, restart the kernel.</strong> A running kernel imported its modules when it started. Use <em>Restart</em> in the notebook toolbar.</p></div>
+  </section>
+
+  <!-- ============ 14. COLAB ============ -->
+  <section id="colab">
+    <h2><span class="num">14</span>Google Colab as an alternative</h2>
+    <p class="intuition"><strong>Intuition.</strong> Colab is someone else's computer running Jupyter in your browser: nothing to install, free GPUs, but it forgets everything when the session ends.</p>
+    <p><strong>Google Colab</strong> (colab.research.google.com) gives you a hosted notebook with Python and common libraries (pandas, NumPy, scikit-learn, TensorFlow, PyTorch) already installed. You sign in with a Google account and start writing code.</p>
+<pre><code># In a Colab cell: install an extra package for this session
+%pip install lightgbm
+
+# Keep files beyond the session by mounting Google Drive
+from google.colab import drive
+drive.mount("/content/drive")</code></pre>
+    <p><code>%pip</code> is a notebook "magic" command that installs into the kernel's own Python, which is safer than <code>!pip</code>, which runs as a shell command.</p>
+    <div class="proscons">
+      <div class="pros"><h4>Good for</h4><ul><li>No local set-up: works on any laptop, even a Chromebook</li><li>Free (limited) GPU and TPU access for deep learning</li><li>Easy sharing, like a Google Doc</li><li>Quick experiments and teaching demos</li></ul></div>
+      <div class="cons"><h4>Watch out for</h4><ul><li>The runtime resets after idling or a session limit: installed packages and files in <code>/content</code> are lost</li><li>You must re-run <code>%pip install</code> cells each session</li><li>Package versions are chosen by Google and change over time, so less reproducible</li><li>Not suitable for confidential data without approval; not a place to build an application</li></ul></div>
+    </div>
+    <div class="callout"><p><strong>Rule of thumb for this programme:</strong> use a local uv project for anything you will keep, share in Git, or turn into an application. Use Colab for short experiments or when you need a free GPU.</p></div>
+  </section>
+
+  <!-- ============ 15. PIP VS UV ============ -->
+  <section id="pip">
+    <h2><span class="num">15</span>pip vs uv: equivalents</h2>
+    <p class="intuition"><strong>Intuition.</strong> Every pip habit has a uv equivalent. In a uv <em>project</em>, prefer the project commands (<code>uv add</code>, <code>uv sync</code>); <code>uv pip …</code> exists for old-style workflows.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Task</th><th>Classic pip / venv</th><th>uv project way</th><th>uv "pip interface"</th></tr></thead>
+      <tbody>
+        <tr><td>Create an environment</td><td><code>python -m venv .venv</code></td><td><code>uv venv</code> (or automatic)</td><td><code>uv venv</code></td></tr>
+        <tr><td>Install a package</td><td><code>pip install pandas</code></td><td><code>uv add pandas</code></td><td><code>uv pip install pandas</code></td></tr>
+        <tr><td>Uninstall a package</td><td><code>pip uninstall pandas</code></td><td><code>uv remove pandas</code></td><td><code>uv pip uninstall pandas</code></td></tr>
+        <tr><td>Install from a requirements file</td><td><code>pip install -r requirements.txt</code></td><td><code>uv add -r requirements.txt</code></td><td><code>uv pip install -r requirements.txt</code></td></tr>
+        <tr><td>Recreate a teammate's environment</td><td><code>pip install -r requirements.txt</code></td><td><code>uv sync</code></td><td><code>uv pip sync requirements.txt</code></td></tr>
+        <tr><td>Freeze versions to a file</td><td><code>pip freeze &gt; requirements.txt</code></td><td><code>uv lock</code> (automatic) / <code>uv export --format requirements-txt</code></td><td><code>uv pip freeze</code></td></tr>
+        <tr><td>List installed packages</td><td><code>pip list</code></td><td><code>uv tree</code></td><td><code>uv pip list</code></td></tr>
+        <tr><td>Run a script</td><td><code>python main.py</code> (after activating)</td><td><code>uv run main.py</code></td><td>activate, then <code>python main.py</code></td></tr>
+        <tr><td>Install a Python version</td><td>pyenv / python.org installer</td><td><code>uv python install 3.12</code></td><td>same</td></tr>
+        <tr><td>Run a CLI tool once</td><td><code>pipx run ruff</code></td><td><code>uvx ruff</code></td><td>same</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn"><p><strong><code>uv pip install</code> ≠ <code>uv add</code>.</strong> Both install the package, but only <code>uv add</code> records it in <code>pyproject.toml</code> and <code>uv.lock</code>. Packages installed with <code>uv pip install</code> are removed by the next <code>uv sync</code>.</p></div>
+
+    <div class="widget" id="picker">
+      <div class="widget-title">Try it: which command do I need?</div>
+      <div class="widget-sub">Pick what you are trying to do. You'll get the uv command, the old pip-style equivalent, and why.</div>
+      <div class="btn-row" id="pickBtns" role="group" aria-label="Goals"></div>
+      <div class="pick-out" id="pickOut" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- ============ 16. STRUCTURE ============ -->
+  <section id="structure">
+    <h2><span class="num">16</span>Recommended data science project structure</h2>
+    <p class="intuition"><strong>Intuition.</strong> A predictable layout means anyone (including you in three months) can find the data, the experiments and the reusable code without asking.</p>
+<pre><code>churn-model/
+├── pyproject.toml        ← dependencies (commit)
+├── uv.lock               ← exact versions (commit)
+├── .python-version       ← e.g. 3.12 (commit)
+├── README.md             ← what it is, how to run it (commit)
+├── .gitignore
+├── .env.example          ← names of required settings, no real secrets (commit)
+├── data/
+│   ├── raw/              ← original data, never edited (usually NOT committed)
+│   └── processed/        ← cleaned data produced by code (NOT committed)
+├── notebooks/
+│   └── 01-exploration.ipynb
+├── src/
+│   └── churn_model/      ← reusable code: loading, features, training
+│       ├── __init__.py
+│       └── features.py
+├── tests/
+│   └── test_features.py
+└── models/               ← saved model files (NOT committed if large)</code></pre>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Folder</th><th>What goes in it</th><th>Tip</th></tr></thead>
+      <tbody>
+        <tr><td><code>data/raw/</code></td><td>Data exactly as you received it</td><td>Treat as read-only. Any cleaning happens in code, so it can be repeated.</td></tr>
+        <tr><td><code>data/processed/</code></td><td>Outputs of your cleaning code</td><td>Can always be regenerated, so don't commit it.</td></tr>
+        <tr><td><code>notebooks/</code></td><td>Exploration, charts, experiments</td><td>Number them (<code>01-</code>, <code>02-</code>) so the order is obvious. Move code you reuse into <code>src/</code>.</td></tr>
+        <tr><td><code>src/</code></td><td>Functions and modules imported by notebooks and scripts</td><td><code>uv init --package</code> sets up this layout and makes it importable.</td></tr>
+        <tr><td><code>tests/</code></td><td>pytest tests</td><td><code>uv add --dev pytest</code>, then <code>uv run pytest</code>.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>A sensible <code>.gitignore</code></h3>
+    <p>Start from the one <code>uv init</code> creates and add data science extras:</p>
+<pre><code># Python-generated files (from uv init)
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments (from uv init)
+.venv
+
+# Data science extras
+.ipynb_checkpoints/
+data/raw/
+data/processed/
+models/
+.env
+.DS_Store</code></pre>
+    <div class="callout bad"><p><strong>Never commit:</strong> <code>.venv</code>, <code>.env</code> files with API keys or passwords, personal or confidential data, or very large files. Once something is in Git history it is hard to remove completely.</p></div>
+  </section>
+
+  <!-- ============ 17. ERRORS ============ -->
+  <section id="errors">
+    <h2><span class="num">17</span>Common errors and how to fix them</h2>
+    <p class="intuition"><strong>Intuition.</strong> Nine times out of ten the question is "which Python is running, and is the package installed in <em>that</em> one?"</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Symptom</th><th>Usual cause</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td><code>uv: command not found</code> / <em>"uv is not recognized…"</em> right after installing</td><td>The terminal was opened before the installer changed PATH</td><td>Close and reopen the terminal (restart VS Code too). macOS/Linux: <code>source $HOME/.local/bin/env</code>.</td></tr>
+        <tr><td><code>ModuleNotFoundError: No module named 'pandas'</code></td><td>Package not in this project's environment, or you ran the system Python (<code>python main.py</code> without activating)</td><td><code>uv add pandas</code>, then run with <code>uv run main.py</code>. In VS Code, select the <code>.venv</code> interpreter.</td></tr>
+        <tr><td>VS Code: <em>"Import could not be resolved"</em>, or Run ▶ fails while <code>uv run</code> works</td><td>VS Code is using a different interpreter</td><td>Command Palette → <strong>Python: Select Interpreter</strong> → <code>.venv</code>. Reload the window if it isn't listed.</td></tr>
+        <tr><td>Notebook: kernel not found / <code>.venv</code> not in the kernel list / <em>"requires the ipykernel package"</em></td><td><code>ipykernel</code> isn't installed in the environment</td><td><code>uv add --dev ipykernel</code>, then <strong>Select Kernel</strong> → Python Environments → <code>.venv</code>. Reload the window if needed.</td></tr>
+        <tr><td>Notebook still can't import a package you just added</td><td>The kernel started before you installed it</td><td>Restart the kernel.</td></tr>
+        <tr><td><em>"No solution found when resolving dependencies"</em></td><td>Two requirements can't both be satisfied, often a library that doesn't support your Python version yet</td><td>Read the message: it names the conflict. Pin an older Python (<code>uv python pin 3.12</code>) or relax a version constraint.</td></tr>
+        <tr><td><code>uv python pin 3.12</code> → <em>"incompatible with the project requires-python"</em></td><td><code>requires-python</code> in <code>pyproject.toml</code> excludes 3.12</td><td>Change it to <code>"&gt;=3.12"</code> and pin again.</td></tr>
+        <tr><td>Windows PowerShell: <em>"running scripts is disabled on this system"</em> when activating</td><td>PowerShell's execution policy blocks the activation script</td><td>Skip activation and use <code>uv run</code>, or ask your IT team about allowing local scripts for your user.</td></tr>
+        <tr><td><em>"No <code>pyproject.toml</code> found in current directory or any parent directory"</em></td><td>You're in the wrong folder</td><td><code>cd</code> into the project (check with <code>pwd</code> / <code>ls</code>), or run <code>uv init</code> first.</td></tr>
+        <tr><td>A package you installed has disappeared</td><td>It was installed with <code>pip</code> / <code>uv pip</code>, then <code>uv sync</code> removed it</td><td>Install it with <code>uv add</code> so it is recorded.</td></tr>
+        <tr><td><code>.venv</code> seems broken or uses the wrong Python</td><td>Moved folders, changed Python version, partial install</td><td>Delete <code>.venv</code> and run <code>uv sync</code>. It's safe: everything is rebuilt from <code>uv.lock</code>.</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Diagnostic commands</h3>
+<pre><code>uv --version             # is uv installed and on PATH?
+uv python find           # which interpreter will this project use?
+uv run python -c "import sys; print(sys.executable)"   # which Python actually runs?
+uv tree                  # what is installed, and why?
+which python             # macOS/Linux: which python is on PATH right now
+where python             # Windows equivalent</code></pre>
+  </section>
+
+  <!-- ============ 18. CHEAT SHEET ============ -->
+  <section id="cheatsheet">
+    <h2><span class="num">18</span>Cheat sheet</h2>
+    <p class="intuition"><strong>Intuition.</strong> Five commands cover almost everything: <code>init</code> once, <code>add</code> when you need a package, <code>run</code> to run, <code>sync</code> after cloning or pulling.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></td><td>Install uv (macOS/Linux)</td></tr>
+        <tr><td><code>powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</code></td><td>Install uv (Windows)</td></tr>
+        <tr><td><code>uv --version</code> · <code>uv self update</code></td><td>Check / update uv</td></tr>
+        <tr><td><code>uv init my-project</code></td><td>New project: pyproject.toml, .python-version, main.py, README.md, .gitignore, Git repo</td></tr>
+        <tr><td><code>uv init --python 3.12 my-project</code></td><td>New project on Python 3.12</td></tr>
+        <tr><td><code>uv venv</code></td><td>Create <code>.venv</code></td></tr>
+        <tr><td><code>source .venv/bin/activate</code> · <code>.venv\Scripts\activate</code></td><td>Activate (macOS/Linux · Windows); <code>deactivate</code> to leave</td></tr>
+        <tr><td><code>uv add pandas</code></td><td>Add a dependency (pyproject.toml + uv.lock + .venv)</td></tr>
+        <tr><td><code>uv add --dev pytest ipykernel</code></td><td>Add development-only tools</td></tr>
+        <tr><td><code>uv remove pandas</code></td><td>Remove a dependency</td></tr>
+        <tr><td><code>uv run main.py</code> · <code>uv run pytest</code></td><td>Run inside the project environment (syncs first)</td></tr>
+        <tr><td><code>uv sync</code></td><td>Make <code>.venv</code> match <code>uv.lock</code> exactly (after clone / pull)</td></tr>
+        <tr><td><code>uv lock --upgrade-package pandas</code></td><td>Upgrade one package in the lock file</td></tr>
+        <tr><td><code>uv python install 3.12</code> · <code>uv python pin 3.12</code></td><td>Install a Python version · use it for this project</td></tr>
+        <tr><td><code>uv tree</code></td><td>Show the dependency tree</td></tr>
+        <tr><td><code>uv run jupyter lab</code></td><td>Start JupyterLab with the project's packages</td></tr>
+        <tr><td><code>uvx ruff check .</code></td><td>Run a tool once without installing it into the project</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout good"><p><strong>Daily routine:</strong> open the project folder in VS Code → <code>git pull</code> → <code>uv sync</code> → work, using <code>uv add</code> for new packages and <code>uv run</code> to run → commit <code>pyproject.toml</code> <em>and</em> <code>uv.lock</code> together.</p></div>
+  </section>
+
+  <!-- ============ 19. QUIZ ============ -->
+  <section id="quiz">
+    <h2><span class="num">19</span>Quiz</h2>
+    <div class="card quiz" id="quizBox"></div>
+    <p><strong id="quizScore"></strong> <button class="btn" type="button" id="quizReset">Try again</button></p>
+  </section>
+
+  <footer>Data Science &amp; Agentic AI Programme · Week 0 · <a href="../index.html">All course docs</a></footer>
+</main>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  /* ---------- theme ---------- */
+  const root = document.documentElement;
+  try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch {}
+  const redrawers = [];
+  $("themeToggle").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+    redrawers.forEach((f) => f());
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => redrawers.forEach((f) => f()));
+
+  /* ---------- table of contents highlight ---------- */
+  const tocLinks = [...document.querySelectorAll("aside.toc a")];
+  const sections = tocLinks.map((a) => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        tocLinks.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id));
+      }
+    });
+  }, { rootMargin: "0px 0px -70% 0px" });
+  sections.forEach((s) => obs.observe(s));
+
+  /* ---------- svg helpers ---------- */
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs = {}, text) {
+    const n = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+
+  /* ---------- dependency conflict widget ---------- */
+  const NEED = { A: "pandas 1.5.3", B: "pandas 2.2.3" };
+  let cfMode = "global";
+  let cfState = { global: null, A: null, B: null };
+  function cfRuns(p) {
+    const have = cfMode === "global" ? cfState.global : cfState[p];
+    if (have === null) return "none";
+    return have === NEED[p] ? "ok" : "broken";
+  }
+  function drawConflict() {
+    const svg = $("cfSvg"); svg.innerHTML = "";
+    const proj = [{ id: "A", x: 60 }, { id: "B", x: 360 }];
+    proj.forEach((p) => {
+      const st = cfRuns(p.id);
+      const col = st === "ok" ? css("--good") : st === "broken" ? css("--bad") : css("--muted");
+      const soft = st === "ok" ? css("--good-soft") : st === "broken" ? css("--bad-soft") : css("--surface-2");
+      svg.append(el("rect", { x: p.x, y: 14, width: 180, height: 64, rx: 10, fill: soft, stroke: col, "stroke-width": 2 }));
+      svg.append(el("text", { x: p.x + 90, y: 36, "text-anchor": "middle", fill: css("--text"), "font-size": 18, "font-weight": 700, "font-family": "system-ui, sans-serif" }, `Project ${p.id}`));
+      svg.append(el("text", { x: p.x + 90, y: 54, "text-anchor": "middle", class: "svg-text", style: "font-size:14px" }, `needs ${NEED[p.id]}`));
+      svg.append(el("text", { x: p.x + 90, y: 71, "text-anchor": "middle", fill: col, "font-size": 14, "font-weight": 700, "font-family": "system-ui, sans-serif" }, st === "ok" ? "✓ runs" : st === "broken" ? "✗ broken" : "not installed yet"));
+    });
+    const box = (x, w, label, content) => {
+      svg.append(el("rect", { x, y: 150, width: w, height: 78, rx: 10, fill: css("--surface-2"), stroke: css("--border"), "stroke-width": 1.5 }));
+      svg.append(el("text", { x: x + w / 2, y: 174, "text-anchor": "middle", fill: css("--text"), "font-size": 15, "font-weight": 700, "font-family": "system-ui, sans-serif" }, label));
+      svg.append(el("text", { x: x + w / 2, y: 198, "text-anchor": "middle", fill: content ? css("--accent") : css("--muted"), "font-size": 16, "font-family": "ui-monospace, Menlo, monospace" }, content || "(empty)"));
+    };
+    const arrow = (x1, x2) => svg.append(el("path", { d: `M${x1},80 L${x2},148`, stroke: css("--muted"), "stroke-width": 2, fill: "none", "stroke-dasharray": "5 4" }));
+    if (cfMode === "global") {
+      arrow(150, 260); arrow(450, 340);
+      box(150, 300, "Shared site-packages (one slot)", cfState.global);
+      svg.append(el("text", { x: 300, y: 246, "text-anchor": "middle", class: "svg-text", style: "font-size:13px" }, "every project on the computer uses this"));
+    } else {
+      arrow(150, 150); arrow(450, 450);
+      box(60, 180, "A/.venv", cfState.A);
+      box(360, 180, "B/.venv", cfState.B);
+      svg.append(el("text", { x: 300, y: 246, "text-anchor": "middle", class: "svg-text", style: "font-size:13px" }, "each project has its own private folder"));
+    }
+    const v = $("cfVerdict");
+    const a = cfRuns("A"), b = cfRuns("B");
+    let bg = "--surface-2", fg = "--muted", msg = "Click 'Install for project A', then 'Install for project B'.";
+    if (a === "broken" || b === "broken") {
+      bg = "--bad-soft"; fg = "--bad";
+      msg = `Installing ${cfState.global} overwrote the other version. Project ${a === "broken" ? "A" : "B"} now fails. This is a dependency conflict: one shared slot can't hold two versions.`;
+    } else if (a === "ok" && b === "ok") {
+      bg = "--good-soft"; fg = "--good";
+      msg = "Both projects run. Each environment holds its own pandas version, so they can never interfere.";
+    } else if (a === "ok" || b === "ok") {
+      bg = "--warn-soft"; fg = "--warn";
+      msg = "One project is set up. Now install the other one and see what happens.";
+    }
+    v.style.background = css(bg); v.style.color = css(fg); v.textContent = msg;
+  }
+  function cfInstall(p) {
+    if (cfMode === "global") cfState.global = NEED[p]; else cfState[p] = NEED[p];
+    drawConflict();
+  }
+  $("cfA").addEventListener("click", () => cfInstall("A"));
+  $("cfB").addEventListener("click", () => cfInstall("B"));
+  $("cfReset").addEventListener("click", () => { cfState = { global: null, A: null, B: null }; drawConflict(); });
+  document.querySelectorAll("#conflictWidget [data-mode]").forEach((b) => b.addEventListener("click", () => {
+    cfMode = b.dataset.mode;
+    document.querySelectorAll("#conflictWidget [data-mode]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    cfState = { global: null, A: null, B: null };
+    drawConflict();
+  }));
+  drawConflict(); redrawers.push(drawConflict);
+
+  /* ---------- terminal simulator ---------- */
+  const PKGS = " + numpy==2.5.4\n + pandas==3.0.6\n + python-dateutil==2.9.0.post0\n + six==1.17.0";
+  const STEPS = [
+    { cmd: "uv init demo", dir: "~/projects", out: "Initialized project `demo` at `/Users/you/projects/demo`",
+      note: "uv created the <code>demo/</code> folder with <code>pyproject.toml</code>, <code>.python-version</code>, <code>main.py</code>, <code>README.md</code>, <code>.gitignore</code> and a Git repository. There is no <code>.venv</code> and no <code>uv.lock</code> yet. Nothing has been installed." },
+    { cmd: "cd demo", dir: "~/projects", out: "",
+      note: "<code>cd</code> (change directory) moves the terminal into the project. uv commands look for <code>pyproject.toml</code> in the current folder (or a parent), so you must be inside the project. No output means it worked." },
+    { cmd: "uv venv", dir: "~/projects/demo", out: "Using CPython 3.12.13\nCreating virtual environment at: .venv\nActivate with: source .venv/bin/activate",
+      note: "<code>.venv/</code> appears: an empty environment with its own Python 3.12 (the version in <code>.python-version</code>). You could activate it, but with <code>uv run</code> you don't need to. It is listed in <code>.gitignore</code>, so Git will ignore it." },
+    { cmd: "uv add pandas", dir: "~/projects/demo", out: "Resolved 6 packages in 412ms\nPrepared 4 packages in 1.21s\nInstalled 4 packages in 58ms\n" + PKGS,
+      note: "Three things happened: pandas was written into <code>pyproject.toml</code> (amber), <code>uv.lock</code> was created with the exact versions of pandas <em>and</em> its dependencies (green), and all four packages were installed into <code>.venv</code>." },
+    { cmd: "uv run python main.py", dir: "~/projects/demo", out: "Hello from demo!",
+      note: "<code>uv run</code> checked that <code>uv.lock</code> and <code>.venv</code> were up to date (they were), then ran <code>main.py</code> with the environment's Python. No activation needed. No files changed." },
+    { cmd: "uv sync", dir: "~/projects/demo", out: "Resolved 6 packages in 3ms\nChecked 4 packages in 0.9ms",
+      note: "Nothing to do: <code>.venv</code> already matches <code>uv.lock</code>. On a teammate's fresh clone (no <code>.venv</code>), this same command would create the environment and install exactly these versions. Try the bonus step." },
+    { cmd: "rm -rf .venv && uv sync", dir: "~/projects/demo", out: "Using CPython 3.12.13\nCreating virtual environment at: .venv\nResolved 6 packages in 3ms\nInstalled 4 packages in 61ms\n" + PKGS,
+      note: "Bonus: delete the environment entirely (as if you'd just cloned the repo; on Windows you'd delete the folder in Explorer) and rebuild it. Same versions as before, in about a second, because <code>uv.lock</code> recorded them and uv keeps a download cache. This is why <code>.venv</code> is disposable and <code>uv.lock</code> must be committed." },
+  ];
+  let termStep = 0;
+  function termTreeHtml(n) {
+    if (n === 0) return '<span class="dim">projects/\n└── (empty)</span>';
+    const mark = (name, created, changed) => created ? `<span class="new">${name}  ← new</span>` : changed ? `<span class="chg">${name}  ← changed</span>` : name;
+    const lines = ["projects/", "└── demo/"];
+    const files = [];
+    files.push(mark(".git/", n === 1));
+    files.push(mark(".gitignore", n === 1));
+    files.push(mark(".python-version", n === 1));
+    if (n >= 3) files.push(mark(".venv/", n === 3 || n === 7, false) + (n >= 4 ? '<span class="dim">  (python 3.12 + 4 packages)</span>' : '<span class="dim">  (python 3.12, no packages)</span>'));
+    files.push(mark("README.md", n === 1));
+    files.push(mark("main.py", n === 1));
+    files.push(mark("pyproject.toml", n === 1, n === 4));
+    if (n >= 4) files.push(mark("uv.lock", n === 4));
+    files.forEach((f, i) => lines.push((i === files.length - 1 ? "    └── " : "    ├── ") + f));
+    return lines.join("\n");
+  }
+  function termTomlHtml(n) {
+    if (n === 0) return '<span class="dim">(no project yet)</span>';
+    const deps = n >= 4 ? 'dependencies = [\n    <span class="' + (n === 4 ? "chg" : "") + '">"pandas&gt;=3.0.6",</span>\n]' : "dependencies = []";
+    return `[project]\nname = "demo"\nversion = "0.1.0"\ndescription = "Add your description here"\nreadme = "README.md"\nrequires-python = "&gt;=3.12"\n${deps}`;
+  }
+  function renderTerm() {
+    let html = "";
+    for (let i = 0; i < termStep; i++) {
+      const s = STEPS[i];
+      html += `<span class="prompt-line">you@laptop ${s.dir} $</span> ${esc(s.cmd)}\n`;
+      if (s.out) html += s.out.split("\n").map((l) => (l.startsWith(" +") ? `<span class="ok">${esc(l)}</span>` : esc(l))).join("\n") + "\n";
+    }
+    const dirNow = termStep >= 2 ? "~/projects/demo" : "~/projects";
+    html += `<span class="prompt-line">you@laptop ${dirNow} $</span> <span class="dim">▌</span>`;
+    const out = $("termOut");
+    out.innerHTML = html;
+    out.scrollTop = out.scrollHeight;
+    $("termTree").innerHTML = termTreeHtml(termStep);
+    $("termToml").innerHTML = termTomlHtml(termStep);
+    $("termNote").innerHTML = termStep === 0
+      ? "You are in an empty <code>projects</code> folder. Click <strong>uv init demo</strong> to start."
+      : `<strong>${esc(STEPS[termStep - 1].cmd)}</strong>: ${STEPS[termStep - 1].note}`;
+    document.querySelectorAll("#termSteps .btn").forEach((b, i) => {
+      b.setAttribute("aria-pressed", String(i < termStep));
+      b.disabled = i > termStep;
+    });
+    $("termNext").disabled = termStep >= STEPS.length;
+  }
+  $("termSteps").innerHTML = STEPS.map((s, i) => `<button class="btn" type="button" data-step="${i + 1}"><code>${esc(s.cmd)}</code></button>`).join("");
+  $("termSteps").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-step]"); if (!b || b.disabled) return;
+    termStep = +b.dataset.step; renderTerm();
+  });
+  $("termNext").addEventListener("click", () => { if (termStep < STEPS.length) { termStep++; renderTerm(); } });
+  $("termReset").addEventListener("click", () => { termStep = 0; renderTerm(); });
+  renderTerm();
+
+  /* ---------- command picker ---------- */
+  const GOALS = [
+    { g: "Start a new project", uv: "uv init my-project\ncd my-project", pip: "mkdir my-project && cd my-project\npython -m venv .venv\n# then write requirements.txt by hand",
+      why: "Creates pyproject.toml, .python-version, main.py, README.md, .gitignore and a Git repository. The environment and lock file are created the first time you add or run something." },
+    { g: "Start a project on Python 3.12", uv: "uv init --python 3.12 my-project", pip: "pyenv install 3.12\npyenv local 3.12\npython -m venv .venv",
+      why: "Sets requires-python to >=3.12 and writes 3.12 into .python-version. uv downloads Python 3.12 if you don't have it." },
+    { g: "Switch an existing project to Python 3.12", uv: "# first make sure pyproject.toml says requires-python = \">=3.12\"\nuv python pin 3.12\nuv sync", pip: "pyenv local 3.12\nrm -rf .venv && python -m venv .venv\npip install -r requirements.txt",
+      why: "uv python pin writes .python-version; the next uv sync (or uv run) rebuilds .venv on 3.12. Useful for libraries like TensorFlow that lag behind new Python releases." },
+    { g: "Create a virtual environment", uv: "uv venv", pip: "python -m venv .venv",
+      why: "Creates .venv in the current folder. In a uv project this is optional: uv add, uv run and uv sync create it automatically." },
+    { g: "Activate the environment", uv: "source .venv/bin/activate     # macOS / Linux\n.venv\\Scripts\\activate        # Windows", pip: "(same commands)",
+      why: "Makes python, pip and other tools in this terminal point at .venv. Optional with uv: uv run uses .venv without activation." },
+    { g: "Install a package", uv: "uv add pandas", pip: "pip install pandas\n# and remember to update requirements.txt",
+      why: "Adds pandas to pyproject.toml, updates uv.lock with exact versions, and installs it into .venv, all in one step." },
+    { g: "Install a dev-only tool (pytest, Jupyter kernel)", uv: "uv add --dev pytest ipykernel", pip: "pip install pytest ipykernel\n# often kept in requirements-dev.txt",
+      why: "Goes in the [dependency-groups] dev section: installed for you and your teammates by uv sync, but skippable in production with --no-dev." },
+    { g: "Remove a package", uv: "uv remove matplotlib", pip: "pip uninstall matplotlib\n# and edit requirements.txt",
+      why: "Removes it from pyproject.toml, uv.lock and .venv, including dependencies that nothing else needs any more." },
+    { g: "Run a script", uv: "uv run main.py", pip: "source .venv/bin/activate\npython main.py",
+      why: "Syncs the environment if needed, then runs the script with the project's Python. No activation, and never the wrong interpreter." },
+    { g: "Recreate the environment from a teammate's repo", uv: "git clone <repo-url>\ncd <repo>\nuv sync", pip: "python -m venv .venv\nsource .venv/bin/activate\npip install -r requirements.txt",
+      why: "uv sync reads uv.lock and installs exactly the same versions your teammate has, on any operating system. This only works if they committed uv.lock." },
+    { g: "Start Jupyter", uv: "uv add --dev jupyterlab\nuv run jupyter lab", pip: "pip install jupyterlab\njupyter lab",
+      why: "Started through uv run, JupyterLab's default kernel is the project environment, so imports just work. For notebooks in VS Code, uv add --dev ipykernel and select the .venv kernel." },
+    { g: "Upgrade one package", uv: "uv lock --upgrade-package pandas\nuv sync", pip: "pip install --upgrade pandas\npip freeze > requirements.txt",
+      why: "Moves pandas to the newest version allowed by its constraint in pyproject.toml, records it in uv.lock, then installs it." },
+    { g: "Use an old requirements.txt", uv: "uv add -r requirements.txt", pip: "pip install -r requirements.txt",
+      why: "Imports every requirement into pyproject.toml and uv.lock, converting the project to the uv way of working." },
+    { g: "Produce a requirements.txt for someone else", uv: "uv export --format requirements-txt > requirements.txt", pip: "pip freeze > requirements.txt",
+      why: "Writes the exact locked versions in the classic format, for tools or platforms that only understand requirements.txt." },
+    { g: "Run a tool once without installing it", uv: "uvx ruff check .", pip: "pipx run ruff check .",
+      why: "uvx runs the tool in a temporary, cached environment. Your project's dependencies are untouched." },
+    { g: "See what's installed", uv: "uv tree", pip: "pip list\npip show pandas",
+      why: "Shows each dependency and what it pulls in, so you can see why a package is there. uv pip list gives a flat list." },
+  ];
+  let pickIdx = 0;
+  function renderPick() {
+    const it = GOALS[pickIdx];
+    document.querySelectorAll("#pickBtns .btn").forEach((b, i) => b.setAttribute("aria-pressed", String(i === pickIdx)));
+    $("pickOut").innerHTML = `<div class="k">uv command</div><pre><code>${esc(it.uv)}</code></pre><div class="k">pip / older-tools equivalent</div><pre><code>${esc(it.pip)}</code></pre><div class="k">Why</div><p style="margin:4px 0 0">${esc(it.why)}</p>`;
+  }
+  $("pickBtns").innerHTML = GOALS.map((it, i) => `<button class="btn" type="button" data-i="${i}">${esc(it.g)}</button>`).join("");
+  $("pickBtns").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-i]"); if (!b) return;
+    pickIdx = +b.dataset.i; renderPick();
+  });
+  renderPick();
+
+  /* ---------- quiz ---------- */
+  const QUIZ = [
+    { q: "Why does each project get its own virtual environment?", o: ["It makes Python run faster", "So projects can use different package versions without breaking each other", "Because VS Code requires it", "To save disk space"], a: 1, w: "Environments isolate dependencies: project A's pandas 1.5 and project B's pandas 2.2 can coexist." },
+    { q: "Which files does a plain `uv init demo` create?", o: ["pyproject.toml, uv.lock and .venv", "requirements.txt and setup.py", "pyproject.toml, .python-version, main.py, README.md and .gitignore (plus a Git repo)", "Only pyproject.toml"], a: 2, w: "uv.lock and .venv appear later, the first time you add, run or sync." },
+    { q: "You run `uv add pandas`. What changes?", o: ["Only .venv", "pyproject.toml, uv.lock and .venv", "Only pyproject.toml", "Your global Python installation"], a: 1, w: "uv add records the dependency, locks exact versions, and installs it, in one step." },
+    { q: "Which file should you commit to Git so teammates get identical package versions?", o: [".venv", "uv.lock", "__pycache__", ".python-version only"], a: 1, w: "uv.lock holds the exact resolved versions. .venv is machine-specific and is never committed." },
+    { q: "A teammate clones your repository. Which single command recreates the environment?", o: ["uv init", "uv venv", "uv sync", "pip freeze"], a: 2, w: "uv sync creates .venv and installs exactly what uv.lock lists." },
+    { q: "On Windows, how do you activate the project environment?", o: ["source .venv/bin/activate", ".venv\\Scripts\\activate", "uv activate", "python activate"], a: 1, w: "Windows uses the Scripts folder; macOS/Linux use source .venv/bin/activate. With uv run you can skip activation." },
+    { q: "You install uv and immediately get 'uv: command not found'. Most likely fix?", o: ["Reinstall Python", "Open a new terminal so it picks up the updated PATH", "Run pip install uv", "Restart your router"], a: 1, w: "The installer updates PATH, but terminals that were already open don't see the change." },
+    { q: "`import pandas` works with `uv run` but VS Code shows 'Import could not be resolved'. What's wrong?", o: ["pandas is broken", "VS Code is using a different interpreter: select the .venv one", "You need to reinstall VS Code", "Notebooks can't use pandas"], a: 1, w: "Python: Select Interpreter → .venv makes VS Code use the project environment." },
+    { q: "Where does `uv add --dev pytest` record pytest?", o: ["[project] dependencies", "[dependency-groups] dev", "requirements.txt", "Nowhere; it only installs it"], a: 1, w: "Development tools go in the dev dependency group, which uv sync installs by default." },
+    { q: "Your project's pyproject.toml says requires-python = \">=3.14\" and you need TensorFlow on 3.12. What should you do?", o: ["Just run uv python pin 3.12", "Change requires-python to \">=3.12\", then uv python pin 3.12 and uv sync", "Install TensorFlow with pip globally", "Use uv pip install tensorflow"], a: 1, w: "uv refuses to pin a version that requires-python excludes. Relax requires-python first (or start with uv init --python 3.12)." },
+  ];
+  let answered = 0, correct = 0;
+  function renderQuiz() {
+    answered = 0; correct = 0;
+    $("quizScore").textContent = `0 / ${QUIZ.length} answered`;
+    $("quizBox").innerHTML = QUIZ.map((it, qi) => `<div class="q" data-q="${qi}"><div class="prompt">${qi + 1}. ${esc(it.q)}</div><div class="opts">${it.o.map((o, oi) => `<button class="opt" type="button" data-o="${oi}">${esc(o)}</button>`).join("")}</div><div class="why">${esc(it.w)}</div></div>`).join("");
+  }
+  $("quizBox").addEventListener("click", (e) => {
+    const b = e.target.closest(".opt"); if (!b || b.disabled) return;
+    const qEl = b.closest(".q"), it = QUIZ[+qEl.dataset.q];
+    qEl.querySelectorAll(".opt").forEach((o) => { o.disabled = true; if (+o.dataset.o === it.a) o.classList.add("right"); });
+    if (+b.dataset.o !== it.a) b.classList.add("wrong"); else correct++;
+    qEl.classList.add("answered"); answered++;
+    $("quizScore").textContent = answered === QUIZ.length ? `Score: ${correct} / ${QUIZ.length}` : `${correct} correct · ${answered} / ${QUIZ.length} answered`;
+  });
+  $("quizReset").addEventListener("click", renderQuiz);
+  renderQuiz();
+})();
+</script>
+</body>
+</html>

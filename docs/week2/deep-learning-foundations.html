@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep Learning Foundations</title>
+<meta name="description" content="Week 2 reference: neurons, activation functions, MLPs, the forward pass, loss functions, backpropagation, gradient descent, optimisers, learning rate, regularisation, and complete Keras and PyTorch training examples.">
+<style>
+  :root {
+    --bg: #f7f6f2; --surface: #ffffff; --surface-2: #f0eee8; --text: #1d1d1b; --muted: #5f5d57;
+    --border: #dcd9d0; --accent: #2f5bd3; --accent-soft: #e3eafc;
+    --pos: #c2410c; --pos-soft: #fde8dc; --neg: #2f5bd3; --neg-soft: #e3eafc;
+    --good: #1f7a4d; --good-soft: #ddf2e6; --bad: #b3261e; --bad-soft: #fbe3e1; --warn: #8a5a00; --warn-soft: #fbf0d9;
+    --code-bg: #f3f1ec; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05); --radius: 14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+      --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+      --pos: #ff9a62; --pos-soft: #3d2618; --neg: #8aa8ff; --neg-soft: #1f2a47;
+      --good: #6fd3a0; --good-soft: #173326; --bad: #ff8a80; --bad-soft: #3d1f1d; --warn: #f0c56b; --warn-soft: #3a2f17;
+      --code-bg: #232321; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+    --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+    --pos: #ff9a62; --pos-soft: #3d2618; --neg: #8aa8ff; --neg-soft: #1f2a47;
+    --good: #6fd3a0; --good-soft: #173326; --bad: #ff8a80; --bad-soft: #3d1f1d; --warn: #f0c56b; --warn-soft: #3a2f17;
+    --code-bg: #232321; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .layout { display: grid; grid-template-columns: 1fr; max-width: 1240px; margin: 0 auto; }
+  @media (min-width: 1000px) { .layout { grid-template-columns: 250px minmax(0, 1fr); gap: 32px; padding: 0 24px; } }
+  aside.toc { display: none; }
+  @media (min-width: 1000px) {
+    aside.toc { display: block; position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; padding: 28px 0 28px; }
+  }
+  aside.toc .toc-title { font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px 10px; }
+  aside.toc a { display: block; color: var(--muted); text-decoration: none; font-size: .9rem; padding: 4px 10px; border-left: 2px solid transparent; border-radius: 0 6px 6px 0; }
+  aside.toc a:hover { color: var(--text); background: var(--surface-2); }
+  aside.toc a.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+  aside.toc a.sub { padding-left: 22px; font-size: .84rem; }
+  details.mobile-toc { margin: 16px 0 0; }
+  @media (min-width: 1000px) { details.mobile-toc { display: none; } }
+  details.mobile-toc summary { cursor: pointer; font-weight: 600; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  details.mobile-toc nav { display: grid; gap: 2px; padding: 8px 4px; }
+  details.mobile-toc a { color: var(--text); text-decoration: none; padding: 4px 10px; font-size: .92rem; }
+  main { min-width: 0; padding: 28px 16px 96px; max-width: 880px; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.7rem); line-height: 1.12; margin: 4px 0 12px; letter-spacing: -0.02em; }
+  h2 { font-size: 1.6rem; margin: 0 0 8px; letter-spacing: -0.01em; line-height: 1.25; }
+  h3 { font-size: 1.15rem; margin: 26px 0 8px; }
+  h4 { font-size: 1rem; margin: 18px 0 6px; }
+  p { margin: 0 0 12px; }
+  ul, ol { margin: 0 0 12px; padding-left: 22px; }
+  li { margin: 3px 0; }
+  a { color: var(--accent); }
+  .eyebrow { color: var(--muted); font-size: .82rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; }
+  .lede { color: var(--muted); font-size: 1.12rem; max-width: 64ch; }
+  section { margin-top: 56px; }
+  .num { color: var(--accent); margin-right: 6px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin: 16px 0; }
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 16px 0; }
+  .callout.good { border-color: var(--good); background: var(--good-soft); }
+  .callout.bad { border-color: var(--bad); background: var(--bad-soft); }
+  .callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+  .callout > :last-child { margin-bottom: 0; }
+  .intuition { font-size: 1.05rem; border-left: 4px solid var(--good); background: var(--good-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 12px 0 16px; }
+  .intuition strong:first-child { color: var(--good); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 5px; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: .85rem; line-height: 1.55; margin: 12px 0 16px; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .table-scroll { overflow-x: auto; margin: 12px 0 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  th { font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); }
+  td code { white-space: nowrap; }
+  .grid-2 { display: grid; gap: 14px; grid-template-columns: 1fr; }
+  @media (min-width: 720px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+  .grid-2 .card { margin: 0; }
+  .pill { display: inline-block; font-size: .74rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+  .pill.up { background: var(--bad-soft); color: var(--bad); }
+  .pill.down { background: var(--good-soft); color: var(--good); }
+  .pill.neutral { background: var(--surface-2); color: var(--muted); }
+  .proscons { display: grid; gap: 12px; grid-template-columns: 1fr; margin: 12px 0; }
+  @media (min-width: 640px) { .proscons { grid-template-columns: 1fr 1fr; } }
+  .proscons > div { border-radius: 10px; padding: 12px 14px; }
+  .proscons .pros { background: var(--good-soft); }
+  .proscons .cons { background: var(--bad-soft); }
+  .proscons h4 { margin: 0 0 6px; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+  .proscons .pros h4 { color: var(--good); } .proscons .cons h4 { color: var(--bad); }
+  .proscons ul { margin: 0; }
+  .theme-toggle { position: fixed; top: 12px; right: 12px; z-index: 5; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  /* widgets */
+  .widget { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; margin: 18px 0; }
+  .widget-title { font-weight: 700; margin-bottom: 4px; }
+  .widget-sub { color: var(--muted); font-size: .9rem; margin-bottom: 12px; }
+  .controls { display: grid; gap: 10px 18px; grid-template-columns: 1fr; margin-bottom: 12px; }
+  @media (min-width: 640px) { .controls { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }
+  .controls label { display: grid; gap: 2px; font-size: .86rem; color: var(--muted); }
+  .controls label span b { color: var(--text); }
+  .controls select { font: inherit; font-size: .9rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; padding: 5px 8px; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .widget svg { width: 100%; height: auto; display: block; }
+  .svg-text { fill: var(--muted); font-size: 11px; font-family: system-ui, sans-serif; }
+  .svg-axis { stroke: var(--border); stroke-width: 1; }
+  .metrics-row { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); margin-top: 12px; }
+  .metric { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+  .metric .k { font-size: .74rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+  .metric .v { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .metric.hl { outline: 2px solid var(--bad); }
+  .sim-grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .sim-grid { grid-template-columns: 1.4fr 1fr; } }
+  .verdict { font-weight: 700; padding: 8px 12px; border-radius: 10px; margin-top: 10px; }
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 6px 12px; border-radius: 9px; cursor: pointer; font: inherit; font-size: .9rem; }
+  .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .diagram { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 14px 0; font-size: .85rem; }
+  .diagram .box { border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px; padding: 6px 10px; text-align: center; }
+  .diagram .arrow { color: var(--muted); }
+  .quiz .q { margin-bottom: 16px; }
+  .quiz .prompt { font-weight: 600; margin-bottom: 6px; }
+  .quiz .opts { display: grid; gap: 6px; }
+  .quiz .opt { text-align: left; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); padding: 8px 12px; border-radius: 9px; cursor: pointer; font: inherit; }
+  .quiz .opt:disabled { cursor: default; }
+  .quiz .opt.right { border-color: var(--good); background: var(--good-soft); color: var(--good); font-weight: 600; }
+  .quiz .opt.wrong { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
+  .quiz .why { display: none; color: var(--muted); font-size: .88rem; margin-top: 4px; }
+  .quiz .q.answered .why { display: block; }
+  footer { margin-top: 64px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 16px; }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+</style>
+<style>
+  /* Phone-width fixes: let grid/flex children shrink so wide code scrolls inside its box,
+     and let long inline code (e.g. module paths) wrap instead of widening the page. */
+  main div, main section, main details { min-width: 0; }
+  :not(pre) > code { overflow-wrap: anywhere; }
+</style>
+<style>
+  /* theme-toggle clearance: the fixed Theme button would otherwise overlap the first line on phones */
+  @media (max-width: 999px) { main { padding-top: 56px; } }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">◐ Theme</button>
+<div class="layout">
+  <aside class="toc" aria-label="Contents">
+    <p class="toc-title">Contents</p>
+    <a href="#why">1 · ML vs deep learning</a>
+    <a href="#neuron">2 · The artificial neuron</a>
+    <a href="#activations">3 · Activation functions</a>
+    <a href="#layers">4 · Layers &amp; network shape</a>
+    <a href="#outputs">5 · Output layer &amp; loss choice</a>
+    <a href="#forward">6 · The forward pass</a>
+    <a href="#loss">7 · Loss functions</a>
+    <a href="#backprop">8 · Backpropagation</a>
+    <a href="#gd">9 · Gradient descent</a>
+    <a class="sub" href="#lr">The learning rate</a>
+    <a href="#batches">10 · Batches, epochs, iterations</a>
+    <a href="#optimisers">11 · Optimisers</a>
+    <a class="sub" href="#schedules">Schedules &amp; warm-up</a>
+    <a href="#init">12 · Weight initialisation</a>
+    <a href="#gradients">13 · Vanishing gradients &amp; scaling</a>
+    <a href="#overfit">14 · Overfitting &amp; regularisation</a>
+    <a href="#code">15 · Complete example</a>
+    <a class="sub" href="#keras">Keras</a>
+    <a class="sub" href="#pytorch">PyTorch</a>
+    <a href="#curves">16 · Reading training curves</a>
+    <a href="#hyper">17 · Hyperparameters</a>
+    <a href="#cheatsheet">18 · Cheat sheet</a>
+    <a href="#quiz">19 · Quiz</a>
+  </aside>
+
+<main>
+  <header>
+    <div class="eyebrow">Week 2 · Deep Learning</div>
+    <h1>Deep learning foundations: from one neuron to a trained network</h1>
+    <p class="lede">How a neural network turns inputs into a prediction, how it measures its own mistakes, and how backpropagation and gradient descent use those mistakes to improve the weights. Along the way: activation functions, loss functions, optimisers, the learning rate, regularisation, and complete training code in Keras and PyTorch.</p>
+    <details class="mobile-toc">
+      <summary>Contents</summary>
+      <nav>
+        <a href="#why">1 · ML vs deep learning</a><a href="#neuron">2 · The artificial neuron</a><a href="#activations">3 · Activation functions</a>
+        <a href="#layers">4 · Layers &amp; network shape</a><a href="#outputs">5 · Output layer &amp; loss choice</a><a href="#forward">6 · The forward pass</a>
+        <a href="#loss">7 · Loss functions</a><a href="#backprop">8 · Backpropagation</a><a href="#gd">9 · Gradient descent &amp; learning rate</a>
+        <a href="#batches">10 · Batches, epochs, iterations</a><a href="#optimisers">11 · Optimisers</a><a href="#init">12 · Weight initialisation</a>
+        <a href="#gradients">13 · Vanishing gradients &amp; scaling</a><a href="#overfit">14 · Overfitting &amp; regularisation</a><a href="#code">15 · Complete example</a>
+        <a href="#curves">16 · Reading training curves</a><a href="#hyper">17 · Hyperparameters</a><a href="#cheatsheet">18 · Cheat sheet</a><a href="#quiz">19 · Quiz</a>
+      </nav>
+    </details>
+    <p style="margin-top:14px;font-size:.92rem;color:var(--muted)">Companion pages: <a href="neural-network-architectures.html">Neural network architectures (CNN, RNN, LSTM)</a> builds on this page, and <a href="mlflow-experiment-tracking.html">MLflow experiment tracking</a> shows how to log the runs you train here.</p>
+  </header>
+
+  <!-- ============ 1. WHY ============ -->
+  <section id="why">
+    <h2><span class="num">1</span>Machine learning vs deep learning</h2>
+    <p class="intuition"><strong>Intuition.</strong> In classic machine learning, <em>you</em> design the features and the model learns how to weigh them. In deep learning, the network learns the features <em>as well</em>, layer by layer, straight from raw data such as pixels, audio or text.</p>
+
+    <p><strong>Deep learning</strong> is the part of machine learning that uses <strong>neural networks with several layers</strong>. Each layer transforms its input a little, and stacking many layers lets the network build up complex patterns from simple ones. In an image model, early layers detect edges, middle layers detect shapes such as eyes or wheels, and late layers detect whole objects.</p>
+
+    <div class="table-scroll"><table>
+      <thead><tr><th></th><th>Classic ML (trees, boosting, linear models)</th><th>Deep learning (neural networks)</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Features</strong></td><td>Mostly hand-engineered by you</td><td>Learned automatically from raw data</td></tr>
+        <tr><td><strong>Best data type</strong></td><td><strong>Tabular</strong> (rows and columns)</td><td><strong>Unstructured</strong>: images, audio, text, video</td></tr>
+        <tr><td><strong>Data needed</strong></td><td>Works with hundreds to thousands of rows</td><td>Usually tens of thousands or more (less with transfer learning)</td></tr>
+        <tr><td><strong>Compute</strong></td><td>A laptop CPU is usually enough</td><td>Often needs a GPU (graphics card) for training</td></tr>
+        <tr><td><strong>Tuning effort</strong></td><td>Moderate; good defaults</td><td>Higher: architecture, learning rate, regularisation…</td></tr>
+        <tr><td><strong>Interpretability</strong></td><td>Often good (coefficients, feature importance, SHAP)</td><td>Harder; a "black box" without extra tools</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>When is deep learning worth it?</h3>
+    <div class="proscons">
+      <div class="pros"><h4>Reach for deep learning when</h4><ul>
+        <li>The data is <strong>unstructured</strong>: images, sound, free text, video, sequences</li>
+        <li>You have <strong>a lot of data</strong>, or a pre-trained model you can fine-tune (transfer learning)</li>
+        <li>The patterns are very complex and hard to describe as features</li>
+        <li>You need to combine data types (image + text) or generate content</li>
+      </ul></div>
+      <div class="cons"><h4>Think twice when</h4><ul>
+        <li>The data is a modest-sized <strong>table</strong>: gradient boosting (XGBoost, LightGBM, CatBoost) often matches or beats neural networks there, with less tuning</li>
+        <li>You need to explain each prediction to a regulator or a customer</li>
+        <li>You have little data and no suitable pre-trained model</li>
+        <li>Training time, cost or hardware are tight</li>
+      </ul></div>
+    </div>
+    <div class="callout"><p><strong>Be balanced, not tribal.</strong> On tabular data, start with a gradient-boosting baseline (Week 1). A neural network can still be useful there: with very large datasets, many high-cardinality categories (via <em>embeddings</em>, learned vector representations of categories), or when the table is one input to a bigger model. Compare both with the same validation set and the same metric, and let the numbers decide.</p></div>
+  </section>
+
+  <!-- ============ 2. NEURON ============ -->
+  <section id="neuron">
+    <h2><span class="num">2</span>The artificial neuron</h2>
+    <p class="intuition"><strong>Intuition.</strong> A neuron is a tiny decision-maker: it multiplies each input by how important it thinks that input is (a <em>weight</em>), adds them up with a starting offset (the <em>bias</em>), and passes the total through a simple function (the <em>activation</em>) that decides how strongly it "fires".</p>
+
+    <div class="diagram">
+      <div class="box">Inputs<br><small>x₁, x₂, …</small></div><span class="arrow">→</span>
+      <div class="box">× weights<br><small>w₁, w₂, …</small></div><span class="arrow">→</span>
+      <div class="box">Sum + bias<br><small>z = Σ wᵢxᵢ + b</small></div><span class="arrow">→</span>
+      <div class="box">Activation<br><small>a = f(z)</small></div><span class="arrow">→</span>
+      <div class="box"><b>Output a</b></div>
+    </div>
+
+    <ul>
+      <li><strong>Inputs</strong> (<code>x</code>): the numbers going in. For the first layer these are your features; for later layers they are the outputs of the previous layer.</li>
+      <li><strong>Weights</strong> (<code>w</code>): one per input. A large positive weight means "this input pushes me up strongly"; a negative weight means "this input pushes me down". Weights are <strong>learned</strong> during training.</li>
+      <li><strong>Bias</strong> (<code>b</code>): a learned offset. It shifts the neuron's threshold, so it can fire even when all inputs are zero, or stay quiet unless the inputs are large.</li>
+      <li><strong>Weighted sum</strong> (<code>z</code>, also called the <em>pre-activation</em> or <em>logit</em>): <code>z = w₁x₁ + w₂x₂ + … + wₙxₙ + b</code>.</li>
+      <li><strong>Activation function</strong> (<code>f</code>): a fixed function applied to <code>z</code>. Its output <code>a = f(z)</code> is what the neuron passes on.</li>
+    </ul>
+    <p>If this looks familiar, it should: a single neuron with a sigmoid activation <strong>is logistic regression</strong>. A single neuron with no activation (a "linear" one) <strong>is linear regression</strong>. Neural networks get their power from connecting many of these together.</p>
+
+    <div class="callout">
+      <p><strong>Worked example.</strong> Inputs <code>x = (2, 3)</code>, weights <code>w = (0.5, −1.0)</code>, bias <code>b = 1.5</code>.</p>
+      <p>z = 0.5 × 2 + (−1.0) × 3 + 1.5 = 1 − 3 + 1.5 = <strong>−0.5</strong></p>
+      <p>With ReLU: a = max(0, −0.5) = <strong>0</strong> (the neuron is "off"). With sigmoid: a = 1 / (1 + e<sup>0.5</sup>) = <strong>0.378</strong>.</p>
+    </div>
+
+    <div class="widget" id="neuronWidget">
+      <div class="widget-title">Try it: neuron playground</div>
+      <div class="widget-sub">Move the inputs, weights and bias to change z, then pick an activation. The solid curve is the activation f(z); the dashed curve is its slope f′(z), which is what backpropagation uses. The dot is where this neuron currently sits.</div>
+      <div class="controls">
+        <label><span>Input x₁: <b id="nX1V">1.0</b></span><input type="range" id="nX1" min="-3" max="3" step="0.1" value="1"></label>
+        <label><span>Input x₂: <b id="nX2V">2.0</b></span><input type="range" id="nX2" min="-3" max="3" step="0.1" value="2"></label>
+        <label><span>Weight w₁: <b id="nW1V">0.8</b></span><input type="range" id="nW1" min="-3" max="3" step="0.1" value="0.8"></label>
+        <label><span>Weight w₂: <b id="nW2V">-0.5</b></span><input type="range" id="nW2" min="-3" max="3" step="0.1" value="-0.5"></label>
+        <label><span>Bias b: <b id="nBV">0.5</b></span><input type="range" id="nB" min="-3" max="3" step="0.1" value="0.5"></label>
+        <label><span>Activation</span>
+          <select id="nAct">
+            <option value="sigmoid">Sigmoid</option>
+            <option value="tanh">Tanh</option>
+            <option value="relu" selected>ReLU</option>
+            <option value="leaky">Leaky ReLU (α = 0.1)</option>
+            <option value="linear">Linear (none)</option>
+          </select>
+        </label>
+      </div>
+      <svg id="nSvg" viewBox="0 0 600 260" role="img" aria-label="Activation curve with the neuron's current point"></svg>
+      <div class="metrics-row" id="nMetrics"></div>
+      <p id="nText" style="font-size:.92rem;margin:10px 0 0"></p>
+    </div>
+  </section>
+
+  <!-- ============ 3. ACTIVATIONS ============ -->
+  <section id="activations">
+    <h2><span class="num">3</span>Activation functions</h2>
+    <p class="intuition"><strong>Intuition.</strong> Activations add the "bend". Without them, stacking layers is pointless: a chain of weighted sums is still just one weighted sum, a straight line. A non-linear activation in each hidden layer is what lets a network learn curves, interactions and complex shapes.</p>
+
+    <p>Why it matters: if every layer were linear, then <code>layer2(layer1(x)) = W₂(W₁x + b₁) + b₂ = (W₂W₁)x + (W₂b₁ + b₂)</code>, which is a single linear layer. A 50-layer linear network can do nothing that logistic regression can't.</p>
+
+    <div class="table-scroll"><table>
+      <thead><tr><th>Activation</th><th>Formula f(z)</th><th>Output range</th><th>Derivative f′(z)</th><th>Where it's used</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Sigmoid</strong> (logistic)</td><td><code>1 / (1 + e<sup>−z</sup>)</code></td><td>(0, 1)</td><td><code>σ(z)·(1 − σ(z))</code>, at most 0.25</td><td><strong>Output layer for binary</strong> classification (gives a probability). Rare in hidden layers today</td></tr>
+        <tr><td><strong>Tanh</strong></td><td><code>(e<sup>z</sup> − e<sup>−z</sup>) / (e<sup>z</sup> + e<sup>−z</sup>)</code></td><td>(−1, 1)</td><td><code>1 − tanh²(z)</code>, at most 1</td><td>Inside RNNs and LSTMs; zero-centred, so better than sigmoid for hidden layers</td></tr>
+        <tr><td><strong>ReLU</strong> (rectified linear unit)</td><td><code>max(0, z)</code></td><td>[0, ∞)</td><td>1 if z &gt; 0, else 0</td><td><strong>The default for hidden layers</strong>. Cheap, and its gradient doesn't shrink for positive z</td></tr>
+        <tr><td><strong>Leaky ReLU</strong></td><td><code>z</code> if z &gt; 0, else <code>α·z</code></td><td>(−∞, ∞)</td><td>1 if z &gt; 0, else α</td><td>Hidden layers when many ReLU neurons "die". α is small: PyTorch's default is 0.01; Keras' <code>LeakyReLU</code> layer defaults to 0.3</td></tr>
+        <tr><td><strong>Softmax</strong></td><td><code>e<sup>zᵢ</sup> / Σⱼ e<sup>zⱼ</sup></code></td><td>Each in (0, 1), all sum to 1</td><td><code>∂sᵢ/∂zⱼ = sᵢ(δᵢⱼ − sⱼ)</code></td><td><strong>Output layer for multi-class</strong> classification (one probability per class)</td></tr>
+        <tr><td><strong>Linear</strong> (identity / none)</td><td><code>z</code></td><td>(−∞, ∞)</td><td>1</td><td><strong>Output layer for regression</strong> (predicting any number)</td></tr>
+        <tr><td>GELU, Swish/SiLU</td><td>Smooth ReLU-like curves</td><td>≈ (−0.17, ∞) and (−0.28, ∞)</td><td>Smooth</td><td>Transformers and many modern networks; worth knowing the names</td></tr>
+      </tbody>
+    </table></div>
+    <p>In softmax's derivative, <code>δᵢⱼ</code> is 1 when i = j and 0 otherwise. You will rarely need it by hand, because softmax is almost always paired with cross-entropy, and that pair has a beautifully simple combined gradient (see <a href="#backprop">Backpropagation</a>).</p>
+
+    <h3>The vanishing gradient problem, in one paragraph</h3>
+    <p>Backpropagation multiplies the slopes of every layer together. Sigmoid's slope is <strong>at most 0.25</strong>, and close to 0 when |z| is large (the flat, "saturated" ends of the S-curve). Through 10 sigmoid layers the gradient can shrink by a factor of up to 0.25<sup>10</sup> ≈ 0.000001, so the early layers barely learn. ReLU's slope is exactly 1 for positive inputs, so gradients pass through unchanged. This is the main reason ReLU replaced sigmoid in hidden layers. More in <a href="#gradients">section 13</a>.</p>
+    <div class="callout warn"><p><strong>The "dying ReLU".</strong> If a ReLU neuron's z is negative for every training example, its output and its gradient are both 0, so its weights never update again. A too-high learning rate makes this more likely. Leaky ReLU keeps a small slope (α) for negative z, so the neuron can recover.</p></div>
+    <div class="callout good"><p><strong>Rule of thumb:</strong> ReLU in the hidden layers; choose the output activation from the task (sigmoid, softmax or linear). That covers most feed-forward networks.</p></div>
+  </section>
+
+  <!-- ============ 4. LAYERS ============ -->
+  <section id="layers">
+    <h2><span class="num">4</span>Layers and network shape</h2>
+    <p class="intuition"><strong>Intuition.</strong> Neurons are organised in layers. Every neuron in one layer feeds every neuron in the next. The first layer receives the data, the last layer gives the answer, and the layers in between ("hidden" because you never see their values directly) build up the useful features.</p>
+
+    <div class="widget" style="padding:12px 18px">
+      <svg id="archSvg" viewBox="0 0 600 270" role="img" aria-label="A neural network with 4 inputs, two hidden layers of 5 and 3 neurons, and 1 output"></svg>
+    </div>
+
+    <div class="table-scroll"><table>
+      <thead><tr><th>Layer</th><th>What it is</th><th>How many neurons?</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Input layer</strong></td><td>Not really neurons: it just holds the feature values of one example. No weights, no activation</td><td>One per feature (after encoding). 12 columns → 12 inputs</td></tr>
+        <tr><td><strong>Hidden layer(s)</strong></td><td>Weighted sum + activation (usually ReLU). Learn intermediate features</td><td>Your choice: 16–512 is typical for tabular data; often powers of two</td></tr>
+        <tr><td><strong>Output layer</strong></td><td>Weighted sum + task-specific activation</td><td>Set by the task: 1 for binary or regression, K for K classes</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>MLP vs "deep" neural network</h3>
+    <ul>
+      <li>A <strong>dense</strong> (or <em>fully connected</em>) layer connects every input to every neuron. In Keras it's <code>Dense</code>; in PyTorch it's <code>nn.Linear</code> (plus a separate activation).</li>
+      <li>A <strong>multilayer perceptron (MLP)</strong>, also called a <em>feed-forward network</em>, is a stack of dense layers where data flows one way, input to output. It's the right network for tabular data and the foundation for everything else.</li>
+      <li>A <strong>deep neural network (DNN)</strong> simply has <strong>several hidden layers</strong>. There's no strict cut-off; "two or more hidden layers" is a common informal definition. In practice, "deep learning" usually means many layers and often specialised layer types: convolutional layers for images, recurrent layers and transformers for sequences. See <a href="neural-network-architectures.html">Neural network architectures</a>.</li>
+    </ul>
+
+    <h3>Counting parameters</h3>
+    <p>A dense layer with <code>n_in</code> inputs and <code>n_out</code> neurons has <code>n_in × n_out</code> weights plus <code>n_out</code> biases. These are the <strong>parameters</strong> the network learns.</p>
+    <div class="callout">
+      <p><strong>Example:</strong> 10 features → Dense(64) → Dense(32) → Dense(1).</p>
+      <p>10 × 64 + 64 = <strong>704</strong> · 64 × 32 + 32 = <strong>2,080</strong> · 32 × 1 + 1 = <strong>33</strong> · total = <strong>2,817</strong> parameters. Keras' <code>model.summary()</code> prints exactly this.</p>
+    </div>
+    <p><strong>Wider</strong> (more neurons per layer) and <strong>deeper</strong> (more layers) both add capacity, meaning the network can fit more complex patterns, and also overfit more easily. For tabular data, 2–3 hidden layers is usually plenty.</p>
+  </section>
+
+  <!-- ============ 5. OUTPUTS ============ -->
+  <section id="outputs">
+    <h2><span class="num">5</span>Output layer and loss: choose them together</h2>
+    <p class="intuition"><strong>Intuition.</strong> The task decides the last layer and the loss. Get this pairing right and the rest of the network is mostly free choice; get it wrong and training silently produces nonsense.</p>
+
+    <div class="table-scroll"><table>
+      <thead><tr><th>Task</th><th>Output neurons</th><th>Output activation</th><th>Loss (Keras name)</th><th>Labels look like</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Binary classification</strong><br><small>fraud / not fraud</small></td><td>1</td><td>Sigmoid</td><td>Binary cross-entropy<br><code>"binary_crossentropy"</code></td><td><code>0</code> or <code>1</code></td></tr>
+        <tr><td><strong>Multi-class</strong>, one-hot labels<br><small>digit 0–9</small></td><td>K (one per class)</td><td>Softmax</td><td>Categorical cross-entropy<br><code>"categorical_crossentropy"</code></td><td><code>[0, 0, 1, 0]</code></td></tr>
+        <tr><td><strong>Multi-class</strong>, integer labels</td><td>K</td><td>Softmax</td><td>Sparse categorical cross-entropy<br><code>"sparse_categorical_crossentropy"</code></td><td><code>2</code></td></tr>
+        <tr><td><strong>Multi-label</strong><br><small>several tags at once</small></td><td>K</td><td>Sigmoid (one per label)</td><td>Binary cross-entropy</td><td><code>[1, 0, 1, 1]</code></td></tr>
+        <tr><td><strong>Regression</strong><br><small>house price</small></td><td>1 (or one per target)</td><td>Linear (none)</td><td>MSE <code>"mse"</code>, or MAE <code>"mae"</code> if outliers matter, or Huber <code>"huber"</code></td><td>Any number</td></tr>
+      </tbody>
+    </table></div>
+    <p><strong>Categorical vs sparse categorical</strong> is only about the label format; the maths is identical. Sparse saves you one-hot encoding the labels.</p>
+    <div class="callout warn"><p><strong>Logits and <code>from_logits</code>.</strong> For numerical stability, many people leave the output layer linear and let the loss apply sigmoid or softmax internally. In Keras that's <code>keras.losses.BinaryCrossentropy(from_logits=True)</code>; in PyTorch it's the default: <code>nn.BCEWithLogitsLoss</code> and <code>nn.CrossEntropyLoss</code> both expect raw scores (<em>logits</em>), so <strong>don't</strong> add a sigmoid or softmax layer before them. Applying softmax twice is a classic silent bug.</p></div>
+
+    <h3>Softmax in action</h3>
+    <p>Softmax turns any list of scores into probabilities: exponentiate each one (so all are positive), then divide by the total (so they sum to 1). Bigger scores get disproportionately more probability.</p>
+    <div class="widget" id="softmaxWidget">
+      <div class="widget-title">Try it: softmax and cross-entropy</div>
+      <div class="widget-sub">An image classifier outputs three raw scores (logits). The true class is <strong>cat</strong>. Watch the probabilities and the loss −ln(p<sub>cat</sub>).</div>
+      <div class="controls">
+        <label><span>Logit for cat: <b id="smZ1V">2.0</b></span><input type="range" id="smZ1" min="-4" max="4" step="0.1" value="2"></label>
+        <label><span>Logit for dog: <b id="smZ2V">1.0</b></span><input type="range" id="smZ2" min="-4" max="4" step="0.1" value="1"></label>
+        <label><span>Logit for rabbit: <b id="smZ3V">0.1</b></span><input type="range" id="smZ3" min="-4" max="4" step="0.1" value="0.1"></label>
+      </div>
+      <div id="smBars"></div>
+      <div class="verdict" id="smVerdict"></div>
+    </div>
+    <p>Check the defaults by hand: e<sup>2</sup> = 7.389, e<sup>1</sup> = 2.718, e<sup>0.1</sup> = 1.105, total 11.212. Probabilities: 0.659, 0.242, 0.099. Loss = −ln(0.659) = <strong>0.417</strong>.</p>
+  </section>
+
+  <!-- ============ 6. FORWARD ============ -->
+  <section id="forward">
+    <h2><span class="num">6</span>The forward pass</h2>
+    <p class="intuition"><strong>Intuition.</strong> The forward pass is just "run the network": push the inputs through each layer in turn, computing weighted sums and activations, until a prediction comes out of the end. No learning happens here; it is pure arithmetic.</p>
+
+    <h3>A fully worked example</h3>
+    <p>A tiny network: <strong>2 inputs → 2 hidden neurons (ReLU) → 1 output neuron (sigmoid)</strong>, for binary classification. One training example: <code>x₁ = 1.0</code>, <code>x₂ = 2.0</code>, true label <code>y = 1</code>.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Neuron</th><th>Weight from x₁ / h₁</th><th>Weight from x₂ / h₂</th><th>Bias</th></tr></thead>
+      <tbody>
+        <tr><td>Hidden h₁</td><td>w₁₁ = 0.5</td><td>w₂₁ = −0.2</td><td>b₁ = 0.1</td></tr>
+        <tr><td>Hidden h₂</td><td>w₁₂ = 0.3</td><td>w₂₂ = 0.4</td><td>b₂ = −0.5</td></tr>
+        <tr><td>Output o</td><td>v₁ = 0.8</td><td>v₂ = −0.5</td><td>c = 0.5</td></tr>
+      </tbody>
+    </table></div>
+    <div class="card">
+      <h4 style="margin-top:0">Step 1: hidden layer</h4>
+      <p>z₁ = 0.5 × 1.0 + (−0.2) × 2.0 + 0.1 = 0.5 − 0.4 + 0.1 = <strong>0.2</strong> → a₁ = ReLU(0.2) = <strong>0.2</strong></p>
+      <p>z₂ = 0.3 × 1.0 + 0.4 × 2.0 + (−0.5) = 0.3 + 0.8 − 0.5 = <strong>0.6</strong> → a₂ = ReLU(0.6) = <strong>0.6</strong></p>
+      <h4>Step 2: output layer</h4>
+      <p>z<sub>o</sub> = 0.8 × 0.2 + (−0.5) × 0.6 + 0.5 = 0.16 − 0.30 + 0.5 = <strong>0.36</strong></p>
+      <p>ŷ = sigmoid(0.36) = 1 / (1 + e<sup>−0.36</sup>) = 1 / (1 + 0.6977) = <strong>0.589</strong></p>
+      <h4>Step 3: loss</h4>
+      <p style="margin:0">The true label is 1, so binary cross-entropy is L = −ln(ŷ) = −ln(0.589) = <strong>0.529</strong>. The model leans the right way (0.589 &gt; 0.5) but isn't confident, so the loss is moderate. A perfect prediction (ŷ = 1) would give L = 0.</p>
+    </div>
+    <p>In matrix form, a whole layer for a whole batch of examples is one line: <code>A = f(XW + b)</code>, where <code>X</code> is (batch × inputs), <code>W</code> is (inputs × neurons) and <code>b</code> is added to every row. This is why GPUs, which are very fast at matrix multiplication, speed deep learning up so much.</p>
+
+    <div class="widget" id="fwdWidget">
+      <div class="widget-title">Try it: forward-pass explorer (2 → 3 → 1)</div>
+      <div class="widget-sub">The weights are fixed (orange edges are positive, blue are negative; thicker = larger). Set the inputs, then press <b>Step</b> to compute one layer at a time. A grey hidden neuron is "off": ReLU has set it to 0.</div>
+      <div class="controls">
+        <label><span>Input x₁: <b id="fX1V">1.0</b></span><input type="range" id="fX1" min="-2" max="2" step="0.1" value="1"></label>
+        <label><span>Input x₂: <b id="fX2V">1.5</b></span><input type="range" id="fX2" min="-2" max="2" step="0.1" value="1.5"></label>
+      </div>
+      <div class="btn-row">
+        <button class="btn" type="button" id="fStep">Step: compute hidden layer</button>
+        <button class="btn" type="button" id="fAll">Show all</button>
+        <button class="btn" type="button" id="fReset">Reset</button>
+      </div>
+      <svg id="fSvg" viewBox="0 0 600 320" role="img" aria-label="A 2-3-1 neural network with its activations"></svg>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Neuron</th><th>Weighted sum z</th><th>Activation</th></tr></thead>
+        <tbody id="fTable"></tbody>
+      </table></div>
+      <div class="verdict" id="fText"></div>
+    </div>
+  </section>
+
+  <!-- ============ 7. LOSS ============ -->
+  <section id="loss">
+    <h2><span class="num">7</span>Loss functions</h2>
+    <p class="intuition"><strong>Intuition.</strong> The loss is a single number that says "how wrong was that?". Training means turning the weights to make this number as small as possible on the training data.</p>
+    <p>The <strong>loss</strong> is computed per example and averaged over a batch. (Some texts say <em>cost</em> for the average; they mean the same thing in practice.) It must be <strong>differentiable</strong>, meaning smooth enough that we can compute its slope with respect to every weight, because that slope is what training follows. That's why we train on cross-entropy rather than directly on accuracy: accuracy only changes in jumps.</p>
+
+    <div class="table-scroll"><table>
+      <thead><tr><th>Loss</th><th>Formula (one example)</th><th>Use for</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Binary cross-entropy</strong> (log loss)</td><td><code>−[y·ln(ŷ) + (1 − y)·ln(1 − ŷ)]</code></td><td>Binary and multi-label classification</td><td>Punishes confident wrong answers very heavily</td></tr>
+        <tr><td><strong>Categorical cross-entropy</strong></td><td><code>−Σₖ yₖ·ln(ŷₖ)</code> = −ln(probability of the true class)</td><td>Multi-class</td><td>Only the true class's probability matters</td></tr>
+        <tr><td><strong>Mean squared error</strong> (MSE)</td><td><code>(y − ŷ)²</code></td><td>Regression</td><td>Squares big errors, so sensitive to outliers</td></tr>
+        <tr><td><strong>Mean absolute error</strong> (MAE)</td><td><code>|y − ŷ|</code></td><td>Regression with outliers</td><td>Treats all errors linearly; more robust</td></tr>
+        <tr><td><strong>Huber</strong></td><td>MSE for small errors, MAE for large ones</td><td>Regression</td><td>A compromise between the two</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Why cross-entropy punishes confident mistakes</h3>
+    <div class="table-scroll" style="max-width:520px"><table>
+      <thead><tr><th>True y</th><th>Predicted ŷ</th><th>Binary cross-entropy</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>0.9 (confident, right)</td><td>−ln(0.9) = <strong>0.105</strong></td></tr>
+        <tr><td>1</td><td>0.5 (unsure)</td><td>−ln(0.5) = <strong>0.693</strong></td></tr>
+        <tr><td>1</td><td>0.1 (confident, wrong)</td><td>−ln(0.1) = <strong>2.303</strong></td></tr>
+        <tr><td>1</td><td>0.01 (very confident, wrong)</td><td>−ln(0.01) = <strong>4.605</strong></td></tr>
+      </tbody>
+    </table></div>
+    <p>A useful sanity check: for a balanced binary problem, an untrained network predicting about 0.5 everywhere starts at a loss near <strong>0.693</strong> (= ln 2). For K balanced classes it starts near <strong>ln K</strong> (2.303 for 10 classes). If your first-epoch loss is far above that, something is wrong with the data or the set-up.</p>
+  </section>
+
+  <!-- ============ 8. BACKPROP ============ -->
+  <section id="backprop">
+    <h2><span class="num">8</span>Backpropagation</h2>
+    <p class="intuition"><strong>Intuition.</strong> After a wrong prediction, backpropagation works out <em>how much each weight is to blame</em>. It starts at the loss and walks backwards through the network, layer by layer, handing out each weight's share of the blame. That share is the weight's <em>gradient</em>.</p>
+
+    <h3>Gradients and the chain rule</h3>
+    <ul>
+      <li>A <strong>gradient</strong> <code>∂L/∂w</code> ("the partial derivative of the loss with respect to w") answers: <em>if I nudge this weight up a tiny bit, how much does the loss change?</em> Positive means increasing w increases the loss, so we should decrease w. Negative means the opposite. The size says how sensitive the loss is to that weight.</li>
+      <li>The network is a chain of simple steps: weight → z → activation → next z → … → loss. The <strong>chain rule</strong> from calculus says the effect of a change at the start of the chain is the <em>product</em> of the effects of each link: <code>∂L/∂w = ∂L/∂a · ∂a/∂z · ∂z/∂w</code>.</li>
+      <li>Backpropagation computes these products efficiently by starting at the end and <strong>reusing</strong> each layer's result for the layer before it. One backward pass gives the gradient for every weight, at roughly the cost of one or two forward passes.</li>
+    </ul>
+    <div class="diagram">
+      <div class="box">Forward →<br><small>inputs → prediction → loss</small></div>
+      <div class="box">← Backward<br><small>loss → output layer → hidden layers</small></div>
+      <div class="box">Update<br><small>w ← w − η · ∂L/∂w</small></div>
+    </div>
+
+    <h3>One worked gradient: the output weight v₁</h3>
+    <p>Continue the example from <a href="#forward">section 6</a>: ŷ = 0.589, y = 1, a₁ = 0.2. How should v₁ (the weight from h₁ to the output, currently 0.8) change?</p>
+    <div class="card">
+      <p>By the chain rule: <code>∂L/∂v₁ = ∂L/∂ŷ · ∂ŷ/∂z<sub>o</sub> · ∂z<sub>o</sub>/∂v₁</code></p>
+      <ul>
+        <li><code>∂L/∂ŷ = −y/ŷ + (1 − y)/(1 − ŷ)</code> (derivative of binary cross-entropy)</li>
+        <li><code>∂ŷ/∂z<sub>o</sub> = ŷ(1 − ŷ)</code> (derivative of sigmoid)</li>
+        <li>Multiply those two and simplify: <code>∂L/∂z<sub>o</sub> = ŷ − y</code>. Sigmoid + cross-entropy collapses to "prediction minus truth". (Softmax + categorical cross-entropy gives the same neat result: <code>ŷₖ − yₖ</code> for each class.)</li>
+        <li><code>∂z<sub>o</sub>/∂v₁ = a₁</code>, because z<sub>o</sub> = v₁a₁ + v₂a₂ + c.</li>
+      </ul>
+      <p>So <code>∂L/∂v₁ = (ŷ − y) · a₁ = (0.589 − 1) × 0.2 = −0.411 × 0.2 = <strong>−0.0822</strong></code></p>
+      <p style="margin:0">The gradient is negative, so increasing v₁ lowers the loss. With a learning rate η = 0.1: <code>v₁ ← 0.8 − 0.1 × (−0.0822) = <strong>0.8082</strong></code>. Re-running the forward pass with this new v₁ (and nothing else changed) lowers the loss from 0.5293 to 0.5286. A tiny step, as it should be; training repeats this thousands of times.</p>
+    </div>
+    <p><strong>Reading the blame.</strong> The gradient is <em>error × the input that weight saw</em>. For v₂ it's −0.411 × 0.6 = −0.247: three times larger, because h₂ was three times more active, so v₂ had more influence on the mistake. And if a hidden neuron outputs 0 (an "off" ReLU), its outgoing weights get <em>zero</em> gradient for that example: no influence, no blame.</p>
+    <p><strong>One layer further back.</strong> For the hidden weight w₁₁: <code>∂L/∂w₁₁ = (ŷ − y) · v₁ · ReLU′(z₁) · x₁ = −0.411 × 0.8 × 1 × 1.0 = −0.329</code>. Each extra layer multiplies in one more weight and one more activation slope, which is exactly why small slopes (sigmoid) make gradients vanish in deep networks.</p>
+    <div class="callout good"><p><strong>You never code this by hand.</strong> Keras (via TensorFlow, JAX or PyTorch) and PyTorch use <em>automatic differentiation</em>: they record the forward pass and compute all gradients for you. In PyTorch it's literally <code>loss.backward()</code>. Understanding it still matters for debugging vanishing gradients, dead neurons and exploding losses.</p></div>
+  </section>
+
+  <!-- ============ 9. GRADIENT DESCENT ============ -->
+  <section id="gd">
+    <h2><span class="num">9</span>Gradient descent and the learning rate</h2>
+    <p class="intuition"><strong>Intuition.</strong> Imagine standing on a foggy hillside, trying to reach the valley floor. You can't see far, but you can feel the slope under your feet. So you take a step downhill, feel again, and repeat. The gradient is the slope; the <em>learning rate</em> is the size of your step.</p>
+
+    <p>The update rule, applied to every weight after each batch:</p>
+    <div class="card" style="text-align:center;font-size:1.15rem"><code>w ← w − η · ∂L/∂w</code></div>
+    <ul>
+      <li><code>∂L/∂w</code> points <strong>uphill</strong> (the direction that increases the loss), so we <strong>subtract</strong> it.</li>
+      <li><code>η</code> (eta) is the <strong>learning rate</strong>: how big a step to take. It's the single most important hyperparameter in deep learning.</li>
+      <li>The <em>loss surface</em> (or <em>loss landscape</em>) is the loss plotted against all the weights. Real networks have millions of dimensions; the widget below uses 2 so you can see it.</li>
+    </ul>
+
+    <h3 id="lr">The learning rate: too small, too large, just right</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Learning rate</th><th>What happens</th><th>Symptom in the loss curve</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Too small</strong></td><td>Tiny, safe steps; takes forever and can stall on flat regions</td><td>Loss falls very slowly and steadily; still falling when training ends</td></tr>
+        <tr><td><strong>Just right</strong></td><td>Big enough to make progress, small enough not to overshoot</td><td>Loss drops quickly, then flattens out</td></tr>
+        <tr><td><strong>Too large</strong></td><td>Overshoots the valley floor and bounces from side to side</td><td>Loss is jumpy, zig-zags, or plateaus high</td></tr>
+        <tr><td><strong>Far too large</strong></td><td>Each bounce lands higher than the last</td><td>Loss explodes; <code>NaN</code> (not a number) appears</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="widget" id="gdWidget">
+      <div class="widget-title">Try it: gradient descent on a loss surface</div>
+      <div class="widget-sub">A long, narrow valley: the loss is L = 0.1·w₁² + w₂², steep across (w₂) and shallow along (w₁). The minimum is at the cross. Choose a learning rate and an optimiser, then press <b>Step</b> or <b>Run 50 steps</b>. Changing either setting restarts from the same point.</div>
+      <div class="controls">
+        <label><span>Learning rate η: <b id="gLrV">0.100</b></span><input type="range" id="gLr" min="0" max="1000" step="1" value="630" aria-label="Learning rate on a log scale from 0.001 to 1.5"></label>
+        <label><span>Optimiser</span>
+          <select id="gOpt">
+            <option value="sgd">SGD (plain gradient descent)</option>
+            <option value="momentum">SGD + momentum (β = 0.9)</option>
+            <option value="adam">Adam (β₁ = 0.9, β₂ = 0.999)</option>
+          </select>
+        </label>
+      </div>
+      <div class="btn-row">
+        <button class="btn" type="button" id="gStepBtn">Step</button>
+        <button class="btn" type="button" id="gRunBtn">Run 50 steps</button>
+        <button class="btn" type="button" id="gResetBtn">Reset</button>
+      </div>
+      <div class="sim-grid">
+        <svg id="gSvg" viewBox="0 0 600 340" role="img" aria-label="Contour plot of the loss surface with the optimiser's path"></svg>
+        <svg id="gLossSvg" viewBox="0 0 360 260" role="img" aria-label="Loss per step on a log scale"></svg>
+      </div>
+      <div class="metrics-row" id="gMetrics"></div>
+      <div class="verdict" id="gVerdict"></div>
+    </div>
+    <p>Things to try: SGD at 0.001 (too slow), 0.3 (converges cleanly), 0.9 (zig-zags across the valley) and 1.1 (diverges, because each step overshoots by more than it corrects). Then switch to momentum and Adam at 0.01 and 0.1. Note that on this simple bowl Adam copes with large rates, because each Adam step is capped at roughly η per weight; in real networks a too-high Adam learning rate still makes training unstable.</p>
+  </section>
+
+  <!-- ============ 10. BATCHES ============ -->
+  <section id="batches">
+    <h2><span class="num">10</span>Batches, epochs and iterations</h2>
+    <p class="intuition"><strong>Intuition.</strong> You don't need to look at every training example before taking a step. Estimating the slope from a small random handful (a mini-batch) is much faster and nearly as good, and the bit of noise even helps.</p>
+
+    <div class="table-scroll"><table>
+      <thead><tr><th>Variant</th><th>Examples per update</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Batch gradient descent</strong></td><td>All of them</td><td>Exact gradient; smooth path</td><td>One update per pass over the data; doesn't fit in memory for big data</td></tr>
+        <tr><td><strong>Stochastic gradient descent</strong> (SGD, strictly)</td><td>1</td><td>Very frequent updates; noise can escape poor regions</td><td>Very noisy; can't use the GPU's parallelism</td></tr>
+        <tr><td><strong>Mini-batch gradient descent</strong></td><td>A small batch, e.g. 32–256</td><td>Best of both: fast, GPU-friendly, mildly noisy</td><td>One more hyperparameter (batch size)</td></tr>
+      </tbody>
+    </table></div>
+    <p>In practice everyone uses mini-batches, and frameworks still call the optimiser "SGD". When people say "SGD" they almost always mean mini-batch gradient descent.</p>
+
+    <h3>Vocabulary</h3>
+    <ul>
+      <li><strong>Batch size</strong>: examples used to compute one gradient update. Keras' default is 32.</li>
+      <li><strong>Iteration</strong> (or <em>step</em>): one update of the weights = one batch.</li>
+      <li><strong>Epoch</strong>: one full pass through the whole training set. The data is usually reshuffled every epoch.</li>
+      <li><strong>Iterations per epoch</strong> = ⌈training examples ÷ batch size⌉ (rounded up; the last batch is smaller).</li>
+    </ul>
+    <div class="callout">
+      <p><strong>Example:</strong> 10,000 training rows, batch size 32 → 10,000 ÷ 32 = 312.5 → <strong>313 iterations per epoch</strong>. Training for 20 epochs = 313 × 20 = <strong>6,260 weight updates</strong>.</p>
+    </div>
+    <p><strong>Batch-size trade-offs:</strong> larger batches give smoother gradients and use the GPU better, but need more memory and often generalise slightly worse; smaller batches are noisier, which acts as mild regularisation. If you change the batch size a lot, you often need to retune the learning rate too (larger batches tolerate larger learning rates).</p>
+  </section>
+
+  <!-- ============ 11. OPTIMISERS ============ -->
+  <section id="optimisers">
+    <h2><span class="num">11</span>Optimisers</h2>
+    <p class="intuition"><strong>Intuition.</strong> Plain gradient descent only looks at the slope right now. Better optimisers also remember where they've been heading (momentum) and adjust the step size for each weight separately (adaptive rates), like a hiker who builds up speed on long slopes and takes shorter steps on rough ground.</p>
+
+    <p>Notation: <code>g</code> is the current gradient <code>∂L/∂w</code>, <code>η</code> the learning rate, and all operations are per weight.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Optimiser</th><th>What it adds</th><th>Update (simplified)</th><th>Keras defaults</th></tr></thead>
+      <tbody>
+        <tr><td><strong>SGD</strong></td><td>Nothing: the basic rule</td><td><code>w ← w − η·g</code></td><td><code>learning_rate=0.01</code>, <code>momentum=0.0</code></td></tr>
+        <tr><td><strong>SGD + momentum</strong></td><td>A running "velocity": keeps moving in directions that are consistently downhill, damps zig-zags</td><td><code>v ← β·v + g</code><br><code>w ← w − η·v</code><br>β ≈ 0.9</td><td><code>SGD(momentum=0.9)</code>; <code>nesterov=True</code> is a refinement</td></tr>
+        <tr><td><strong>RMSprop</strong></td><td>A per-weight step size: divides by a running average of recent squared gradients, so weights with big, noisy gradients take smaller steps</td><td><code>s ← ρ·s + (1−ρ)·g²</code><br><code>w ← w − η·g / (√s + ε)</code></td><td><code>learning_rate=0.001</code>, <code>rho=0.9</code></td></tr>
+        <tr><td><strong>Adam</strong> (adaptive moment estimation)</td><td><strong>Momentum + RMSprop</strong>, with a bias correction for the first few steps</td><td><code>m ← β₁·m + (1−β₁)·g</code><br><code>v ← β₂·v + (1−β₂)·g²</code><br><code>m̂ = m/(1−β₁ᵗ)</code>, <code>v̂ = v/(1−β₂ᵗ)</code><br><code>w ← w − η·m̂ / (√v̂ + ε)</code></td><td><code>learning_rate=0.001</code>, <code>beta_1=0.9</code>, <code>beta_2=0.999</code>, <code>epsilon=1e-7</code></td></tr>
+        <tr><td><strong>AdamW</strong></td><td>Adam with <em>decoupled</em> weight decay: shrinks weights directly instead of through the gradient. The usual choice for transformers</td><td>Adam step, then <code>w ← w − η·λ·w</code></td><td><code>weight_decay=0.004</code> (PyTorch: 0.01)</td></tr>
+      </tbody>
+    </table></div>
+    <ul>
+      <li><code>t</code> is the step number. At the start, <code>m</code> and <code>v</code> are 0, so they are biased towards 0; dividing by <code>1 − β₁ᵗ</code> and <code>1 − β₂ᵗ</code> corrects this. After a few hundred steps the correction is close to 1 and fades away.</li>
+      <li><code>ε</code> (epsilon) is a tiny number that prevents division by zero. Keras uses 1e-7; PyTorch uses 1e-8.</li>
+      <li>PyTorch's <code>torch.optim.Adam</code> has the same defaults: <code>lr=1e-3</code>, <code>betas=(0.9, 0.999)</code>. For <code>torch.optim.SGD</code>, always set <code>lr</code> (and usually <code>momentum=0.9</code>) yourself.</li>
+    </ul>
+    <div class="callout good"><p><strong>Which to pick?</strong> Start with <strong>Adam at 0.001</strong>: it works well with little tuning on most problems. Well-tuned SGD with momentum (plus a learning-rate schedule) sometimes generalises slightly better on image models, at the cost of more tuning. Use AdamW for transformers.</p></div>
+
+    <h3 id="schedules">Learning-rate schedules and warm-up</h3>
+    <p>The best learning rate changes during training: large steps help early, when you're far from a good solution, and small steps help late, when you're fine-tuning near one. A <strong>schedule</strong> changes η automatically. Common ones: <strong>step decay</strong> (multiply by 0.1 every N epochs), <strong>exponential decay</strong>, <strong>cosine decay</strong> (a smooth curve down to near zero), and <strong>reduce-on-plateau</strong> (cut η when the validation loss stops improving; Keras <code>ReduceLROnPlateau</code>). <strong>Warm-up</strong> starts with a tiny learning rate and ramps it up over the first few hundred or thousand steps; it stops the very first, noisy updates from wrecking a randomly initialised network, and is standard for transformers and large batch sizes.</p>
+<pre><code># Keras: cosine decay, set on the optimiser
+schedule = keras.optimizers.schedules.CosineDecay(initial_learning_rate=1e-3, decay_steps=10_000)
+optimizer = keras.optimizers.Adam(learning_rate=schedule)
+
+# Keras: halve the learning rate when val_loss stalls for 5 epochs
+reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=5)
+
+# PyTorch
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100)   # call scheduler.step() each epoch</code></pre>
+  </section>
+
+  <!-- ============ 12. INIT ============ -->
+  <section id="init">
+    <h2><span class="num">12</span>Weight initialisation</h2>
+    <p class="intuition"><strong>Intuition.</strong> Training starts from random weights, and the scale of that randomness matters. Too big and signals explode as they pass through layers; too small and they fade to nothing. Good initialisation keeps the signal at roughly the same size in every layer.</p>
+    <ul>
+      <li><strong>Never initialise all weights to zero</strong> (or to the same value). Every neuron in a layer would compute the same thing and receive the same gradient, so they'd stay identical forever. Random initialisation <em>breaks the symmetry</em>. Biases can safely start at 0.</li>
+      <li><strong>Glorot / Xavier</strong> initialisation scales the random weights by the number of inputs and outputs of the layer. Good for tanh and sigmoid. It's <strong>Keras' default</strong> for <code>Dense</code> (<code>glorot_uniform</code>).</li>
+      <li><strong>He / Kaiming</strong> initialisation uses a variance of 2 ÷ (number of inputs), which compensates for ReLU zeroing out half its inputs. The usual recommendation for ReLU networks: <code>Dense(64, activation="relu", kernel_initializer="he_normal")</code>. PyTorch's <code>nn.Linear</code> default is a Kaiming-style uniform scaled by the number of inputs.</li>
+    </ul>
+    <p>For shallow MLPs the defaults are fine. Initialisation matters more as networks get deeper, and in practice it's combined with batch normalisation and residual connections.</p>
+  </section>
+
+  <!-- ============ 13. GRADIENTS ============ -->
+  <section id="gradients">
+    <h2><span class="num">13</span>Vanishing and exploding gradients, and input scaling</h2>
+    <p class="intuition"><strong>Intuition.</strong> The gradient for an early layer is a long product of numbers, one per later layer. Multiply many numbers below 1 and you get almost 0 (vanishing). Multiply many above 1 and you get a huge number (exploding). Either way, training breaks.</p>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0;color:var(--warn)">Vanishing gradients</h4>
+        <p><strong>Symptoms:</strong> loss stalls early; the first layers' weights barely change; very deep networks train worse than shallow ones.</p>
+        <p style="margin:0"><strong>Fixes:</strong> ReLU-family activations instead of sigmoid/tanh in hidden layers · He initialisation · batch normalisation · residual (skip) connections · LSTM/GRU instead of plain RNNs for sequences.</p></div>
+      <div class="card"><h4 style="margin-top:0;color:var(--bad)">Exploding gradients</h4>
+        <p><strong>Symptoms:</strong> loss jumps wildly or becomes <code>NaN</code>; weights grow enormous. Common in recurrent networks.</p>
+        <p style="margin:0"><strong>Fixes:</strong> a lower learning rate · <strong>gradient clipping</strong> (cap the gradient's size: <code>Adam(clipnorm=1.0)</code> in Keras, <code>torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)</code> in PyTorch) · good initialisation · batch normalisation.</p></div>
+    </div>
+
+    <h3>Scale your inputs</h3>
+    <p>Neural networks are very sensitive to the scale of their inputs. If one feature is "salary" (tens of thousands) and another is "age" (tens), the salary weights get gradients thousands of times larger, so a single learning rate can't suit both, and sigmoid/tanh neurons saturate. <strong>Standardise</strong> numeric features to mean 0 and standard deviation 1 (<code>StandardScaler</code>), or squash them into [0, 1] (<code>MinMaxScaler</code>; for images, divide pixel values by 255).</p>
+    <div class="callout bad"><p><strong>Fit the scaler on the training data only</strong>, then apply it to validation and test data. Fitting it on everything leaks information from the test set, exactly as in Week 1. Keras also offers a <code>layers.Normalization()</code> layer that you <code>adapt()</code> to the training data, so the scaling travels with the saved model.</p></div>
+    <p>Categorical features need encoding first: one-hot encoding for a few categories, or an <code>Embedding</code> layer for many.</p>
+  </section>
+
+  <!-- ============ 14. OVERFITTING ============ -->
+  <section id="overfit">
+    <h2><span class="num">14</span>Overfitting and regularisation</h2>
+    <p class="intuition"><strong>Intuition.</strong> A neural network has so many weights that it can simply memorise the training set, noise and all. Regularisation techniques make memorising harder or stop training before it happens, so the network is pushed to learn patterns that generalise.</p>
+    <p>The diagnosis is the same as in Week 1: training loss keeps falling while validation loss starts rising. The fixes are mostly specific to neural networks:</p>
+
+    <div class="table-scroll"><table>
+      <thead><tr><th>Technique</th><th>How it works</th><th>Keras</th><th>PyTorch</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Dropout</strong></td><td>During training, randomly switches off a fraction of neurons in a layer at each step, so the network can't rely on any single neuron. The remaining outputs are scaled up by 1 ÷ (1 − rate) to compensate. <strong>Turned off automatically at prediction time.</strong> Typical rate 0.1–0.5</td><td><code>layers.Dropout(0.3)</code></td><td><code>nn.Dropout(p=0.3)</code></td></tr>
+        <tr><td><strong>Early stopping</strong></td><td>Watches the validation loss and stops when it hasn't improved for <code>patience</code> epochs, then restores the best weights. Cheap and almost always worth using</td><td><code>callbacks.EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)</code></td><td>A few lines in the training loop (see <a href="#pytorch">below</a>)</td></tr>
+        <tr><td><strong>L2 regularisation / weight decay</strong></td><td>Adds a penalty proportional to the squared weights, pulling them towards zero, so the network prefers simpler, smoother functions</td><td><code>Dense(64, kernel_regularizer=regularizers.l2(1e-4))</code></td><td><code>optim.AdamW(params, weight_decay=0.01)</code></td></tr>
+        <tr><td><strong>Batch normalisation</strong></td><td>Normalises each layer's inputs over the mini-batch (mean 0, standard deviation 1), then applies a learned scale and shift. Mainly speeds up and stabilises training; the batch noise gives mild regularisation. Uses running averages at prediction time</td><td><code>layers.BatchNormalization()</code></td><td><code>nn.BatchNorm1d(64)</code></td></tr>
+        <tr><td><strong>Data augmentation</strong></td><td>Creates new training examples by transforming existing ones: flips, crops and rotations for images; noise or time shifts for audio. Very effective for images, rarely applicable to tabular data</td><td><code>layers.RandomFlip()</code>, <code>layers.RandomRotation(0.1)</code></td><td><code>torchvision.transforms</code></td></tr>
+        <tr><td><strong>Smaller network</strong></td><td>Fewer layers or units = less capacity to memorise</td><td colspan="2">Halve the units and compare</td></tr>
+        <tr><td><strong>More data</strong></td><td>Still the best regulariser of all</td><td colspan="2">Collect, label, or use transfer learning</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn"><p><strong>Train mode vs evaluation mode.</strong> Dropout and batch normalisation behave differently in training and prediction. Keras switches automatically (<code>fit</code> vs <code>predict</code>/<code>evaluate</code>). In PyTorch <strong>you</strong> must call <code>model.train()</code> before training and <code>model.eval()</code> before validating or predicting. Forgetting <code>model.eval()</code> gives noisy, worse predictions.</p></div>
+    <p>Note that <code>EarlyStopping</code>'s <code>restore_best_weights</code> defaults to <strong>False</strong>: without it you keep the weights from the last epoch, which are <code>patience</code> epochs past the best.</p>
+  </section>
+
+  <!-- ============ 15. CODE ============ -->
+  <section id="code">
+    <h2><span class="num">15</span>A complete example: tabular binary classification</h2>
+    <p class="intuition"><strong>Intuition.</strong> Every training script follows the same recipe: split, scale, define the network, choose loss and optimiser, train with validation and early stopping, then evaluate once on the test set.</p>
+    <p>The task: predict customer churn (1) or not (0) from numeric features in <code>X</code> (a NumPy array or DataFrame of numbers) and labels <code>y</code>.</p>
+
+    <h3 id="keras">Keras</h3>
+<pre><code>import numpy as np
+import keras
+from keras import layers
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# 1. Split first (stratified keeps the churn rate the same in both sets), then scale
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=42)
+scaler = StandardScaler().fit(X_train)          # fit on training data only
+X_train = scaler.transform(X_train)
+X_test = scaler.transform(X_test)
+
+# 2. Define the network
+keras.utils.set_random_seed(42)                 # reproducible weights and dropout
+model = keras.Sequential([
+    keras.Input(shape=(X_train.shape[1],)),     # one input per feature
+    layers.Dense(64, activation="relu"),
+    layers.Dropout(0.3),
+    layers.Dense(32, activation="relu"),
+    layers.Dropout(0.3),
+    layers.Dense(1, activation="sigmoid"),      # binary: 1 unit + sigmoid
+])
+model.summary()                                 # layers and parameter counts
+
+# 3. Choose the loss, optimiser and metrics
+model.compile(
+    optimizer=keras.optimizers.Adam(learning_rate=1e-3),
+    loss="binary_crossentropy",
+    metrics=["accuracy", keras.metrics.AUC(name="auc")],
+)
+
+# 4. Train with a validation split and early stopping
+early_stop = keras.callbacks.EarlyStopping(
+    monitor="val_loss", patience=10, restore_best_weights=True)
+history = model.fit(
+    X_train, y_train,
+    validation_split=0.2,     # last 20% of the training rows become validation data
+    epochs=200,               # an upper limit; early stopping decides the real number
+    batch_size=32,
+    callbacks=[early_stop],
+    verbose=0,
+)
+
+# 5. Evaluate once on the untouched test set
+test_loss, test_acc, test_auc = model.evaluate(X_test, y_test, verbose=0)
+print(f"test loss {test_loss:.3f} · accuracy {test_acc:.3f} · ROC-AUC {test_auc:.3f}")
+proba = model.predict(X_test).ravel()           # probabilities of churn
+y_pred = (proba &gt;= 0.5).astype(int)              # choose the threshold for the business</code></pre>
+    <div class="callout warn"><p><strong><code>validation_split</code> takes the <em>last</em> fraction of the rows</strong>, before any shuffling. That's fine here because <code>train_test_split</code> already shuffled the data. If your data is sorted (by date or by class), shuffle it first, or pass an explicit <code>validation_data=(X_val, y_val)</code>. For imbalanced classes, add <code>class_weight={0: 1.0, 1: 5.0}</code> to <code>fit</code>.</p></div>
+    <p>The <code>history.history</code> dictionary holds the per-epoch <code>loss</code>, <code>val_loss</code>, <code>accuracy</code>, <code>val_accuracy</code> and so on, ready to plot (see <a href="#curves">section 16</a>) or to log with <a href="mlflow-experiment-tracking.html">MLflow</a>.</p>
+
+    <h3 id="pytorch">The same thing in PyTorch</h3>
+    <p>PyTorch has no <code>fit()</code>: you write the training loop yourself. It's more code but shows every step of sections 6–11 explicitly.</p>
+<pre><code>import torch
+from torch import nn
+from torch.utils.data import TensorDataset, DataLoader
+
+torch.manual_seed(42)
+# Reuse the scaled X_train / X_test from above; carve out a validation set
+X_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.2,
+                                            stratify=y_train, random_state=42)
+to_t = lambda a: torch.tensor(np.asarray(a), dtype=torch.float32)
+X_tr, X_val, X_te = to_t(X_tr), to_t(X_val), to_t(X_test)
+y_tr, y_val = to_t(y_tr).unsqueeze(1), to_t(y_val).unsqueeze(1)   # shape (n, 1)
+
+model = nn.Sequential(
+    nn.Linear(X_tr.shape[1], 64), nn.ReLU(), nn.Dropout(0.3),
+    nn.Linear(64, 32), nn.ReLU(), nn.Dropout(0.3),
+    nn.Linear(32, 1),                 # no sigmoid: the loss below applies it (logits)
+)
+loss_fn = nn.BCEWithLogitsLoss()      # sigmoid + binary cross-entropy, numerically stable
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+train_dl = DataLoader(TensorDataset(X_tr, y_tr), batch_size=32, shuffle=True)
+
+best_val, patience, wait = float("inf"), 10, 0
+for epoch in range(200):
+    model.train()                     # dropout ON
+    for xb, yb in train_dl:           # one iteration per mini-batch
+        optimizer.zero_grad()         # clear the previous step's gradients
+        loss = loss_fn(model(xb), yb) # forward pass + loss
+        loss.backward()               # backpropagation: compute all gradients
+        optimizer.step()              # gradient descent update (Adam)
+
+    model.eval()                      # dropout OFF
+    with torch.no_grad():             # no gradients needed for validation
+        val_loss = loss_fn(model(X_val), y_val).item()
+    if val_loss &lt; best_val - 1e-4:    # early stopping, by hand
+        best_val, wait = val_loss, 0
+        best_state = {k: v.clone() for k, v in model.state_dict().items()}
+    else:
+        wait += 1
+        if wait &gt;= patience:
+            break
+
+model.load_state_dict(best_state)     # restore the best weights
+model.eval()
+with torch.no_grad():
+    proba = torch.sigmoid(model(X_te)).squeeze(1).numpy()</code></pre>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Concept</th><th>Keras</th><th>PyTorch</th></tr></thead>
+      <tbody>
+        <tr><td>Dense layer</td><td><code>layers.Dense(64, activation="relu")</code></td><td><code>nn.Linear(n_in, 64)</code> + <code>nn.ReLU()</code></td></tr>
+        <tr><td>Binary loss</td><td><code>"binary_crossentropy"</code> (with a sigmoid output)</td><td><code>nn.BCEWithLogitsLoss()</code> (with a linear output)</td></tr>
+        <tr><td>Multi-class loss</td><td><code>"sparse_categorical_crossentropy"</code> (with softmax)</td><td><code>nn.CrossEntropyLoss()</code> (with a linear output)</td></tr>
+        <tr><td>Training</td><td><code>model.fit(...)</code></td><td>Your own loop: <code>zero_grad → forward → loss → backward → step</code></td></tr>
+        <tr><td>Train / predict modes</td><td>Automatic</td><td><code>model.train()</code> / <code>model.eval()</code></td></tr>
+        <tr><td>Early stopping</td><td><code>EarlyStopping</code> callback</td><td>By hand (or a library such as PyTorch Lightning)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ============ 16. CURVES ============ -->
+  <section id="curves">
+    <h2><span class="num">16</span>Reading training curves</h2>
+    <p class="intuition"><strong>Intuition.</strong> Plot the training loss and the validation loss after every epoch. The <em>shape</em> of the two curves, and the gap between them, tells you what's wrong and what to try next.</p>
+<pre><code>import matplotlib.pyplot as plt
+plt.plot(history.history["loss"], label="training loss")
+plt.plot(history.history["val_loss"], label="validation loss")
+plt.xlabel("epoch"); plt.ylabel("loss"); plt.legend(); plt.show()</code></pre>
+
+    <div class="widget" id="tcWidget">
+      <div class="widget-title">Try it: diagnose the curves</div>
+      <div class="widget-sub">Pick a scenario. The dashed line marks the epoch with the lowest validation loss: the weights <code>EarlyStopping(restore_best_weights=True)</code> would keep.</div>
+      <div class="btn-row" role="group" aria-label="Training scenario">
+        <button class="btn" type="button" data-sc="good" aria-pressed="true">Good fit</button>
+        <button class="btn" type="button" data-sc="overfit">Overfitting</button>
+        <button class="btn" type="button" data-sc="underfit">Underfitting</button>
+        <button class="btn" type="button" data-sc="lrhigh">LR too high</button>
+        <button class="btn" type="button" data-sc="lrlow">LR too low</button>
+      </div>
+      <svg id="tcSvg" viewBox="0 0 600 260" role="img" aria-label="Training and validation loss per epoch"></svg>
+      <div class="verdict" id="tcText"></div>
+    </div>
+
+    <div class="table-scroll"><table>
+      <thead><tr><th>What you see</th><th>Diagnosis</th><th>What to try</th></tr></thead>
+      <tbody>
+        <tr><td>Both fall and level off close together</td><td>Good fit</td><td>Keep it; maybe try a bit more capacity to see if both drop further</td></tr>
+        <tr><td>Training keeps falling, validation turns upwards</td><td><strong>Overfitting</strong></td><td>Early stopping, dropout, L2/weight decay, a smaller network, more data, augmentation</td></tr>
+        <tr><td>Both high and flat, close together</td><td><strong>Underfitting</strong></td><td>Bigger network, train longer, higher learning rate, less regularisation, better features</td></tr>
+        <tr><td>Both jumpy, spiky, or rising; <code>NaN</code></td><td><strong>Learning rate too high</strong> (or unscaled inputs, or bad data)</td><td>Divide the learning rate by 3–10, scale the inputs, clip gradients, check for NaNs in the data</td></tr>
+        <tr><td>Both falling slowly and steadily, still falling at the end</td><td><strong>Learning rate too low</strong> or too few epochs</td><td>Raise the learning rate, or train for more epochs</td></tr>
+        <tr><td>Validation loss <em>below</em> training loss</td><td>Often normal: dropout is on during training only, and training loss is averaged over an epoch while weights improve</td><td>Nothing, unless the gap is large: then check for leakage or an easier validation set</td></tr>
+        <tr><td>Validation loss rises but validation accuracy holds steady</td><td>The model is becoming over-confident on the examples it gets wrong</td><td>Treat as early overfitting; stop on <code>val_loss</code></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ============ 17. HYPERPARAMETERS ============ -->
+  <section id="hyper">
+    <h2><span class="num">17</span>Hyperparameter cheat sheet</h2>
+    <p class="intuition"><strong>Intuition.</strong> Tune the learning rate first: it matters more than anything else. Then capacity (layers and units), then regularisation. Change one thing at a time, and log every run.</p>
+    <p>Key: <span class="pill up">↑ overfit</span> increasing it adds capacity (overfitting risk) · <span class="pill down">↑ simpler</span> increasing it regularises (underfitting risk) · <span class="pill neutral">other</span> another effect. Starting values are for an MLP on tabular data.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Hyperparameter</th><th>Typical start</th><th>Sensible range</th><th>What it does</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Learning rate</strong></td><td>1e-3 (Adam) · 1e-2 (SGD + momentum)</td><td>1e-5 to 1e-1, searched on a log scale</td><td>Step size. The most important setting</td><td><span class="pill neutral">speed / stability</span></td></tr>
+        <tr><td><strong>Optimiser</strong></td><td>Adam</td><td>Adam, AdamW, SGD + momentum, RMSprop</td><td>How the gradient becomes a step</td><td><span class="pill neutral">speed</span></td></tr>
+        <tr><td><strong>Batch size</strong></td><td>32</td><td>16 to 512 (powers of two by convention)</td><td>Examples per update; larger = smoother, faster per epoch, more memory</td><td><span class="pill neutral">noise / speed</span></td></tr>
+        <tr><td><strong>Epochs</strong></td><td>100–200 + early stopping</td><td>Let early stopping decide</td><td>Passes over the data</td><td><span class="pill up">↑ overfit</span></td></tr>
+        <tr><td><strong>Hidden layers</strong></td><td>2</td><td>1 to 4 for tabular data</td><td>Depth</td><td><span class="pill up">↑ overfit</span></td></tr>
+        <tr><td><strong>Units per layer</strong></td><td>64, then 32</td><td>16 to 512</td><td>Width</td><td><span class="pill up">↑ overfit</span></td></tr>
+        <tr><td><strong>Activation</strong></td><td>ReLU</td><td>ReLU, Leaky ReLU, GELU</td><td>Non-linearity in hidden layers</td><td><span class="pill neutral">shape</span></td></tr>
+        <tr><td><strong>Dropout rate</strong></td><td>0.2–0.3</td><td>0 to 0.5</td><td>Fraction of neurons switched off in training</td><td><span class="pill down">↑ simpler</span></td></tr>
+        <tr><td><strong>L2 / weight decay</strong></td><td>1e-4 (L2) · 0.01 (AdamW)</td><td>1e-6 to 1e-2</td><td>Penalty on large weights</td><td><span class="pill down">↑ simpler</span></td></tr>
+        <tr><td><strong>Early-stopping patience</strong></td><td>10</td><td>5 to 20 epochs</td><td>Epochs to wait for improvement</td><td><span class="pill up">↑ overfit</span></td></tr>
+        <tr><td><strong>Batch normalisation</strong></td><td>Off for small MLPs</td><td>On for deep networks</td><td>Stabilises and speeds up training</td><td><span class="pill neutral">stability</span></td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout"><p><strong>Practical tuning order:</strong> (1) get a small model to <em>overfit a tiny subset</em> (say 100 rows); if it can't, there's a bug. (2) Find a good learning rate (try 1e-4, 3e-4, 1e-3, 3e-3). (3) Increase capacity until validation loss stops improving. (4) Add dropout, weight decay and early stopping to close the train–validation gap. Use random search or a tool such as KerasTuner or Optuna for the rest, and track runs with <a href="mlflow-experiment-tracking.html">MLflow</a>.</p></div>
+  </section>
+
+  <!-- ============ 18. CHEAT SHEET ============ -->
+  <section id="cheatsheet">
+    <h2><span class="num">18</span>Cheat sheet</h2>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0">The core loop</h4><ol style="margin:0">
+        <li><strong>Forward:</strong> <code>z = Wx + b</code>, <code>a = f(z)</code>, layer by layer → ŷ</li>
+        <li><strong>Loss:</strong> compare ŷ with y</li>
+        <li><strong>Backward:</strong> chain rule → <code>∂L/∂w</code> for every weight</li>
+        <li><strong>Update:</strong> <code>w ← w − η·∂L/∂w</code> (or Adam's version)</li>
+        <li>Repeat for every mini-batch, for many epochs</li></ol></div>
+      <div class="card"><h4 style="margin-top:0">Output + loss pairs</h4><ul style="margin:0">
+        <li>Binary → 1 unit, <strong>sigmoid</strong>, <strong>binary cross-entropy</strong></li>
+        <li>Multi-class → K units, <strong>softmax</strong>, <strong>(sparse) categorical cross-entropy</strong></li>
+        <li>Multi-label → K units, <strong>sigmoid</strong>, binary cross-entropy</li>
+        <li>Regression → 1 unit, <strong>linear</strong>, <strong>MSE</strong> / MAE / Huber</li>
+        <li>PyTorch: linear output + <code>BCEWithLogitsLoss</code> / <code>CrossEntropyLoss</code></li></ul></div>
+      <div class="card"><h4 style="margin-top:0">Activations</h4><ul style="margin:0">
+        <li>Hidden layers: <strong>ReLU</strong> (Leaky ReLU if neurons die; GELU in transformers)</li>
+        <li>Sigmoid: (0, 1), slope ≤ 0.25 → vanishing gradients if stacked</li>
+        <li>Tanh: (−1, 1), zero-centred, used inside RNNs</li>
+        <li>Softmax: probabilities summing to 1</li></ul></div>
+      <div class="card"><h4 style="margin-top:0">Good defaults</h4><ul style="margin:0">
+        <li>Scale inputs (fit on train only)</li>
+        <li>Adam, <code>learning_rate=0.001</code>, β₁ = 0.9, β₂ = 0.999</li>
+        <li>Batch size 32; 2 hidden layers of 64 → 32 units</li>
+        <li>Dropout 0.2–0.3; early stopping, patience 10, restore best weights</li>
+        <li>Seed everything for reproducibility</li></ul></div>
+      <div class="card"><h4 style="margin-top:0;color:var(--bad)">Loss explodes / NaN</h4><ul style="margin:0">
+        <li>Lower the learning rate (÷ 10)</li>
+        <li>Scale the inputs; check for NaN or infinite values in the data</li>
+        <li>Clip gradients; use a <code>from_logits</code> loss</li></ul></div>
+      <div class="card"><h4 style="margin-top:0;color:var(--warn)">Loss won't go down</h4><ul style="margin:0">
+        <li>Check the output activation and loss pairing</li>
+        <li>Check labels match the loss (integer vs one-hot)</li>
+        <li>Try to overfit 100 rows; raise the learning rate; add capacity</li>
+        <li>Sigmoid hidden layers? Switch to ReLU</li></ul></div>
+    </div>
+    <div class="callout good"><p><strong>Remember:</strong> on tabular data, always compare against a gradient-boosting baseline. Deep learning earns its keep on images, audio, text and very large datasets. Next: <a href="neural-network-architectures.html">CNNs, RNNs and LSTMs</a>.</p></div>
+  </section>
+
+  <!-- ============ 19. QUIZ ============ -->
+  <section id="quiz">
+    <h2><span class="num">19</span>Quiz</h2>
+    <div class="card quiz" id="quizBox"></div>
+    <p><strong id="quizScore"></strong> <button class="btn" type="button" id="quizReset">Try again</button></p>
+  </section>
+
+  <footer>Data Science &amp; Agentic AI Programme · Week 2 · <a href="../index.html">All course docs</a></footer>
+</main>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : "–");
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const sigmoid = (z) => 1 / (1 + Math.exp(-z));
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- theme ---------- */
+  const root = document.documentElement;
+  try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch {}
+  const redrawers = [];
+  $("themeToggle").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+    redrawers.forEach((f) => f());
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => redrawers.forEach((f) => f()));
+
+  /* ---------- table of contents highlight ---------- */
+  const tocLinks = [...document.querySelectorAll("aside.toc a")];
+  const sections = tocLinks.map((a) => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        tocLinks.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id));
+      }
+    });
+  }, { rootMargin: "0px 0px -70% 0px" });
+  sections.forEach((s) => obs.observe(s));
+
+  /* ---------- svg helpers ---------- */
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs = {}, text) {
+    const n = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+  function mulberry32(a) { return function () { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function setVerdict(node, kind, text) {
+    const map = { good: ["--good-soft", "--good"], bad: ["--bad-soft", "--bad"], warn: ["--warn-soft", "--warn"], neutral: ["--surface-2", "--muted"] };
+    const [bg, fg] = map[kind] || map.neutral;
+    node.style.background = css(bg); node.style.color = css(fg);
+    node.textContent = text;
+  }
+
+  /* ---------- neuron playground ---------- */
+  const ACT = {
+    sigmoid: { name: "sigmoid", f: (z) => sigmoid(z), d: (z) => { const s = sigmoid(z); return s * (1 - s); }, y: [-0.15, 1.15], ticks: [0, 0.5, 1], note: "Squashes any z into (0, 1). Its slope is at most 0.25 (at z = 0) and almost 0 at the flat ends: that's the vanishing-gradient problem." },
+    tanh: { name: "tanh", f: (z) => Math.tanh(z), d: (z) => 1 - Math.tanh(z) ** 2, y: [-1.2, 1.2], ticks: [-1, 0, 1], note: "Like sigmoid but centred on 0, range (−1, 1). Slope up to 1 at z = 0, still flat at the ends." },
+    relu: { name: "ReLU", f: (z) => Math.max(0, z), d: (z) => (z > 0 ? 1 : 0), y: [-1, 6.3], ticks: [0, 2, 4, 6], note: "Passes positive z straight through (slope 1) and outputs 0 for negative z (slope 0: the neuron is off and its weights get no gradient)." },
+    leaky: { name: "leaky ReLU", f: (z) => (z > 0 ? z : 0.1 * z), d: (z) => (z > 0 ? 1 : 0.1), y: [-1, 6.3], ticks: [0, 2, 4, 6], note: "Like ReLU, but keeps a small slope (α = 0.1 here, often 0.01) for negative z, so the neuron never fully dies." },
+    linear: { name: "linear", f: (z) => z, d: () => 1, y: [-6.3, 6.3], ticks: [-6, -3, 0, 3, 6], note: "No activation: output = z. Used for regression outputs. In hidden layers it adds no non-linearity at all." },
+  };
+  function drawNeuron() {
+    const x1 = +$("nX1").value, x2 = +$("nX2").value, w1 = +$("nW1").value, w2 = +$("nW2").value, b = +$("nB").value;
+    const A = ACT[$("nAct").value];
+    $("nX1V").textContent = x1.toFixed(1); $("nX2V").textContent = x2.toFixed(1);
+    $("nW1V").textContent = w1.toFixed(1); $("nW2V").textContent = w2.toFixed(1); $("nBV").textContent = b.toFixed(1);
+    const z = w1 * x1 + w2 * x2 + b, a = A.f(z), g = A.d(z);
+    const svg = $("nSvg"); svg.innerHTML = "";
+    const L = 50, R = 580, T = 15, B = 225, zmin = -6, zmax = 6, [y0, y1] = A.y;
+    const X = (v) => L + ((v - zmin) / (zmax - zmin)) * (R - L), Y = (v) => B - ((v - y0) / (y1 - y0)) * (B - T);
+    svg.append(el("rect", { x: L, y: T, width: R - L, height: B - T, fill: "none", class: "svg-axis" }));
+    if (y0 < 0 && y1 > 0) svg.append(el("line", { x1: L, y1: Y(0), x2: R, y2: Y(0), class: "svg-axis" }));
+    svg.append(el("line", { x1: X(0), y1: T, x2: X(0), y2: B, class: "svg-axis" }));
+    for (let v = -6; v <= 6; v += 2) svg.append(el("text", { x: X(v), y: B + 15, class: "svg-text", "text-anchor": "middle" }, v));
+    A.ticks.forEach((v) => svg.append(el("text", { x: L - 8, y: Y(v) + 4, class: "svg-text", "text-anchor": "end" }, v)));
+    svg.append(el("text", { x: (L + R) / 2, y: 254, class: "svg-text", "text-anchor": "middle" }, "weighted sum z"));
+    let d = "", dd = "";
+    for (let i = 0; i <= 240; i++) {
+      const v = zmin + (i / 240) * (zmax - zmin);
+      d += (i ? "L" : "M") + X(v).toFixed(1) + "," + Y(clamp(A.f(v), y0, y1)).toFixed(1);
+      dd += (i ? "L" : "M") + X(v).toFixed(1) + "," + Y(clamp(A.d(v), y0, y1)).toFixed(1);
+    }
+    svg.append(el("path", { d: dd, fill: "none", stroke: css("--pos"), "stroke-width": 2, "stroke-dasharray": "6 4", opacity: 0.85 }));
+    svg.append(el("path", { d, fill: "none", stroke: css("--accent"), "stroke-width": 3 }));
+    const zc = clamp(z, zmin, zmax), ac = clamp(a, y0, y1);
+    svg.append(el("line", { x1: X(zc), y1: B, x2: X(zc), y2: Y(ac), stroke: css("--muted"), "stroke-dasharray": "3 3" }));
+    svg.append(el("line", { x1: L, y1: Y(ac), x2: X(zc), y2: Y(ac), stroke: css("--muted"), "stroke-dasharray": "3 3" }));
+    svg.append(el("circle", { cx: X(zc), cy: Y(ac), r: 7, fill: css("--pos"), stroke: css("--surface"), "stroke-width": 2 }));
+    if (Math.abs(z) > 6) svg.append(el("text", { x: z > 0 ? R - 6 : L + 6, y: T + 30, class: "svg-text", "text-anchor": z > 0 ? "end" : "start" }, `z = ${z.toFixed(2)} is off the chart`));
+    svg.append(el("line", { x1: L + 8, y1: T + 12, x2: L + 30, y2: T + 12, stroke: css("--accent"), "stroke-width": 3 }));
+    svg.append(el("text", { x: L + 34, y: T + 16, class: "svg-text" }, `f(z) = ${A.name}`));
+    svg.append(el("line", { x1: L + 150, y1: T + 12, x2: L + 172, y2: T + 12, stroke: css("--pos"), "stroke-width": 2, "stroke-dasharray": "6 4" }));
+    svg.append(el("text", { x: L + 176, y: T + 16, class: "svg-text" }, "slope f′(z)"));
+    $("nMetrics").innerHTML = [["z", fmt(z, 2)], ["Output a = f(z)", fmt(a, 3)], ["Slope f′(z)", fmt(g, 3)]]
+      .map(([k, v]) => `<div class="metric"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+    const sgn = (v) => (v < 0 ? `(${v.toFixed(1)})` : v.toFixed(1));
+    $("nText").innerHTML = `z = w₁x₁ + w₂x₂ + b = ${sgn(w1)}×${sgn(x1)} + ${sgn(w2)}×${sgn(x2)} + ${sgn(b)} = <b>${z.toFixed(2)}</b>. ${esc(A.note)}`;
+  }
+  ["nX1", "nX2", "nW1", "nW2", "nB", "nAct"].forEach((id) => $(id).addEventListener("input", drawNeuron));
+  drawNeuron(); redrawers.push(drawNeuron);
+
+  /* ---------- architecture diagram ---------- */
+  function drawArch() {
+    const svg = $("archSvg"); svg.innerHTML = "";
+    const layers = [4, 5, 3, 1], xs = [70, 230, 390, 540], names = ["Input layer", "Hidden layer 1", "Hidden layer 2", "Output"], subs = ["4 features", "5 neurons, ReLU", "3 neurons, ReLU", "1 neuron, sigmoid"];
+    const ys = layers.map((n) => Array.from({ length: n }, (_, i) => 140 + (i - (n - 1) / 2) * 42));
+    for (let l = 0; l < layers.length - 1; l++)
+      ys[l].forEach((ya) => ys[l + 1].forEach((yb) => svg.append(el("line", { x1: xs[l], y1: ya, x2: xs[l + 1], y2: yb, stroke: css("--border"), "stroke-width": 1.2 }))));
+    const fills = [css("--surface-2"), css("--accent-soft"), css("--accent-soft"), css("--pos-soft")];
+    const strokes = [css("--muted"), css("--accent"), css("--accent"), css("--pos")];
+    ys.forEach((col, l) => col.forEach((y) => svg.append(el("circle", { cx: xs[l], cy: y, r: 14, fill: fills[l], stroke: strokes[l], "stroke-width": 2 }))));
+    names.forEach((n, l) => {
+      svg.append(el("text", { x: xs[l], y: 248, class: "svg-text", "text-anchor": "middle", "font-weight": "700", fill: css("--text") }, n));
+      svg.append(el("text", { x: xs[l], y: 263, class: "svg-text", "text-anchor": "middle" }, subs[l]));
+    });
+    svg.append(el("text", { x: 310, y: 22, class: "svg-text", "text-anchor": "middle" }, "every line is one weight · data flows left to right"));
+  }
+  drawArch(); redrawers.push(drawArch);
+
+  /* ---------- softmax widget ---------- */
+  function drawSoftmax() {
+    const zs = ["smZ1", "smZ2", "smZ3"].map((id) => +$(id).value);
+    ["smZ1V", "smZ2V", "smZ3V"].forEach((id, i) => ($(id).textContent = zs[i].toFixed(1)));
+    const m = Math.max(...zs), ex = zs.map((z) => Math.exp(z - m)), tot = ex.reduce((a, b) => a + b, 0), p = ex.map((e) => e / tot);
+    const names = ["cat (true class)", "dog", "rabbit"];
+    $("smBars").innerHTML = p.map((pi, i) => `<div style="display:grid;grid-template-columns:120px 1fr 56px;gap:8px;align-items:center;font-size:.88rem;margin:4px 0">
+      <span style="color:var(--muted)">${names[i]}</span>
+      <div style="background:var(--surface-2);border-radius:6px;height:20px;overflow:hidden"><div style="height:100%;width:${(pi * 100).toFixed(1)}%;background:${i === 0 ? "var(--good)" : "var(--accent)"};opacity:.8"></div></div>
+      <b style="font-variant-numeric:tabular-nums;text-align:right">${pi.toFixed(3)}</b></div>`).join("");
+    const loss = -Math.log(p[0]);
+    const kind = p[0] >= 0.7 ? "good" : p[0] >= 0.34 ? "warn" : "bad";
+    setVerdict($("smVerdict"), kind, `Probabilities sum to ${p.reduce((a, b) => a + b, 0).toFixed(3)}. Cross-entropy loss = −ln(${p[0].toFixed(3)}) = ${loss.toFixed(3)}. ${kind === "good" ? "Confident and right: low loss." : kind === "warn" ? "Leaning right but unsure: moderate loss." : "Wrong class is winning: high loss, so a big gradient to fix it."}`);
+  }
+  ["smZ1", "smZ2", "smZ3"].forEach((id) => $(id).addEventListener("input", drawSoftmax));
+  drawSoftmax(); redrawers.push(drawSoftmax);
+
+  /* ---------- forward-pass explorer ---------- */
+  const FW = { W1: [[0.8, -0.5, 0.3], [0.4, 0.9, -0.7]], b1: [0.1, -0.2, 0.0], W2: [1.2, -0.8, 0.6], b2: -0.1 };
+  let fStage = 0;
+  function forward(x) {
+    const z1 = [0, 1, 2].map((j) => FW.W1[0][j] * x[0] + FW.W1[1][j] * x[1] + FW.b1[j]);
+    const a1 = z1.map((v) => Math.max(0, v));
+    const z2 = a1.reduce((s, a, j) => s + FW.W2[j] * a, FW.b2);
+    return { z1, a1, z2, y: sigmoid(z2) };
+  }
+  const sn = (v) => (v < 0 ? `(${v.toFixed(2)})` : v.toFixed(2));
+  function drawForward() {
+    const x = [+$("fX1").value, +$("fX2").value];
+    $("fX1V").textContent = x[0].toFixed(1); $("fX2V").textContent = x[1].toFixed(1);
+    const r = forward(x);
+    const svg = $("fSvg"); svg.innerHTML = "";
+    const IN = [{ x: 90, y: 110 }, { x: 90, y: 220 }], HID = [{ x: 300, y: 65 }, { x: 300, y: 165 }, { x: 300, y: 265 }], OUT = { x: 510, y: 165 };
+    const edge = (p, q, w, on, t) => {
+      svg.append(el("line", { x1: p.x, y1: p.y, x2: q.x, y2: q.y, stroke: w > 0 ? css("--pos") : css("--neg"), "stroke-width": (1 + 2.5 * Math.abs(w)).toFixed(1), opacity: on ? 0.85 : 0.25 }));
+      const lx = p.x + (q.x - p.x) * t, ly = p.y + (q.y - p.y) * t;
+      svg.append(el("text", { x: lx, y: ly - 4, "text-anchor": "middle", "font-size": 12, "font-family": "system-ui, sans-serif", fill: css("--text"), stroke: css("--surface"), "stroke-width": 4, "paint-order": "stroke", opacity: on ? 1 : 0.6 }, w.toFixed(1)));
+    };
+    IN.forEach((p, i) => HID.forEach((q, j) => edge(p, q, FW.W1[i][j], fStage >= 1, i === 0 ? 0.3 : 0.24)));
+    HID.forEach((p, j) => edge(p, OUT, FW.W2[j], fStage >= 2, 0.5));
+    const node = (p, label, value, sub, state) => {
+      const fill = state === "off" ? css("--surface-2") : state === "hidden" ? css("--surface") : state === "out" ? css("--pos-soft") : css("--accent-soft");
+      const stroke = state === "off" ? css("--muted") : state === "out" ? css("--pos") : state === "hidden" ? css("--border") : css("--accent");
+      svg.append(el("circle", { cx: p.x, cy: p.y, r: 28, fill, stroke, "stroke-width": 2.5 }));
+      svg.append(el("text", { x: p.x, y: p.y + 5, "text-anchor": "middle", "font-size": 15, "font-weight": 700, "font-family": "system-ui, sans-serif", fill: css(state === "off" ? "--muted" : "--text") }, value));
+      svg.append(el("text", { x: p.x, y: p.y - 34, "text-anchor": "middle", class: "svg-text", "font-weight": 700 }, label));
+      if (sub) svg.append(el("text", { x: p.x, y: p.y + 44, "text-anchor": "middle", class: "svg-text", "font-size": 12 }, sub));
+    };
+    IN.forEach((p, i) => node(p, `x${i + 1}`, x[i].toFixed(1), "", "in"));
+    HID.forEach((p, j) => {
+      if (fStage >= 1) node(p, `h${j + 1} · ReLU · b = ${FW.b1[j]}`, r.a1[j].toFixed(2), `z = ${r.z1[j].toFixed(2)}`, r.a1[j] === 0 ? "off" : "in");
+      else node(p, `h${j + 1} · ReLU · b = ${FW.b1[j]}`, "?", "", "hidden");
+    });
+    if (fStage >= 2) node(OUT, `output · b = ${FW.b2}`, r.y.toFixed(3), `z = ${r.z2.toFixed(2)}`, "out");
+    else node(OUT, `output · b = ${FW.b2}`, "?", "", "hidden");
+    svg.append(el("text", { x: 510, y: 250, class: "svg-text", "text-anchor": "middle" }, "output: sigmoid"));
+
+    const rows = [0, 1, 2].map((j) => fStage >= 1
+      ? `<tr><td><strong>h${j + 1}</strong></td><td>${sn(FW.W1[0][j])}×${sn(x[0])} + ${sn(FW.W1[1][j])}×${sn(x[1])} + ${sn(FW.b1[j])} = <b>${r.z1[j].toFixed(2)}</b></td><td>ReLU → <b>${r.a1[j].toFixed(2)}</b>${r.a1[j] === 0 ? " (off)" : ""}</td></tr>`
+      : `<tr><td><strong>h${j + 1}</strong></td><td>?</td><td>?</td></tr>`);
+    rows.push(fStage >= 2
+      ? `<tr><td><strong>output</strong></td><td>${r.a1.map((a, j) => `${sn(FW.W2[j])}×${sn(a)}`).join(" + ")} + ${sn(FW.b2)} = <b>${r.z2.toFixed(2)}</b></td><td>sigmoid → <b>${r.y.toFixed(3)}</b></td></tr>`
+      : `<tr><td><strong>output</strong></td><td>?</td><td>?</td></tr>`);
+    $("fTable").innerHTML = rows.join("");
+    const off = r.a1.filter((a) => a === 0).length;
+    if (fStage === 0) setVerdict($("fText"), "neutral", "Inputs are set. Press Step to compute the hidden layer: each hidden neuron takes a weighted sum of x₁ and x₂, adds its bias, then applies ReLU.");
+    else if (fStage === 1) setVerdict($("fText"), "neutral", `Hidden layer done. ${off ? `${off} neuron${off > 1 ? "s are" : " is"} off (z < 0, so ReLU outputs 0) and won't affect the output. ` : "All three neurons are active. "}Press Step again to compute the output.`);
+    else setVerdict($("fText"), r.y >= 0.5 ? "good" : "warn", `Prediction ŷ = ${r.y.toFixed(3)}, so class ${r.y >= 0.5 ? 1 : 0} at a 0.5 threshold. This network has 2×3 + 3 = 9 hidden parameters and 3 + 1 = 4 output parameters: 13 in total. Move the sliders to see the numbers update.`);
+    $("fStep").disabled = fStage >= 2;
+    $("fStep").textContent = fStage === 0 ? "Step: compute hidden layer" : fStage === 1 ? "Step: compute output" : "Done";
+  }
+  $("fStep").addEventListener("click", () => { fStage = Math.min(2, fStage + 1); drawForward(); });
+  $("fAll").addEventListener("click", () => { fStage = 2; drawForward(); });
+  $("fReset").addEventListener("click", () => { fStage = 0; drawForward(); });
+  ["fX1", "fX2"].forEach((id) => $(id).addEventListener("input", drawForward));
+  drawForward(); redrawers.push(drawForward);
+
+  /* ---------- gradient descent widget ---------- */
+  const GD = { a: 0.1, b: 1.0, start: [-5, 2.5], maxSteps: 400 };
+  const lossF = (w) => GD.a * w[0] * w[0] + GD.b * w[1] * w[1];
+  const gradF = (w) => [2 * GD.a * w[0], 2 * GD.b * w[1]];
+  const L0 = lossF(GD.start);
+  let gd, gdTimer = null;
+  function lrValue() { const s = +$("gLr").value / 1000; return 10 ** (-3 + s * (Math.log10(1.5) + 3)); }
+  function gdStop() { if (gdTimer) { clearInterval(gdTimer); gdTimer = null; } }
+  function gdReset() {
+    gdStop();
+    gd = { w: [...GD.start], m: [0, 0], v: [0, 0], t: 0, hist: [{ w: [...GD.start], L: L0 }], dead: false };
+    drawGD();
+  }
+  function gdStep() {
+    if (gd.dead || gd.t >= GD.maxSteps) return;
+    const lr = lrValue(), opt = $("gOpt").value, g = gradF(gd.w);
+    gd.t++;
+    if (opt === "sgd") {
+      gd.w = gd.w.map((wi, i) => wi - lr * g[i]);
+    } else if (opt === "momentum") {
+      gd.m = gd.m.map((mi, i) => 0.9 * mi + g[i]);
+      gd.w = gd.w.map((wi, i) => wi - lr * gd.m[i]);
+    } else {
+      const b1 = 0.9, b2 = 0.999, eps = 1e-7;
+      gd.m = gd.m.map((mi, i) => b1 * mi + (1 - b1) * g[i]);
+      gd.v = gd.v.map((vi, i) => b2 * vi + (1 - b2) * g[i] * g[i]);
+      gd.w = gd.w.map((wi, i) => {
+        const mh = gd.m[i] / (1 - b1 ** gd.t), vh = gd.v[i] / (1 - b2 ** gd.t);
+        return wi - (lr * mh) / (Math.sqrt(vh) + eps);
+      });
+    }
+    const L = lossF(gd.w);
+    if (!Number.isFinite(L) || L > 1e8) gd.dead = true;
+    gd.hist.push({ w: [...gd.w], L });
+  }
+  function gdVerdict() {
+    const h = gd.hist, n = h.length - 1, last = h[n].L;
+    if (n === 0) return ["neutral", "Ready. The path starts at the dot on the left (loss " + L0.toFixed(2) + ")."];
+    if (gd.dead || !Number.isFinite(last) || last > 3 * L0) return ["bad", `Diverging: each step overshoots by more than it corrects, so the loss explodes (now ${last > 1e6 ? "over a million" : last.toFixed(1)}). Lower the learning rate.`];
+    let flips = 0, cnt = 0;
+    for (let i = Math.max(2, n - 19); i <= n; i++) for (const c of [0, 1]) {
+      const d1 = h[i].w[c] - h[i - 1].w[c], d0 = h[i - 1].w[c] - h[i - 2].w[c];
+      if (Math.abs(d1) > 1e-9 && Math.abs(d0) > 1e-9) { cnt++; if (d1 * d0 < 0) flips++; }
+    }
+    const zig = cnt ? flips / cnt : 0, ratio = last / L0;
+    if (ratio < 1e-3) return ["good", zig > 0.25 ? `Converged (loss ${last.toExponential(1)}), but it zig-zagged across the valley on the way: the learning rate is near the edge of stability.` : `Converged: the loss is down to ${last.toExponential(1)} after ${n} steps. A well-chosen learning rate.`];
+    if (zig > 0.25) return ["warn", `Oscillating: the steps keep reversing direction, bouncing across the steep walls of the valley. Loss is ${(ratio * 100).toFixed(1)}% of the start. Try a smaller learning rate${$("gOpt").value === "sgd" ? " or momentum" : ""}.`];
+    if (n >= 20 && ratio > 0.25) return ["warn", `Too slow: after ${n} steps the loss is still ${(ratio * 100).toFixed(0)}% of where it started. The learning rate is too small.`];
+    if (n < 20) return ["neutral", `${n} step${n > 1 ? "s" : ""} so far; loss is ${(ratio * 100).toFixed(1)}% of the start. Keep stepping, or run 50.`];
+    return ["good", `Converging: loss is down to ${(ratio * 100).toFixed(2)}% of the start and still falling. Notice it's slowest along the shallow w₁ direction.`];
+  }
+  function drawGD() {
+    const lr = lrValue();
+    $("gLrV").textContent = lr < 0.01 ? lr.toFixed(4) : lr < 0.1 ? lr.toFixed(3) : lr.toFixed(2);
+    // contour plot
+    const svg = $("gSvg"); svg.innerHTML = "";
+    const Lx = 40, Rx = 590, Ty = 10, By = 300, W1 = 6.5, W2 = 3.4;
+    const X = (w) => Lx + ((w + W1) / (2 * W1)) * (Rx - Lx), Y = (w) => By - ((w + W2) / (2 * W2)) * (By - Ty);
+    const sx = (Rx - Lx) / (2 * W1), sy = (By - Ty) / (2 * W2);
+    const defs = el("defs"); const cp = el("clipPath", { id: "gdClip" }); cp.append(el("rect", { x: Lx, y: Ty, width: Rx - Lx, height: By - Ty })); defs.append(cp); svg.append(defs);
+    svg.append(el("rect", { x: Lx, y: Ty, width: Rx - Lx, height: By - Ty, fill: css("--surface-2") }));
+    const g = el("g", { "clip-path": "url(#gdClip)" }); svg.append(g);
+    [0.05, 0.25, 0.75, 1.5, 3, 5, 8, 12].forEach((c, i, arr) => {
+      g.append(el("ellipse", { cx: X(0), cy: Y(0), rx: Math.sqrt(c / GD.a) * sx, ry: Math.sqrt(c / GD.b) * sy, fill: "none", stroke: css("--accent"), "stroke-width": 1, opacity: (0.25 + 0.6 * (1 - i / arr.length)).toFixed(2) }));
+    });
+    g.append(el("line", { x1: X(0) - 7, y1: Y(0), x2: X(0) + 7, y2: Y(0), stroke: css("--good"), "stroke-width": 3 }));
+    g.append(el("line", { x1: X(0), y1: Y(0) - 7, x2: X(0), y2: Y(0) + 7, stroke: css("--good"), "stroke-width": 3 }));
+    const pts = gd.hist.map((p) => [X(clamp(p.w[0], -50, 50)), Y(clamp(p.w[1], -50, 50))]);
+    if (pts.length > 1) g.append(el("polyline", { points: pts.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" "), fill: "none", stroke: css("--pos"), "stroke-width": 2 }));
+    pts.forEach((p, i) => g.append(el("circle", { cx: p[0], cy: p[1], r: i === pts.length - 1 ? 6 : 3, fill: css("--pos"), stroke: i === pts.length - 1 ? css("--surface") : "none", "stroke-width": 2 })));
+    svg.append(el("rect", { x: Lx, y: Ty, width: Rx - Lx, height: By - Ty, fill: "none", class: "svg-axis" }));
+    [-6, -3, 0, 3, 6].forEach((v) => svg.append(el("text", { x: X(v), y: By + 14, class: "svg-text", "text-anchor": "middle" }, v)));
+    [-3, 0, 3].forEach((v) => svg.append(el("text", { x: Lx - 6, y: Y(v) + 4, class: "svg-text", "text-anchor": "end" }, v)));
+    svg.append(el("text", { x: (Lx + Rx) / 2, y: 328, class: "svg-text", "text-anchor": "middle" }, "weight w₁ (shallow direction)"));
+    svg.append(el("text", { x: 12, y: (Ty + By) / 2, class: "svg-text", "text-anchor": "middle", transform: `rotate(-90 12 ${(Ty + By) / 2})` }, "w₂ (steep)"));
+    // loss chart
+    const ls = $("gLossSvg"); ls.innerHTML = "";
+    const l = 44, r = 350, t = 14, b = 220, n = gd.hist.length - 1, maxN = Math.max(50, n);
+    const lx = (i) => l + (i / maxN) * (r - l), ly = (v) => { const lg = Math.log10(Math.max(v, 1e-8)); return b - ((clamp(lg, -6, 4) + 6) / 10) * (b - t); };
+    ls.append(el("rect", { x: l, y: t, width: r - l, height: b - t, fill: "none", class: "svg-axis" }));
+    [-6, -4, -2, 0, 2, 4].forEach((e) => {
+      ls.append(el("line", { x1: l, y1: ly(10 ** e), x2: r, y2: ly(10 ** e), class: "svg-axis", opacity: 0.5 }));
+      ls.append(el("text", { x: l - 5, y: ly(10 ** e) + 4, class: "svg-text", "text-anchor": "end" }, e === 0 ? "1" : "1e" + e));
+    });
+    ls.append(el("line", { x1: l, y1: ly(L0), x2: r, y2: ly(L0), stroke: css("--muted"), "stroke-dasharray": "4 3" }));
+    ls.append(el("text", { x: r - 4, y: ly(L0) - 5, class: "svg-text", "text-anchor": "end" }, "starting loss"));
+    if (n > 0) ls.append(el("polyline", { points: gd.hist.map((p, i) => lx(i).toFixed(1) + "," + ly(Number.isFinite(p.L) ? p.L : 1e9).toFixed(1)).join(" "), fill: "none", stroke: css("--pos"), "stroke-width": 2.5 }));
+    [0, maxN].forEach((v) => ls.append(el("text", { x: lx(v), y: b + 15, class: "svg-text", "text-anchor": "middle" }, v)));
+    ls.append(el("text", { x: (l + r) / 2, y: 252, class: "svg-text", "text-anchor": "middle" }, "step · loss on a log scale"));
+    // metrics + verdict
+    const cur = gd.hist[n];
+    $("gMetrics").innerHTML = [["Step", n], ["Loss", Number.isFinite(cur.L) ? (cur.L < 0.01 ? cur.L.toExponential(1) : cur.L.toFixed(3)) : "NaN"], ["w₁", Math.abs(cur.w[0]) > 1e4 ? "huge" : cur.w[0].toFixed(3)], ["w₂", Math.abs(cur.w[1]) > 1e4 ? "huge" : cur.w[1].toFixed(3)]]
+      .map(([k, v]) => `<div class="metric"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+    const [kind, text] = gdVerdict();
+    setVerdict($("gVerdict"), kind, text);
+    $("gRunBtn").disabled = !!gdTimer || gd.dead;
+    $("gStepBtn").disabled = !!gdTimer || gd.dead;
+  }
+  function gdRun() {
+    if (gdTimer || gd.dead) return;
+    if (reduceMotion) { for (let i = 0; i < 50 && !gd.dead; i++) gdStep(); drawGD(); return; }
+    let k = 0;
+    gdTimer = setInterval(() => {
+      gdStep(); k++;
+      if (k >= 50 || gd.dead || gd.t >= GD.maxSteps) gdStop();
+      drawGD();
+    }, 45);
+    drawGD();
+  }
+  $("gStepBtn").addEventListener("click", () => { gdStep(); drawGD(); });
+  $("gRunBtn").addEventListener("click", gdRun);
+  $("gResetBtn").addEventListener("click", gdReset);
+  $("gLr").addEventListener("input", gdReset);
+  $("gOpt").addEventListener("input", gdReset);
+  gdReset(); redrawers.push(drawGD);
+
+  /* ---------- training curves widget ---------- */
+  const EPOCHS = 60;
+  const SC = {
+    good: { tr: (e) => 0.27 + 0.5 * Math.exp(-e / 7), va: (e) => 0.31 + 0.47 * Math.exp(-e / 7), noise: 0.006, kind: "good",
+      text: "Good fit: both curves fall and flatten out close together. The small gap is normal. Early stopping keeps the best epoch; more capacity might lower both a little." },
+    overfit: { tr: (e) => 0.04 + 0.62 * Math.exp(-e / 10), va: (e) => 0.3 + 0.45 * Math.exp(-e / 6) + 0.00012 * e * e, noise: 0.006, kind: "bad",
+      text: "Overfitting: training loss keeps falling while validation loss bottoms out and then climbs. The network is memorising. Use early stopping (stop at the dashed line), dropout, weight decay, a smaller network or more data." },
+    underfit: { tr: (e) => 0.58 + 0.13 * Math.exp(-e / 5), va: (e) => 0.6 + 0.13 * Math.exp(-e / 5), noise: 0.005, kind: "warn",
+      text: "Underfitting: both curves flatten early at a high loss, close together. The model is too simple or too constrained. Add layers or units, reduce dropout/weight decay, improve the features, or raise the learning rate." },
+    lrhigh: { tr: (e) => 0.48 + 0.08 * Math.sin(e * 1.3) + 0.002 * e, va: (e) => 0.52 + 0.1 * Math.sin(e * 1.1 + 1) + 0.002 * e, noise: 0.07, kind: "bad",
+      text: "Learning rate too high: the loss is spiky, never settles, and may drift upwards or turn into NaN. Divide the learning rate by 3–10, check the inputs are scaled, and consider gradient clipping." },
+    lrlow: { tr: (e) => 0.78 - 0.0045 * e, va: (e) => 0.8 - 0.0042 * e, noise: 0.004, kind: "warn",
+      text: "Learning rate too low (or too few epochs): both curves fall slowly and steadily and are still falling at the end. Raise the learning rate (try ×3 or ×10) or train for longer." },
+  };
+  let sc = "good";
+  function drawCurves() {
+    const S = SC[sc], rand = mulberry32(11);
+    const tr = [], va = [];
+    for (let e = 1; e <= EPOCHS; e++) {
+      tr.push(Math.max(0.01, S.tr(e) + (rand() - 0.5) * 2 * S.noise));
+      va.push(Math.max(0.01, S.va(e) + (rand() - 0.5) * 2 * S.noise * 1.4));
+    }
+    const svg = $("tcSvg"); svg.innerHTML = "";
+    const L = 46, R = 585, T = 12, B = 210, X = (e) => L + ((e - 1) / (EPOCHS - 1)) * (R - L), Y = (v) => B - (clamp(v, 0, 0.9) / 0.9) * (B - T);
+    svg.append(el("line", { x1: L, y1: B, x2: R, y2: B, class: "svg-axis" }), el("line", { x1: L, y1: T, x2: L, y2: B, class: "svg-axis" }));
+    [0, 0.3, 0.6, 0.9].forEach((v) => svg.append(el("text", { x: L - 6, y: Y(v) + 4, class: "svg-text", "text-anchor": "end" }, v.toFixed(1))));
+    [1, 10, 20, 30, 40, 50, 60].forEach((e) => svg.append(el("text", { x: X(e), y: B + 15, class: "svg-text", "text-anchor": "middle" }, e)));
+    let best = 0; va.forEach((v, i) => { if (v < va[best]) best = i; });
+    svg.append(el("line", { x1: X(best + 1), y1: T, x2: X(best + 1), y2: B, stroke: css("--good"), "stroke-width": 2, "stroke-dasharray": "5 4" }));
+    svg.append(el("text", { x: X(best + 1) + (best > 45 ? -4 : 4), y: T + 12, class: "svg-text", "text-anchor": best > 45 ? "end" : "start" }, `best val loss: epoch ${best + 1}`));
+    const path = (arr) => arr.map((v, i) => (i ? "L" : "M") + X(i + 1).toFixed(1) + "," + Y(v).toFixed(1)).join("");
+    svg.append(el("path", { d: path(tr), fill: "none", stroke: css("--accent"), "stroke-width": 2.5 }));
+    svg.append(el("path", { d: path(va), fill: "none", stroke: css("--pos"), "stroke-width": 2.5 }));
+    svg.append(el("text", { x: (L + R) / 2, y: 242, class: "svg-text", "text-anchor": "middle" }, "epoch"));
+    svg.append(el("text", { x: 12, y: T + 4, class: "svg-text" }, "loss"));
+    svg.append(el("line", { x1: 360, y1: 252, x2: 380, y2: 252, stroke: css("--accent"), "stroke-width": 3 }));
+    svg.append(el("text", { x: 384, y: 256, class: "svg-text" }, "training"));
+    svg.append(el("line", { x1: 450, y1: 252, x2: 470, y2: 252, stroke: css("--pos"), "stroke-width": 3 }));
+    svg.append(el("text", { x: 474, y: 256, class: "svg-text" }, "validation"));
+    setVerdict($("tcText"), S.kind, S.text);
+  }
+  document.querySelectorAll("#tcWidget [data-sc]").forEach((b) => b.addEventListener("click", () => {
+    sc = b.dataset.sc;
+    document.querySelectorAll("#tcWidget [data-sc]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    drawCurves();
+  }));
+  drawCurves(); redrawers.push(drawCurves);
+
+  /* ---------- quiz ---------- */
+  const QUIZ = [
+    { q: "A neuron has inputs x = (2, 1), weights w = (0.5, −1.0), bias b = 0.2 and a ReLU activation. What is its output?", o: ["0.2", "1.2", "0", "−0.8"], a: 0, w: "z = 0.5×2 + (−1.0)×1 + 0.2 = 1 − 1 + 0.2 = 0.2. ReLU(0.2) = 0.2." },
+    { q: "You are classifying images into 5 classes and your labels are integers 0–4. Which output layer and loss?", o: ["1 unit, sigmoid, binary cross-entropy", "5 units, softmax, sparse categorical cross-entropy", "5 units, ReLU, mean squared error", "5 units, linear, MAE"], a: 1, w: "Multi-class → one softmax unit per class. Integer labels → the 'sparse' version of categorical cross-entropy." },
+    { q: "Why is ReLU preferred over sigmoid in hidden layers?", o: ["ReLU outputs probabilities", "Sigmoid's slope is at most 0.25, so gradients shrink through many layers", "ReLU has more parameters", "Sigmoid can't be differentiated"], a: 1, w: "Multiplying many slopes ≤ 0.25 makes early-layer gradients vanish. ReLU's slope is 1 for positive inputs." },
+    { q: "Your training loss jumps around wildly and then becomes NaN. What is the most likely first fix?", o: ["Train for more epochs", "Add more layers", "Lower the learning rate", "Remove the validation split"], a: 2, w: "Spiky, exploding loss is the classic sign of a learning rate that's too high (also check input scaling)." },
+    { q: "You have 12,000 training rows and a batch size of 64. How many iterations (weight updates) are in one epoch?", o: ["64", "187", "188", "12,000"], a: 2, w: "12,000 ÷ 64 = 187.5, rounded up to 188: the last, smaller batch still counts as an update." },
+    { q: "What are Keras' default Adam settings?", o: ["learning_rate=0.01, beta_1=0.5, beta_2=0.9", "learning_rate=0.001, beta_1=0.9, beta_2=0.999", "learning_rate=0.1, beta_1=0.99, beta_2=0.9", "learning_rate=1.0, no betas"], a: 1, w: "Adam defaults: learning rate 0.001, β₁ = 0.9 (momentum average), β₂ = 0.999 (squared-gradient average), ε = 1e-7." },
+    { q: "Sigmoid output + binary cross-entropy: ŷ = 0.8, y = 1, and the hidden activation feeding an output weight is 0.5. What is that weight's gradient?", o: ["+0.1", "−0.1", "−0.4", "0"], a: 1, w: "∂L/∂w = (ŷ − y)·a = (0.8 − 1) × 0.5 = −0.1. Negative, so gradient descent increases the weight." },
+    { q: "Training loss keeps falling, but validation loss starts rising after epoch 15. What's happening and what helps?", o: ["Underfitting: add layers", "Overfitting: early stopping, dropout, weight decay", "Learning rate too low: raise it", "Nothing; this is ideal"], a: 1, w: "A widening gap with validation loss turning upwards is overfitting. Stop at the best epoch and regularise." },
+    { q: "In PyTorch, what must you do before computing validation predictions with a model that uses dropout?", o: ["Call model.train()", "Call model.eval() (and use torch.no_grad())", "Set the dropout rate to 1.0", "Nothing; PyTorch switches automatically"], a: 1, w: "model.eval() turns dropout off and makes batch normalisation use its running averages. Keras does this automatically; PyTorch doesn't." },
+    { q: "You have a 5,000-row table of customer data with 20 mixed numeric and categorical columns. What's a sensible first model?", o: ["A 20-layer deep network", "A gradient-boosting model, with a small MLP as a comparison", "A CNN", "An LSTM"], a: 1, w: "On modest tabular data, gradient boosting is usually as good or better with less tuning. Compare it fairly against an MLP on the same validation set." },
+  ];
+  let answered = 0, correct = 0;
+  function renderQuiz() {
+    answered = 0; correct = 0;
+    $("quizScore").textContent = `0 / ${QUIZ.length} answered`;
+    $("quizBox").innerHTML = QUIZ.map((it, qi) => `<div class="q" data-q="${qi}"><div class="prompt">${qi + 1}. ${esc(it.q)}</div><div class="opts">${it.o.map((o, oi) => `<button class="opt" type="button" data-o="${oi}">${esc(o)}</button>`).join("")}</div><div class="why">${esc(it.w)}</div></div>`).join("");
+  }
+  $("quizBox").addEventListener("click", (e) => {
+    const b = e.target.closest(".opt"); if (!b || b.disabled) return;
+    const qEl = b.closest(".q"), it = QUIZ[+qEl.dataset.q];
+    qEl.querySelectorAll(".opt").forEach((o) => { o.disabled = true; if (+o.dataset.o === it.a) o.classList.add("right"); });
+    if (+b.dataset.o !== it.a) b.classList.add("wrong"); else correct++;
+    qEl.classList.add("answered"); answered++;
+    $("quizScore").textContent = answered === QUIZ.length ? `Score: ${correct} / ${QUIZ.length}` : `${correct} correct · ${answered} / ${QUIZ.length} answered`;
+  });
+  $("quizReset").addEventListener("click", renderQuiz);
+  renderQuiz();
+})();
+</script>
+</body>
+</html>

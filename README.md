@@ -14,6 +14,8 @@ An 8-week programme from machine learning to multi-agent AI, with a Week 0 onboa
 | Tuesday | Presentations of the previous week's work (from Week 2) |
 | Wednesday - Friday | Teaching and labs |
 
+**📚 Course documentation:** interactive guides for every topic so far, with a list of what's covered: [docs/README.md](docs/README.md) (open `docs/index.html` in a browser)
+
 ---
 
 # Start here: the essentials

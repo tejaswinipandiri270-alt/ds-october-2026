@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SDLC, Waterfall and Agile</title>
+<meta name="description" content="Week 0 session notes: the software development lifecycle, Waterfall vs Agile, testing types and MVPs, with interactive diagrams and a quiz.">
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --surface-2: #f0eee8;
+    --text: #1d1d1b;
+    --muted: #5f5d57;
+    --border: #dcd9d0;
+    --accent: #2f5bd3;
+    --accent-soft: #e3eafc;
+    --discover: #8a5a00;
+    --discover-soft: #fbf0d9;
+    --loop: #1f7a4d;
+    --loop-soft: #ddf2e6;
+    --danger: #b3261e;
+    --danger-soft: #fbe3e1;
+    --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05);
+    --radius: 14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141413;
+      --surface: #1e1e1c;
+      --surface-2: #272724;
+      --text: #ecebe6;
+      --muted: #a8a69e;
+      --border: #3a3935;
+      --accent: #8aa8ff;
+      --accent-soft: #1f2a47;
+      --discover: #f0c56b;
+      --discover-soft: #3a2f17;
+      --loop: #6fd3a0;
+      --loop-soft: #173326;
+      --danger: #ff8a80;
+      --danger-soft: #3d1f1d;
+      --shadow: 0 1px 2px rgba(0,0,0,.4);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141413;
+    --surface: #1e1e1c;
+    --surface-2: #272724;
+    --text: #ecebe6;
+    --muted: #a8a69e;
+    --border: #3a3935;
+    --accent: #8aa8ff;
+    --accent-soft: #1f2a47;
+    --discover: #f0c56b;
+    --discover-soft: #3a2f17;
+    --loop: #6fd3a0;
+    --loop-soft: #173326;
+    --danger: #ff8a80;
+    --danger-soft: #3d1f1d;
+    --shadow: 0 1px 2px rgba(0,0,0,.4);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 960px; margin: 0 auto; padding: 32px 16px 80px; }
+  h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); line-height: 1.15; margin: 4px 0 12px; letter-spacing: -0.02em; }
+  h2 { font-size: 1.5rem; margin: 0 0 6px; letter-spacing: -0.01em; }
+  h3 { font-size: 1.1rem; margin: 0 0 6px; }
+  p { margin: 0 0 12px; }
+  .eyebrow { color: var(--muted); font-size: .85rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; }
+  .lede { color: var(--muted); font-size: 1.1rem; max-width: 62ch; }
+  section { margin-top: 48px; }
+  .section-intro { color: var(--muted); margin-bottom: 18px; max-width: 65ch; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+  }
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+  nav.toc a {
+    color: var(--text); text-decoration: none; font-size: .9rem;
+    border: 1px solid var(--border); background: var(--surface);
+    padding: 6px 12px; border-radius: 999px;
+  }
+  nav.toc a:hover { border-color: var(--accent); color: var(--accent); }
+  .theme-toggle {
+    position: fixed; top: 12px; right: 12px; z-index: 5;
+    background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .85rem; cursor: pointer;
+  }
+  button { font: inherit; }
+  .btn {
+    border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    padding: 8px 14px; border-radius: 10px; cursor: pointer; font-size: .95rem;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  :root[data-theme="dark"] .btn.primary { color: #10162b; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #10162b; } }
+  .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- Lifecycle ---------- */
+  .lifecycle { display: grid; grid-template-columns: 1fr; gap: 20px; }
+  @media (min-width: 820px) { .lifecycle { grid-template-columns: 1.1fr 1fr; align-items: start; } }
+  .phase-label { font-size: .8rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 0 0 8px; }
+  .phase-label.discover { color: var(--discover); }
+  .phase-label.loop { color: var(--loop); }
+  .discover-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+  .arrow { color: var(--muted); font-size: 1.1rem; user-select: none; }
+  .stage {
+    border: 2px solid transparent; border-radius: 12px; padding: 10px 12px; cursor: pointer;
+    font-weight: 600; font-size: .92rem; text-align: center; line-height: 1.25;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .stage small { display: block; font-weight: 500; font-size: .75rem; opacity: .8; }
+  .stage.discover { background: var(--discover-soft); color: var(--discover); }
+  .stage.loop { background: var(--loop-soft); color: var(--loop); }
+  .stage:hover { transform: translateY(-1px); }
+  .stage.active { border-color: currentColor; box-shadow: 0 0 0 4px var(--surface), 0 0 0 6px currentColor; }
+  .stage.pulse { animation: pulse .9s ease; }
+  @keyframes pulse { 0% { transform: scale(1); } 40% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+  .loop-wrap { position: relative; width: 100%; max-width: 380px; aspect-ratio: 1; margin: 0 auto; }
+  .loop-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .loop-wrap .stage { position: absolute; width: 40%; }
+  .loop-wrap .s-dev { top: 2%; left: 30%; }
+  .loop-wrap .s-test { top: 40%; right: 0; }
+  .loop-wrap .s-prod { bottom: 2%; left: 30%; }
+  .loop-wrap .s-mon { top: 40%; left: 0; }
+  .loop-centre {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    text-align: center; width: 34%; font-size: .8rem; color: var(--muted);
+  }
+  .loop-centre strong { display: block; font-size: 1.25rem; color: var(--loop); }
+  .loop-controls { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+  .log { margin-top: 12px; font-size: .88rem; color: var(--muted); min-height: 3.2em; text-align: center; }
+
+  .detail h3 { font-size: 1.3rem; }
+  .detail .tag { display: inline-block; font-size: .75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-bottom: 8px; }
+  .detail .tag.discover { background: var(--discover-soft); color: var(--discover); }
+  .detail .tag.loop { background: var(--loop-soft); color: var(--loop); }
+  .detail dl { margin: 12px 0 0; }
+  .detail dt { font-weight: 700; font-size: .85rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-top: 12px; }
+  .detail dd { margin: 4px 0 0; }
+  .detail ul { margin: 4px 0 0; padding-left: 20px; }
+
+  /* ---------- Waterfall vs Agile ---------- */
+  .toggle-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .timeline { position: relative; }
+  .tl-axis { display: grid; grid-template-columns: repeat(12, 1fr); font-size: .72rem; color: var(--muted); margin-bottom: 6px; }
+  .tl-row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin-bottom: 5px; min-height: 30px; }
+  .bar {
+    border-radius: 7px; font-size: .75rem; font-weight: 600; padding: 5px 7px; overflow: hidden;
+    white-space: nowrap; text-overflow: ellipsis; color: #fff;
+  }
+  .bar.req { background: #8a5a00; } .bar.des { background: #9b6bd1; } .bar.dev { background: #2f5bd3; }
+  .bar.tst { background: #1f7a4d; } .bar.rel { background: #c2410c; } .bar.rework { background: var(--danger); background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0 6px, transparent 6px 12px); }
+  .sprint { border: 1px dashed var(--border); border-radius: 9px; padding: 4px; display: flex; flex-direction: column; gap: 3px; }
+  .sprint .mini { height: 7px; border-radius: 4px; }
+  .sprint .mini.p { background: #8a5a00; } .sprint .mini.b { background: #2f5bd3; } .sprint .mini.t { background: #1f7a4d; } .sprint .mini.r { background: #c2410c; }
+  .sprint span { font-size: .68rem; color: var(--muted); text-align: center; }
+  .sprint.changed { border-color: var(--danger); border-style: solid; background: var(--danger-soft); }
+  .value-row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; align-items: end; height: 56px; margin-top: 8px; }
+  .value-row div { background: var(--accent); border-radius: 4px 4px 0 0; opacity: .85; transition: height .4s ease; }
+  .value-label { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 10px 14px; border-radius: 0 10px 10px 0; margin-top: 14px; font-size: .95rem; }
+  .callout.warn { border-color: var(--danger); background: var(--danger-soft); }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: .78rem; color: var(--muted); margin-top: 10px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: .93rem; }
+  th, td { text-align: left; padding: 10px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .table-scroll { overflow-x: auto; }
+  .grid-2 { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 720px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+
+  /* ---------- Scrum in this programme ---------- */
+  .scrum-map { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .scrum-map .card { padding: 14px 16px; }
+  .scrum-map .term { font-weight: 700; }
+  .scrum-map .here { color: var(--muted); font-size: .9rem; margin: 4px 0 0; }
+
+  /* ---------- Testing ---------- */
+  .testing { display: grid; gap: 20px; grid-template-columns: 1fr; }
+  @media (min-width: 820px) { .testing { grid-template-columns: 280px 1fr; } }
+  .pyramid { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .pyr { border: 0; color: #fff; font-weight: 600; font-size: .85rem; padding: 10px 6px; cursor: pointer; border-radius: 6px; transition: filter .15s; }
+  .pyr:hover { filter: brightness(1.1); }
+  .pyr.active { outline: 3px solid var(--text); outline-offset: 2px; }
+  .pyr.e2e { width: 45%; background: #c2410c; }
+  .pyr.int { width: 70%; background: #2f5bd3; }
+  .pyr.unit { width: 95%; background: #1f7a4d; }
+  .pyr-note { font-size: .78rem; color: var(--muted); text-align: center; margin-top: 8px; }
+  .test-cards { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .test-card { padding: 14px 16px; transition: border-color .15s, background .15s; }
+  .test-card.hl { border-color: var(--accent); background: var(--accent-soft); }
+  .test-card h3 { font-size: 1rem; }
+  .test-card p { font-size: .9rem; margin: 0 0 6px; }
+  .test-card .ex { color: var(--muted); font-size: .85rem; }
+  .test-card .when { font-size: .78rem; font-weight: 600; color: var(--accent); }
+
+  /* ---------- Quiz ---------- */
+  .q { margin-bottom: 18px; }
+  .q:last-child { margin-bottom: 0; }
+  .q .prompt { font-weight: 600; margin-bottom: 8px; }
+  .opts { display: grid; gap: 6px; }
+  .opt {
+    text-align: left; border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+    padding: 9px 12px; border-radius: 10px; cursor: pointer;
+  }
+  .opt:hover:not(:disabled) { border-color: var(--accent); }
+  .opt:disabled { cursor: default; }
+  .opt.right { border-color: var(--loop); background: var(--loop-soft); color: var(--loop); font-weight: 600; }
+  .opt.wrong { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); }
+  .why { font-size: .88rem; color: var(--muted); margin-top: 6px; display: none; }
+  .q.answered .why { display: block; }
+  .score { font-weight: 700; font-size: 1.1rem; }
+
+  footer { margin-top: 56px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 16px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+</style>
+<style>
+  /* Phone-width fixes: let grid/flex children shrink so wide code scrolls inside its box,
+     and let long inline code (e.g. module paths) wrap instead of widening the page. */
+  main div, main section, main details { min-width: 0; }
+  :not(pre) > code { overflow-wrap: anywhere; }
+</style>
+<style>
+  /* theme-toggle clearance: the fixed Theme button would otherwise overlap the first line on phones */
+  @media (max-width: 999px) { main { padding-top: 56px; } }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">◐ Theme</button>
+<main>
+
+  <header>
+    <div class="eyebrow">Week 0 · Thursday 1 October 2026</div>
+    <h1>How software gets built: SDLC, Waterfall and Agile</h1>
+    <p class="lede">The path from "we have a problem" to a working product in users' hands, and why most teams now build it in small, repeated loops instead of one long pass.</p>
+    <nav class="toc" aria-label="Sections">
+      <a href="#lifecycle">1 · The lifecycle</a>
+      <a href="#prototype-poc-mvp">2 · Prototype vs PoC vs MVP</a>
+      <a href="#testing">3 · Testing</a>
+      <a href="#waterfall-agile">4 · Waterfall vs Agile</a>
+      <a href="#scrum">5 · How we run this programme</a>
+      <a href="#quiz">6 · Quiz</a>
+    </nav>
+  </header>
+
+  <!-- ===================== 1. LIFECYCLE ===================== -->
+  <section id="lifecycle">
+    <h2>1 · The software development lifecycle (SDLC)</h2>
+    <p class="section-intro">First we <strong>discover</strong>: understand the problem and prove the idea can work. Then we <strong>deliver</strong> in a loop of develop → test → release → monitor, and what we learn from monitoring feeds the next round. <strong>Click any stage</strong> for details, or press <strong>Run the loop</strong> to watch a product grow from its first release (the MVP).</p>
+
+    <div class="lifecycle">
+      <div class="card">
+        <p class="phase-label discover">Discover · done once, up front</p>
+        <div class="discover-row">
+          <button class="stage discover" data-stage="req" type="button">Requirements<small>gathering</small></button>
+          <span class="arrow" aria-hidden="true">→</span>
+          <button class="stage discover" data-stage="proto" type="button">Prototype<small>experiment</small></button>
+          <span class="arrow" aria-hidden="true">→</span>
+          <button class="stage discover" data-stage="poc" type="button">PoC<small>proof of concept</small></button>
+          <span class="arrow" aria-hidden="true">↓</span>
+        </div>
+
+        <p class="phase-label loop">Deliver · repeated every iteration</p>
+        <div class="loop-wrap">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <defs>
+              <marker id="ah" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+              </marker>
+            </defs>
+            <g fill="none" stroke="currentColor" stroke-width="1.2" style="color: var(--loop)" opacity=".55">
+              <path d="M66 14 A38 38 0 0 1 88 36" marker-end="url(#ah)"></path>
+              <path d="M88 64 A38 38 0 0 1 66 86" marker-end="url(#ah)"></path>
+              <path d="M34 86 A38 38 0 0 1 12 64" marker-end="url(#ah)"></path>
+              <path d="M12 36 A38 38 0 0 1 34 14" marker-end="url(#ah)" stroke-dasharray="2.5 2"></path>
+            </g>
+          </svg>
+          <button class="stage loop s-dev" data-stage="dev" type="button">Develop<small>build it properly</small></button>
+          <button class="stage loop s-test" data-stage="test" type="button">Test<small>unit · integration · smoke</small></button>
+          <button class="stage loop s-prod" data-stage="prod" type="button">Release<small>to production</small></button>
+          <button class="stage loop s-mon" data-stage="mon" type="button">Monitor<small>learn from real use</small></button>
+          <div class="loop-centre" aria-live="polite"><strong id="version">v0</strong><span id="versionNote">not released yet</span></div>
+        </div>
+        <div class="loop-controls">
+          <button class="btn primary" id="runLoop" type="button">▶ Run the loop</button>
+          <button class="btn" id="resetLoop" type="button">Reset</button>
+        </div>
+        <p class="log" id="loopLog" aria-live="polite">The dashed arrow is feedback: what monitoring shows becomes the next iteration's work.</p>
+      </div>
+
+      <div class="card detail" id="detail" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- ===================== 2. PROTOTYPE / POC / MVP ===================== -->
+  <section id="prototype-poc-mvp">
+    <h2>2 · Prototype vs PoC vs MVP</h2>
+    <p class="section-intro">People often mix these three up. Each answers a different question, and only the MVP goes to real users.</p>
+    <div class="card table-scroll">
+      <table>
+        <thead><tr><th></th><th>Prototype</th><th>Proof of concept (PoC)</th><th>MVP</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Question it answers</strong></td><td>What could this look like? What does the data tell us?</td><td>Can the risky core idea actually work?</td><td>Will real users get value from it?</td></tr>
+          <tr><td><strong>Who sees it</strong></td><td>The team</td><td>The team and stakeholders</td><td>Real users</td></tr>
+          <tr><td><strong>Code quality</strong></td><td>Throwaway (notebooks, mock-ups)</td><td>Rough, but on real data</td><td>Production quality: tested, versioned, monitored</td></tr>
+          <tr><td><strong>Outcome</strong></td><td>Ideas and direction</td><td>A go / no-go decision</td><td>The first release, v1.0</td></tr>
+          <tr><td><strong>Data science example</strong></td><td>EDA notebook and a quick baseline model for churn</td><td>The model beats the current rule-based approach on last year's data</td><td>Weekly churn-risk list sent to the retention team</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout"><strong>MVP = Minimum Viable Product:</strong> the smallest version that solves a real problem for real users. It's small on features, not on quality: an MVP is still tested and monitored.</div>
+  </section>
+
+  <!-- ===================== 3. TESTING ===================== -->
+  <section id="testing">
+    <h2>3 · Testing: many kinds, each catching different problems</h2>
+    <p class="section-intro">The testing pyramid: lots of fast, cheap tests at the bottom and a few slow, broad ones at the top. <strong>Click a layer</strong> to highlight its tests.</p>
+    <div class="testing">
+      <div class="card">
+        <div class="pyramid" role="group" aria-label="Testing pyramid">
+          <button class="pyr e2e" data-layer="e2e" type="button">End-to-end / UAT</button>
+          <button class="pyr int" data-layer="int" type="button">Integration</button>
+          <button class="pyr unit" data-layer="unit" type="button">Unit</button>
+        </div>
+        <p class="pyr-note">↑ slower, broader, fewer<br>↓ faster, narrower, many more</p>
+      </div>
+      <div class="test-cards" id="testCards"></div>
+    </div>
+  </section>
+
+  <!-- ===================== 4. WATERFALL VS AGILE ===================== -->
+  <section id="waterfall-agile">
+    <h2>4 · Waterfall vs Agile</h2>
+    <p class="section-intro">Both go through the same stages. <strong>Waterfall</strong> does each stage once, in order, for the whole product. <strong>Agile</strong> runs short cycles (sprints) that each go through every stage for a small slice of the product. Switch between them, then press <strong>Requirements change!</strong> to see what happens when the client changes their mind in month 7.</p>
+    <div class="card">
+      <div class="toggle-row" role="group" aria-label="Choose a model">
+        <button class="btn" id="showWaterfall" type="button" aria-pressed="true">Waterfall</button>
+        <button class="btn" id="showAgile" type="button" aria-pressed="false">Agile</button>
+        <button class="btn" id="changeReq" type="button" style="margin-left:auto">⚡ Requirements change!</button>
+      </div>
+      <div class="timeline">
+        <div class="tl-axis" id="tlAxis"></div>
+        <div id="tlRows"></div>
+        <div class="value-row" id="valueRow" aria-hidden="true"></div>
+        <div class="value-label">Value in users' hands over time</div>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div class="callout" id="tlCallout"></div>
+    </div>
+
+    <div class="grid-2" style="margin-top:16px">
+      <div class="card table-scroll">
+        <table>
+          <thead><tr><th></th><th>Waterfall</th><th>Agile</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Plan</strong></td><td>Everything up front</td><td>A little at a time; the backlog evolves</td></tr>
+            <tr><td><strong>First release</strong></td><td>At the end</td><td>Early (MVP), then frequent updates</td></tr>
+            <tr><td><strong>Change</strong></td><td>Expensive; may mean going back stages</td><td>Expected; goes into the next sprint</td></tr>
+            <tr><td><strong>Testing</strong></td><td>A phase near the end</td><td>Every sprint, ideally automated</td></tr>
+            <tr><td><strong>Customer involvement</strong></td><td>At the start and the end</td><td>Throughout, at every sprint review</td></tr>
+            <tr><td><strong>Documentation</strong></td><td>Heavy, formal sign-offs</td><td>Lighter, just enough</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>When to use which</h3>
+        <p><strong>Waterfall suits:</strong> fixed, well-understood requirements; heavy regulation or contracts; hardware or construction, where changing late is physically costly.</p>
+        <p><strong>Agile suits:</strong> uncertain requirements; products that need user feedback; and <strong>data science and AI work</strong>, where you can't know how good a model will be until you try.</p>
+        <p style="margin:0"><strong>In practice</strong> many organisations mix the two: a fixed overall plan and budget (Waterfall-ish) delivered in sprints (Agile).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 5. SCRUM IN THIS PROGRAMME ===================== -->
+  <section id="scrum">
+    <h2>5 · How we run this programme: Agile with Scrum</h2>
+    <p class="section-intro">Scrum is the most common Agile framework. Teams track the work in tools like <strong>Jira</strong>; we use <strong>Trello</strong>. Here is how each Scrum idea maps onto these 8 weeks.</p>
+    <div class="scrum-map">
+      <div class="card"><div class="term">Sprint</div><p class="here">One week. Each of you gets a new card every week.</p></div>
+      <div class="card"><div class="term">Product backlog</div><p class="here">The syllabus and the week overview cards in the Programme list.</p></div>
+      <div class="card"><div class="term">Sprint backlog</div><p class="here">The checklist on your weekly card.</p></div>
+      <div class="card"><div class="term">Daily scrum (stand-up)</div><p class="here">09:15 every day: what I did, what I'm doing, any blockers.</p></div>
+      <div class="card"><div class="term">Board</div><p class="here">Sprint To Do → Doing → Review → Done.</p></div>
+      <div class="card"><div class="term">Sprint review</div><p class="here">Tuesday presentations of last week's work (from Week 2).</p></div>
+      <div class="card"><div class="term">Definition of done</div><p class="here">Checklist complete, work pushed to GitHub, link on your card, reviewed by the trainer.</p></div>
+      <div class="card"><div class="term">Increment</div><p class="here">What you push to your fork each week, building up to the capstone.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== 6. QUIZ ===================== -->
+  <section id="quiz">
+    <h2>6 · Check your understanding</h2>
+    <p class="section-intro">Pick an answer for instant feedback.</p>
+    <div class="card" id="quizBox"></div>
+    <p style="margin-top:12px"><span class="score" id="score"></span> <button class="btn" id="resetQuiz" type="button" style="margin-left:8px">Try again</button></p>
+  </section>
+
+  <footer>
+    Data Science &amp; Agentic AI Programme · Week 0 session notes ·
+    <a href="https://github.com/samuelts96/ds-october-2026" style="color:var(--accent)">Course repository</a> ·
+    <a href="../index.html" style="color:var(--accent)">All course docs</a>
+  </footer>
+</main>
+
+<script>
+(() => {
+  /* ---------- theme ---------- */
+  const root = document.documentElement;
+  const saved = (() => { try { return localStorage.getItem("theme"); } catch { return null; } })();
+  if (saved) root.dataset.theme = saved;
+  document.getElementById("themeToggle").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+  });
+
+  /* ---------- lifecycle ---------- */
+  const STAGES = {
+    req: {
+      phase: "discover", title: "Requirements gathering",
+      what: "Understand the problem before building anything: who it's for, what they need, and how we'll know it worked.",
+      activities: ["Interview stakeholders and users", "Write user stories (\"As a … I want … so that …\")", "Agree acceptance criteria and a measurable success metric", "List constraints: data access, privacy, budget, deadlines"],
+      output: "A requirements document or product backlog",
+      example: "Retention team: \"Tell us which customers are likely to leave in the next 30 days.\" Success = catch 70% of churners in the top 10% of the list.",
+      pitfall: "Vague goals (\"use AI to improve retention\") with no metric, so nobody can say whether it worked.",
+    },
+    proto: {
+      phase: "discover", title: "Prototyping and experimenting",
+      what: "Explore fast and cheaply to learn what's possible. Prototypes are meant to be thrown away.",
+      activities: ["Exploratory data analysis in a Jupyter notebook", "Quick baseline models", "UI mock-ups or sketches", "Try several approaches side by side"],
+      output: "Findings, ideas and a sense of what might work",
+      example: "A notebook showing that tenure and support-ticket volume look strongly linked to churn, plus a logistic-regression baseline.",
+      pitfall: "Shipping the prototype notebook as if it were production code.",
+    },
+    poc: {
+      phase: "discover", title: "Proof of concept (PoC)",
+      what: "Prove that the riskiest part of the idea really works, on real data, before investing in a full build.",
+      activities: ["Pick the biggest unknown and test only that", "Use real (or realistic) data", "Compare against the current way of doing things", "Demo to stakeholders"],
+      output: "A go / no-go decision",
+      example: "On last year's data, the model finds twice as many churners as the current rule-based list. Decision: go.",
+      pitfall: "A PoC that grows features until it becomes an unplanned, untested product.",
+    },
+    dev: {
+      phase: "loop", title: "Development",
+      what: "Build it properly: clean, version-controlled, reviewable code that others can run.",
+      activities: ["A branch per feature: git checkout -b …", "Turn notebooks into modules, functions and pipelines", "Manage the environment with uv (uv init, uv venv)", "Code review through pull requests"],
+      output: "Working, versioned code",
+      example: "A churn package with data-prep functions, a training pipeline and a FastAPI endpoint, in a uv project on GitHub.",
+      pitfall: "Working directly on main, or with \"it works on my machine\" environments.",
+    },
+    test: {
+      phase: "loop", title: "Testing",
+      what: "Check that it works, and keeps working, before users see it. Different tests catch different problems (see section 3).",
+      activities: ["Unit tests for individual functions", "Integration tests for components working together", "Smoke tests right after each deployment", "Regression tests so old bugs don't return", "User acceptance testing (UAT) with real users"],
+      output: "Confidence that the release is safe",
+      example: "Unit-test the feature functions; integration-test the API with the model loaded; smoke-test /health after deploying.",
+      pitfall: "Leaving all testing to the end, or testing by hand only.",
+    },
+    prod: {
+      phase: "loop", title: "Release to production",
+      what: "Deploy to real users. The first release is the MVP; every later loop ships an improvement.",
+      activities: ["Deploy (for example a Docker container to the cloud)", "Write release notes", "Have a rollback plan", "Release gradually where possible"],
+      output: "A live version: v1.0 (the MVP), then v1.1, v1.2 …",
+      example: "v1.0: the retention team receives a weekly ranked list of at-risk customers.",
+      pitfall: "A big-bang release with no way back if something breaks.",
+    },
+    mon: {
+      phase: "loop", title: "Monitoring",
+      what: "Watch how it behaves in the real world. What you learn becomes the next iteration's requirements.",
+      activities: ["System health: uptime, errors, latency", "Usage: are people actually using it?", "Data drift: is incoming data changing?", "Model performance: is accuracy dropping?", "User feedback"],
+      output: "Insights and new backlog items, which feed the next loop",
+      example: "After a price change, customer behaviour shifts (drift), so v1.1 retrains the model on recent data.",
+      pitfall: "\"Deploy and forget\": models quietly get worse as the world changes.",
+    },
+  };
+
+  const detail = document.getElementById("detail");
+  const stageButtons = [...document.querySelectorAll(".stage")];
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  function showStage(key) {
+    const s = STAGES[key];
+    stageButtons.forEach((b) => b.classList.toggle("active", b.dataset.stage === key));
+    detail.innerHTML = `
+      <span class="tag ${s.phase}">${s.phase === "discover" ? "Discover" : "Deliver loop"}</span>
+      <h3>${esc(s.title)}</h3>
+      <p>${esc(s.what)}</p>
+      <dl>
+        <dt>Typical activities</dt><dd><ul>${s.activities.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></dd>
+        <dt>Output</dt><dd>${esc(s.output)}</dd>
+        <dt>Data science example</dt><dd>${esc(s.example)}</dd>
+        <dt>Common pitfall</dt><dd>${esc(s.pitfall)}</dd>
+      </dl>`;
+  }
+  stageButtons.forEach((b) => b.addEventListener("click", () => { stopLoop(); showStage(b.dataset.stage); }));
+  showStage("req");
+
+  /* loop animation */
+  const ITERATIONS = [
+    { version: "v1.0", note: "MVP", steps: {
+      dev: "Build the first churn pipeline and API.",
+      test: "Unit + integration tests pass; smoke test after deploy.",
+      prod: "Release v1.0 (the MVP): weekly at-risk list for the retention team.",
+      mon: "Monitoring: the team asks for reasons behind each score." } },
+    { version: "v1.1", note: "feedback → feature", steps: {
+      dev: "Add the top three reasons for each customer's score.",
+      test: "New unit tests; regression tests confirm v1.0 behaviour still holds.",
+      prod: "Release v1.1.",
+      mon: "Monitoring: data drift detected after a pricing change." } },
+    { version: "v1.2", note: "drift → retrain", steps: {
+      dev: "Retrain on recent data; add an automatic drift alert.",
+      test: "Compare the new model with the old one on a hold-out set.",
+      prod: "Release v1.2.",
+      mon: "Monitoring: stable. The loop keeps going for as long as the product lives." } },
+  ];
+  const ORDER = ["dev", "test", "prod", "mon"];
+  const versionEl = document.getElementById("version");
+  const versionNote = document.getElementById("versionNote");
+  const log = document.getElementById("loopLog");
+  const runBtn = document.getElementById("runLoop");
+  let timer = null;
+
+  function stopLoop() { clearTimeout(timer); timer = null; runBtn.textContent = "▶ Run the loop"; }
+  function resetLoop() {
+    stopLoop();
+    versionEl.textContent = "v0"; versionNote.textContent = "not released yet";
+    log.textContent = "The dashed arrow is feedback: what monitoring shows becomes the next iteration's work.";
+  }
+  function runLoop() {
+    if (timer) { stopLoop(); return; }
+    runBtn.textContent = "⏸ Pause";
+    let i = 0;
+    const total = ITERATIONS.length * ORDER.length;
+    const tick = () => {
+      const it = ITERATIONS[Math.floor(i / ORDER.length)];
+      const stage = ORDER[i % ORDER.length];
+      showStage(stage);
+      const btn = stageButtons.find((b) => b.dataset.stage === stage);
+      btn.classList.remove("pulse"); void btn.offsetWidth; btn.classList.add("pulse");
+      if (stage === "prod") { versionEl.textContent = it.version; versionNote.textContent = it.note; }
+      log.textContent = `${it.version} · ${it.steps[stage]}`;
+      i += 1;
+      timer = i < total ? setTimeout(tick, 1900) : null;
+      if (!timer) runBtn.textContent = "▶ Run again";
+    };
+    tick();
+  }
+  runBtn.addEventListener("click", () => { if (!timer && runBtn.textContent.includes("again")) resetLoop(); runLoop(); });
+  document.getElementById("resetLoop").addEventListener("click", () => { resetLoop(); showStage("req"); });
+
+  /* ---------- testing ---------- */
+  const TESTS = [
+    { layer: "unit", name: "Unit test", what: "Tests one small piece, such as a function, in isolation.", ex: "clean_age() turns \"42 \" into 42 and rejects -5.", when: "Every commit · seconds" },
+    { layer: "int", name: "Integration test", what: "Checks that components work together.", ex: "The API loads the model and returns a valid prediction for a sample request.", when: "Every pull request · minutes" },
+    { layer: "e2e", name: "Smoke test", what: "A quick \"is it alive?\" check straight after a deployment.", ex: "GET /health returns 200 and one prediction works.", when: "After every deploy · seconds" },
+    { layer: "int", name: "Regression test", what: "Makes sure changes haven't broken things that used to work.", ex: "The new model scores at least as well as the old one on a fixed test set.", when: "Before every release" },
+    { layer: "e2e", name: "End-to-end / system test", what: "Tests the whole flow the way a user experiences it.", ex: "Upload data → scores computed → report emailed.", when: "Before a release · slower" },
+    { layer: "e2e", name: "User acceptance testing (UAT)", what: "Real users confirm it meets the requirements.", ex: "The retention team checks the list is usable and correct.", when: "Before go-live" },
+    { layer: "e2e", name: "Performance / load test", what: "Checks speed and behaviour under heavy use.", ex: "The API handles 100 requests per second in under 300 ms.", when: "Before a release, or after big changes" },
+  ];
+  const testCards = document.getElementById("testCards");
+  testCards.innerHTML = TESTS.map((t) => `
+    <div class="card test-card" data-layer="${t.layer}">
+      <h3>${esc(t.name)}</h3>
+      <p>${esc(t.what)}</p>
+      <p class="ex">e.g. ${esc(t.ex)}</p>
+      <div class="when">${esc(t.when)}</div>
+    </div>`).join("");
+  const pyrButtons = [...document.querySelectorAll(".pyr")];
+  pyrButtons.forEach((b) => b.addEventListener("click", () => {
+    const on = !b.classList.contains("active");
+    pyrButtons.forEach((x) => x.classList.toggle("active", on && x === b));
+    testCards.querySelectorAll(".test-card").forEach((c) => c.classList.toggle("hl", on && c.dataset.layer === b.dataset.layer));
+  }));
+
+  /* ---------- waterfall vs agile ---------- */
+  const months = Array.from({ length: 12 }, (_, i) => `M${i + 1}`);
+  document.getElementById("tlAxis").innerHTML = months.map((m) => `<span>${m}</span>`).join("");
+  const rowsEl = document.getElementById("tlRows");
+  const valueRow = document.getElementById("valueRow");
+  const legend = document.getElementById("legend");
+  const tlCallout = document.getElementById("tlCallout");
+  let model = "waterfall";
+  let changed = false;
+
+  const WATERFALL = [
+    { cls: "req", label: "Requirements", start: 1, span: 2 },
+    { cls: "des", label: "Design", start: 3, span: 2 },
+    { cls: "dev", label: "Development", start: 5, span: 4 },
+    { cls: "tst", label: "Testing", start: 9, span: 2 },
+    { cls: "rel", label: "Release", start: 11, span: 2 },
+  ];
+
+  function renderWaterfall() {
+    const bars = changed
+      ? [
+          WATERFALL[0], WATERFALL[1],
+          { cls: "dev", label: "Development", start: 5, span: 2 },
+          { cls: "rework", label: "Change in M7 → back to requirements & design", start: 7, span: 3 },
+          { cls: "dev", label: "Dev again", start: 10, span: 2 },
+          { cls: "tst", label: "Testing → slips past M12", start: 12, span: 1 },
+        ]
+      : WATERFALL;
+    rowsEl.innerHTML = bars.map((b) =>
+      `<div class="tl-row"><div class="bar ${b.cls}" style="grid-column:${b.start} / span ${b.span}" title="${b.label}">${b.label}</div></div>`
+    ).join("");
+    const value = months.map((_, i) => (!changed && i >= 11 ? 100 : 0));
+    valueRow.innerHTML = value.map((v) => `<div style="height:${Math.max(v, 2)}%"></div>`).join("");
+    legend.innerHTML = "";
+    tlCallout.className = changed ? "callout warn" : "callout";
+    tlCallout.innerHTML = changed
+      ? "<strong>Change in month 7:</strong> the design was signed off months ago, so work goes back to requirements and design. Development restarts, testing is squeezed, and the release slips past month 12. Users have still received <strong>nothing</strong>."
+      : "<strong>Waterfall:</strong> each stage finishes before the next starts. Users see nothing until the release in month 11.";
+  }
+
+  function renderAgile() {
+    const sprints = Array.from({ length: 12 }, (_, i) => i + 1);
+    rowsEl.innerHTML = `<div class="tl-row">${sprints.map((s) => `
+      <div class="sprint ${changed && s === 8 ? "changed" : ""}" title="Sprint ${s}">
+        <div class="mini p"></div><div class="mini b"></div><div class="mini t"></div><div class="mini r"></div>
+        <span>S${s}</span>
+      </div>`).join("")}</div>`;
+    const value = months.map((_, i) => (i < 2 ? 0 : Math.min(100, 20 + (i - 2) * 8.5)));
+    valueRow.innerHTML = value.map((v) => `<div style="height:${Math.max(v, 2)}%"></div>`).join("");
+    legend.innerHTML = '<span><i style="background:#8a5a00"></i>Plan</span><span><i style="background:#2f5bd3"></i>Build</span><span><i style="background:#1f7a4d"></i>Test</span><span><i style="background:#c2410c"></i>Release / review</span>';
+    tlCallout.className = changed ? "callout warn" : "callout";
+    tlCallout.innerHTML = changed
+      ? "<strong>Change in month 7:</strong> it goes into the backlog and is planned into sprint 8. Nothing already released is thrown away, and users keep getting updates every sprint."
+      : "<strong>Agile:</strong> every sprint plans, builds, tests and reviews a small slice. The MVP ships in month 3 and value grows with each sprint.";
+  }
+
+  function render() { model === "waterfall" ? renderWaterfall() : renderAgile(); }
+  const wBtn = document.getElementById("showWaterfall");
+  const aBtn = document.getElementById("showAgile");
+  const cBtn = document.getElementById("changeReq");
+  function setModel(m) {
+    model = m;
+    wBtn.setAttribute("aria-pressed", String(m === "waterfall"));
+    aBtn.setAttribute("aria-pressed", String(m === "agile"));
+    render();
+  }
+  wBtn.addEventListener("click", () => setModel("waterfall"));
+  aBtn.addEventListener("click", () => setModel("agile"));
+  cBtn.addEventListener("click", () => {
+    changed = !changed;
+    cBtn.textContent = changed ? "↺ Undo the change" : "⚡ Requirements change!";
+    render();
+  });
+  render();
+
+  /* ---------- quiz ---------- */
+  const QUIZ = [
+    { q: "What should come out of requirements gathering?", opts: ["A trained model", "Clear needs plus a measurable success metric", "A Docker image", "A test report"], a: 1,
+      why: "Without an agreed success metric you can't tell whether the project worked." },
+    { q: "Your notebook shows a baseline model looks promising. Which stage is that?", opts: ["Prototyping / experimenting", "Production release", "Monitoring", "UAT"], a: 0,
+      why: "Quick, throwaway exploration to learn what's possible is prototyping." },
+    { q: "What is the main purpose of a proof of concept?", opts: ["Launch to all users", "Prove the riskiest idea works before investing in a full build", "Write documentation", "Replace testing"], a: 1,
+      why: "A PoC de-risks the biggest unknown and ends in a go / no-go decision." },
+    { q: "Which test checks a single function in isolation?", opts: ["Smoke test", "Integration test", "Unit test", "UAT"], a: 2,
+      why: "Unit tests are small, fast and numerous: the base of the pyramid." },
+    { q: "Right after deploying, you check that /health returns 200. That's a…", opts: ["Regression test", "Smoke test", "Load test", "Unit test"], a: 1,
+      why: "A smoke test is a quick \"is it alive?\" check after deployment." },
+    { q: "Which is true of an MVP?", opts: ["It can skip testing because it's small", "It's the smallest version that delivers real value to real users", "Only the team sees it", "It's the same as a prototype"], a: 1,
+      why: "Minimum on features, not on quality. It's the first real release." },
+    { q: "After release, the model's accuracy slowly drops because customer behaviour changes. What catches this?", opts: ["Requirements gathering", "Monitoring (data drift and performance)", "Unit tests", "The prototype"], a: 1,
+      why: "Monitoring feeds the next iteration: here, retraining on recent data." },
+    { q: "The requirements change halfway through. Which approach handles it more cheaply?", opts: ["Waterfall", "Agile"], a: 1,
+      why: "In Agile the change goes into the next sprint; in Waterfall you may have to redo earlier phases." },
+    { q: "In this programme, what is the Tuesday presentation in Scrum terms?", opts: ["Daily scrum", "Sprint review", "Sprint planning", "Retrospective"], a: 1,
+      why: "You demo last sprint's increment and get feedback: that's a sprint review." },
+  ];
+  const quizBox = document.getElementById("quizBox");
+  const scoreEl = document.getElementById("score");
+  let answered = 0, correct = 0;
+
+  function renderQuiz() {
+    answered = 0; correct = 0;
+    scoreEl.textContent = `0 / ${QUIZ.length} answered`;
+    quizBox.innerHTML = QUIZ.map((item, qi) => `
+      <div class="q" data-q="${qi}">
+        <div class="prompt">${qi + 1}. ${esc(item.q)}</div>
+        <div class="opts">${item.opts.map((o, oi) => `<button class="opt" type="button" data-o="${oi}">${esc(o)}</button>`).join("")}</div>
+        <div class="why">${esc(item.why)}</div>
+      </div>`).join("");
+  }
+  quizBox.addEventListener("click", (e) => {
+    const btn = e.target.closest(".opt");
+    if (!btn || btn.disabled) return;
+    const qEl = btn.closest(".q");
+    const item = QUIZ[Number(qEl.dataset.q)];
+    const pick = Number(btn.dataset.o);
+    qEl.querySelectorAll(".opt").forEach((o) => {
+      o.disabled = true;
+      if (Number(o.dataset.o) === item.a) o.classList.add("right");
+    });
+    if (pick !== item.a) btn.classList.add("wrong"); else correct += 1;
+    qEl.classList.add("answered");
+    answered += 1;
+    scoreEl.textContent = answered === QUIZ.length
+      ? `Score: ${correct} / ${QUIZ.length}${correct === QUIZ.length ? " 🎉" : ""}`
+      : `${correct} correct · ${answered} / ${QUIZ.length} answered`;
+  });
+  document.getElementById("resetQuiz").addEventListener("click", renderQuiz);
+  renderQuiz();
+})();
+</script>
+</body>
+</html>

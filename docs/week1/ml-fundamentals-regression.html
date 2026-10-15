@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ML Fundamentals &amp; Regression</title>
+<meta name="description" content="Week 1 reference: what machine learning is, types of ML, the workflow, data splitting and leakage, linear regression, regression metrics, bias and variance, overfitting, and Ridge / Lasso regularisation.">
+<style>
+  :root {
+    --bg: #f7f6f2; --surface: #ffffff; --surface-2: #f0eee8; --text: #1d1d1b; --muted: #5f5d57;
+    --border: #dcd9d0; --accent: #2f5bd3; --accent-soft: #e3eafc;
+    --pos: #c2410c; --pos-soft: #fde8dc; --neg: #2f5bd3; --neg-soft: #e3eafc;
+    --good: #1f7a4d; --good-soft: #ddf2e6; --bad: #b3261e; --bad-soft: #fbe3e1; --warn: #8a5a00; --warn-soft: #fbf0d9;
+    --code-bg: #f3f1ec; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05); --radius: 14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+      --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+      --pos: #ff9a62; --pos-soft: #3d2618; --neg: #8aa8ff; --neg-soft: #1f2a47;
+      --good: #6fd3a0; --good-soft: #173326; --bad: #ff8a80; --bad-soft: #3d1f1d; --warn: #f0c56b; --warn-soft: #3a2f17;
+      --code-bg: #232321; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+    --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+    --pos: #ff9a62; --pos-soft: #3d2618; --neg: #8aa8ff; --neg-soft: #1f2a47;
+    --good: #6fd3a0; --good-soft: #173326; --bad: #ff8a80; --bad-soft: #3d1f1d; --warn: #f0c56b; --warn-soft: #3a2f17;
+    --code-bg: #232321; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .layout { display: grid; grid-template-columns: 1fr; max-width: 1240px; margin: 0 auto; }
+  @media (min-width: 1000px) { .layout { grid-template-columns: 250px minmax(0, 1fr); gap: 32px; padding: 0 24px; } }
+  aside.toc { display: none; }
+  @media (min-width: 1000px) {
+    aside.toc { display: block; position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; padding: 28px 0 28px; }
+  }
+  aside.toc .toc-title { font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px 10px; }
+  aside.toc a { display: block; color: var(--muted); text-decoration: none; font-size: .9rem; padding: 4px 10px; border-left: 2px solid transparent; border-radius: 0 6px 6px 0; }
+  aside.toc a:hover { color: var(--text); background: var(--surface-2); }
+  aside.toc a.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+  aside.toc a.sub { padding-left: 22px; font-size: .84rem; }
+  details.mobile-toc { margin: 16px 0 0; }
+  @media (min-width: 1000px) { details.mobile-toc { display: none; } }
+  details.mobile-toc summary { cursor: pointer; font-weight: 600; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  details.mobile-toc nav { display: grid; gap: 2px; padding: 8px 4px; }
+  details.mobile-toc a { color: var(--text); text-decoration: none; padding: 4px 10px; font-size: .92rem; }
+  main { min-width: 0; padding: 28px 16px 96px; max-width: 880px; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.7rem); line-height: 1.12; margin: 4px 0 12px; letter-spacing: -0.02em; }
+  h2 { font-size: 1.6rem; margin: 0 0 8px; letter-spacing: -0.01em; line-height: 1.25; }
+  h3 { font-size: 1.15rem; margin: 26px 0 8px; }
+  h4 { font-size: 1rem; margin: 18px 0 6px; }
+  p { margin: 0 0 12px; }
+  ul, ol { margin: 0 0 12px; padding-left: 22px; }
+  li { margin: 3px 0; }
+  a { color: var(--accent); }
+  .eyebrow { color: var(--muted); font-size: .82rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; }
+  .lede { color: var(--muted); font-size: 1.12rem; max-width: 64ch; }
+  section { margin-top: 56px; }
+  .num { color: var(--accent); margin-right: 6px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin: 16px 0; }
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 16px 0; }
+  .callout.good { border-color: var(--good); background: var(--good-soft); }
+  .callout.bad { border-color: var(--bad); background: var(--bad-soft); }
+  .callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+  .callout > :last-child { margin-bottom: 0; }
+  .intuition { font-size: 1.05rem; border-left: 4px solid var(--good); background: var(--good-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 12px 0 16px; }
+  .intuition strong:first-child { color: var(--good); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 5px; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: .85rem; line-height: 1.55; margin: 12px 0 16px; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .table-scroll { overflow-x: auto; margin: 12px 0 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  th { font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); }
+  td code { white-space: nowrap; }
+  .grid-2 { display: grid; gap: 14px; grid-template-columns: 1fr; }
+  @media (min-width: 720px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+  .grid-2 .card { margin: 0; }
+  .pill { display: inline-block; font-size: .74rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+  .pill.up { background: var(--bad-soft); color: var(--bad); }
+  .pill.down { background: var(--good-soft); color: var(--good); }
+  .pill.neutral { background: var(--surface-2); color: var(--muted); }
+  .proscons { display: grid; gap: 12px; grid-template-columns: 1fr; margin: 12px 0; }
+  @media (min-width: 640px) { .proscons { grid-template-columns: 1fr 1fr; } }
+  .proscons > div { border-radius: 10px; padding: 12px 14px; }
+  .proscons .pros { background: var(--good-soft); }
+  .proscons .cons { background: var(--bad-soft); }
+  .proscons h4 { margin: 0 0 6px; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+  .proscons .pros h4 { color: var(--good); } .proscons .cons h4 { color: var(--bad); }
+  .proscons ul { margin: 0; }
+  .theme-toggle { position: fixed; top: 12px; right: 12px; z-index: 5; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  /* widgets */
+  .widget { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; margin: 18px 0; }
+  .widget-title { font-weight: 700; margin-bottom: 4px; }
+  .widget-sub { color: var(--muted); font-size: .9rem; margin-bottom: 12px; }
+  .controls { display: grid; gap: 10px 18px; grid-template-columns: 1fr; margin-bottom: 12px; }
+  @media (min-width: 640px) { .controls { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }
+  .controls label { display: grid; gap: 2px; font-size: .86rem; color: var(--muted); }
+  .controls label span b { color: var(--text); }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .widget svg { width: 100%; height: auto; display: block; }
+  .svg-text { fill: var(--muted); font-size: 11px; font-family: system-ui, sans-serif; }
+  .svg-axis { stroke: var(--border); stroke-width: 1; }
+  .metrics-row { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); margin-top: 12px; }
+  .metric { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+  .metric .k { font-size: .74rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+  .metric .v { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .metric.hl { outline: 2px solid var(--bad); }
+  .cm { display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px; font-size: .85rem; max-width: 360px; }
+  .cm div { padding: 8px; border-radius: 8px; text-align: center; }
+  .cm .h { color: var(--muted); font-size: .75rem; font-weight: 700; background: none; }
+  .cm .tp { background: var(--good-soft); } .cm .tn { background: var(--good-soft); }
+  .cm .fp { background: var(--bad-soft); } .cm .fn { background: var(--bad-soft); }
+  .cm b { display: block; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+  .sim-grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .sim-grid { grid-template-columns: 1.4fr 1fr; } }
+  .verdict { font-weight: 700; padding: 8px 12px; border-radius: 10px; margin-top: 10px; }
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 6px 12px; border-radius: 9px; cursor: pointer; font: inherit; font-size: .9rem; }
+  .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .folds { display: grid; gap: 4px; }
+  .fold-row { display: grid; gap: 3px; align-items: center; grid-template-columns: 64px 1fr 70px; font-size: .8rem; color: var(--muted); }
+  .fold-cells { display: grid; gap: 3px; }
+  .fold-cells div { height: 22px; border-radius: 5px; background: var(--accent-soft); border: 1px solid var(--accent); opacity: .55; }
+  .fold-cells div.val { background: var(--pos); border-color: var(--pos); opacity: 1; }
+  .diagram { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 14px 0; font-size: .85rem; }
+  .diagram .box { border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px; padding: 6px 10px; text-align: center; }
+  .diagram .arrow { color: var(--muted); }
+  .quiz .q { margin-bottom: 16px; }
+  .quiz .prompt { font-weight: 600; margin-bottom: 6px; }
+  .quiz .opts { display: grid; gap: 6px; }
+  .quiz .opt { text-align: left; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); padding: 8px 12px; border-radius: 9px; cursor: pointer; font: inherit; }
+  .quiz .opt:disabled { cursor: default; }
+  .quiz .opt.right { border-color: var(--good); background: var(--good-soft); color: var(--good); font-weight: 600; }
+  .quiz .opt.wrong { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
+  .quiz .why { display: none; color: var(--muted); font-size: .88rem; margin-top: 4px; }
+  .quiz .q.answered .why { display: block; }
+  footer { margin-top: 64px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 16px; }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+</style>
+<style>
+  /* Phone-width fixes: let grid/flex children shrink so wide code scrolls inside its box,
+     and let long inline code (e.g. module paths) wrap instead of widening the page. */
+  main div, main section, main details { min-width: 0; }
+  :not(pre) > code { overflow-wrap: anywhere; }
+</style>
+<style>
+  /* theme-toggle clearance: the fixed Theme button would otherwise overlap the first line on phones */
+  @media (max-width: 999px) { main { padding-top: 56px; } }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">◐ Theme</button>
+<div class="layout">
+  <aside class="toc" aria-label="Contents">
+    <p class="toc-title">Contents</p>
+    <a href="#what">1 · What is machine learning?</a>
+    <a href="#types">2 · Types of machine learning</a>
+    <a href="#vocab">3 · Features, target, samples</a>
+    <a href="#workflow">4 · The ML workflow</a>
+    <a href="#splitting">5 · Train, validation, test</a>
+    <a class="sub" href="#leakage">Data leakage</a>
+    <a href="#params">6 · Parameters vs hyperparameters</a>
+    <a href="#linreg">7 · Linear regression</a>
+    <a class="sub" href="#learning">How it learns</a>
+    <a href="#coefs">8 · Interpreting coefficients</a>
+    <a href="#assumptions">9 · Assumptions &amp; residuals</a>
+    <a href="#metrics">10 · Regression metrics</a>
+    <a class="sub" href="#worked">Worked example</a>
+    <a class="sub" href="#which-metric">Which metric when?</a>
+    <a href="#generalisation">11 · Bias, variance, overfitting</a>
+    <a href="#regularisation">12 · Regularisation</a>
+    <a href="#other">13 · Other regressors</a>
+    <a href="#code">14 · scikit-learn end to end</a>
+    <a href="#cheatsheet">15 · Cheat sheet</a>
+    <a href="#quiz">16 · Quiz</a>
+  </aside>
+
+<main>
+  <header>
+    <div class="eyebrow">Week 1 · Traditional Machine Learning</div>
+    <h1>Machine learning fundamentals and regression</h1>
+    <p class="lede">What machine learning is, how a project runs from raw data to a trusted model, and how regression models predict numbers: linear regression, how to measure it, why models overfit, and how regularisation keeps them honest. Classification, its metrics, cross-validation and tuning are covered in depth in the companion <a href="classification-guide.html">classification guide</a>.</p>
+    <details class="mobile-toc">
+      <summary>Contents</summary>
+      <nav>
+        <a href="#what">1 · What is machine learning?</a><a href="#types">2 · Types of machine learning</a><a href="#vocab">3 · Features, target, samples</a>
+        <a href="#workflow">4 · The ML workflow</a><a href="#splitting">5 · Train, validation, test</a><a href="#params">6 · Parameters vs hyperparameters</a>
+        <a href="#linreg">7 · Linear regression</a><a href="#coefs">8 · Interpreting coefficients</a><a href="#assumptions">9 · Assumptions &amp; residuals</a>
+        <a href="#metrics">10 · Regression metrics</a><a href="#generalisation">11 · Bias, variance, overfitting</a><a href="#regularisation">12 · Regularisation</a>
+        <a href="#other">13 · Other regressors</a><a href="#code">14 · scikit-learn end to end</a><a href="#cheatsheet">15 · Cheat sheet</a><a href="#quiz">16 · Quiz</a>
+      </nav>
+    </details>
+  </header>
+
+  <!-- ============ 1. WHAT IS ML ============ -->
+  <section id="what">
+    <h2><span class="num">1</span>What is machine learning?</h2>
+    <p class="intuition"><strong>Intuition.</strong> Instead of writing the rules yourself, you show the computer many examples and let it <em>learn</em> the rules from the data.</p>
+
+    <p>In traditional programming, a person writes the rules: "if the email contains 'winner' and comes from an unknown sender, mark it as spam". That works until the spammers change their wording, and then someone has to rewrite the rules by hand.</p>
+    <p>In <strong>machine learning (ML)</strong>, you give the computer <strong>examples with the answers</strong> (thousands of emails already labelled spam or not spam) and an algorithm finds the patterns that link the inputs to the answers. The result is a <strong>model</strong>: a function that takes new inputs and produces a prediction.</p>
+    <div class="diagram">
+      <div class="box"><b>Traditional programming</b><br><small>rules + data</small></div><span class="arrow">→</span>
+      <div class="box">program</div><span class="arrow">→</span>
+      <div class="box">answers</div>
+    </div>
+    <div class="diagram">
+      <div class="box"><b>Machine learning</b><br><small>data + answers</small></div><span class="arrow">→</span>
+      <div class="box">learning algorithm</div><span class="arrow">→</span>
+      <div class="box"><b>model</b> (the learned rules)</div><span class="arrow">→</span>
+      <div class="box">predictions on new data</div>
+    </div>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0">ML is a good fit when…</h4><ul style="margin:0">
+        <li>The rules are too complex to write down (recognising a face, valuing a house)</li>
+        <li>The rules keep changing (fraud, spam, demand)</li>
+        <li>You have plenty of historical examples with known outcomes</li>
+        <li>An approximate answer is useful; it doesn't need to be perfect</li></ul></div>
+      <div class="card"><h4 style="margin-top:0">ML is a poor fit when…</h4><ul style="margin:0">
+        <li>A simple, exact rule already works (VAT = 20% of the price)</li>
+        <li>You have very little data, or no recorded outcomes</li>
+        <li>Every decision must be fully explainable and guaranteed correct</li>
+        <li>The future will look nothing like the past</li></ul></div>
+    </div>
+    <div class="callout"><p><strong>Key idea:</strong> a model is only as good as the data it learned from. It can't know about patterns that never appeared in its training examples, and it will happily learn any bias or error in them.</p></div>
+  </section>
+
+  <!-- ============ 2. TYPES ============ -->
+  <section id="types">
+    <h2><span class="num">2</span>Types of machine learning</h2>
+    <p class="intuition"><strong>Intuition.</strong> The type depends on what the data gives you: the answers (supervised), no answers (unsupervised), a few answers (semi-supervised), or rewards for good actions (reinforcement).</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Type</th><th>What the data looks like</th><th>Goal</th><th>Examples</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Supervised: regression</strong></td><td>Inputs + a known <em>numeric</em> answer</td><td>Predict a number</td><td>House price · delivery time in minutes · next month's sales · energy use</td></tr>
+        <tr><td><strong>Supervised: classification</strong></td><td>Inputs + a known <em>category</em></td><td>Predict a group</td><td>Spam / not spam · will this customer churn? · which digit is in the image (see the <a href="classification-guide.html">classification guide</a>)</td></tr>
+        <tr><td><strong>Unsupervised: clustering</strong></td><td>Inputs only, no answers</td><td>Find natural groups</td><td>Customer segments · grouping similar news articles · spotting unusual transactions</td></tr>
+        <tr><td><strong>Unsupervised: dimensionality reduction</strong></td><td>Inputs only, often with many columns</td><td>Compress many features into a few that keep most of the information</td><td>PCA to plot 50 features in 2-D · compressing images · removing redundant features</td></tr>
+        <tr><td><strong>Semi-supervised</strong></td><td>A few labelled rows + many unlabelled ones</td><td>Use the unlabelled data to help the labelled data go further</td><td>Labelling 500 of 100,000 medical scans by hand, then learning from all of them</td></tr>
+        <tr><td><strong>Reinforcement learning</strong></td><td>An agent acts in an environment and receives rewards or penalties</td><td>Learn a strategy (a <em>policy</em>) that maximises total reward</td><td>Game-playing AI · robot control · tuning a large language model from human feedback</td></tr>
+      </tbody>
+    </table></div>
+    <p><strong>Regression or classification?</strong> Ask what the answer looks like. "How much / how many / how long?" is regression. "Which one / yes or no?" is classification. Predicting a customer's spend next month (£) is regression; predicting <em>whether</em> they will spend anything is classification.</p>
+  </section>
+
+  <!-- ============ 3. VOCAB ============ -->
+  <section id="vocab">
+    <h2><span class="num">3</span>Features, target and samples</h2>
+    <p class="intuition"><strong>Intuition.</strong> Think of a spreadsheet: each <strong>row</strong> is one example, the <strong>input columns</strong> are what you know, and the <strong>answer column</strong> is what you want to predict.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>floor_area_m2</th><th>bedrooms</th><th>age_years</th><th>distance_to_station_km</th><th>price_gbp (target)</th></tr></thead>
+      <tbody>
+        <tr><td>72</td><td>2</td><td>35</td><td>0.8</td><td>285,000</td></tr>
+        <tr><td>110</td><td>3</td><td>12</td><td>2.1</td><td>390,000</td></tr>
+        <tr><td>55</td><td>1</td><td>60</td><td>0.4</td><td>240,000</td></tr>
+        <tr><td>145</td><td>4</td><td>5</td><td>3.5</td><td>510,000</td></tr>
+      </tbody>
+    </table></div>
+    <ul>
+      <li><strong>Sample</strong> (also <em>row</em>, <em>observation</em>, <em>example</em>, <em>instance</em>): one house. The number of samples is usually written <code>n</code>.</li>
+      <li><strong>Feature</strong> (also <em>input</em>, <em>predictor</em>, <em>independent variable</em>, <em>X</em>): a column you use to make the prediction, such as floor area. The number of features is usually written <code>p</code>.</li>
+      <li><strong>Target</strong> (also <em>label</em>, <em>output</em>, <em>response</em>, <em>dependent variable</em>, <em>y</em>): the column you want to predict, here the price.</li>
+      <li><strong>Prediction</strong> (written <code>ŷ</code>, "y-hat"): the model's guess for the target.</li>
+      <li><strong>Residual</strong> or <strong>error</strong>: <code>y − ŷ</code>, the actual value minus the prediction.</li>
+    </ul>
+    <p>In scikit-learn, features go in a 2-D table <code>X</code> (shape <code>n_samples × n_features</code>) and the target in a 1-D array <code>y</code> (length <code>n_samples</code>):</p>
+<pre><code>import pandas as pd
+
+df = pd.read_csv("houses.csv")
+X = df[["floor_area_m2", "bedrooms", "age_years", "distance_to_station_km"]]   # features (2-D)
+y = df["price_gbp"]                                                             # target (1-D)
+print(X.shape, y.shape)   # e.g. (2000, 4) (2000,)</code></pre>
+    <div class="callout warn"><p><strong>Only use features you will actually have at prediction time.</strong> "Final sale price of the house next door, agreed next week" might predict well in training, but you won't know it when you need the prediction. That's <a href="#leakage">data leakage</a>.</p></div>
+  </section>
+
+  <!-- ============ 4. WORKFLOW ============ -->
+  <section id="workflow">
+    <h2><span class="num">4</span>The ML workflow, end to end</h2>
+    <p class="intuition"><strong>Intuition.</strong> Most of the work is <em>before</em> and <em>after</em> the modelling: understanding the problem, preparing the data, and checking honestly whether the model will work on data it hasn't seen.</p>
+    <div class="diagram">
+      <div class="box">1. Frame</div><span class="arrow">→</span><div class="box">2. Collect</div><span class="arrow">→</span>
+      <div class="box">3. Explore</div><span class="arrow">→</span><div class="box">4. Split</div><span class="arrow">→</span>
+      <div class="box">5. Prepare</div><span class="arrow">→</span><div class="box">6. Train</div><span class="arrow">→</span>
+      <div class="box">7. Validate &amp; tune</div><span class="arrow">→</span><div class="box">8. Test once</div><span class="arrow">→</span>
+      <div class="box">9. Deploy &amp; monitor</div>
+    </div>
+    <ol>
+      <li><strong>Frame the problem.</strong> What exactly are you predicting, for whom, and how will the prediction be used? Is it regression or classification? What would "good enough" mean in business terms (for example, "within £20k for 80% of houses")? Is there a simple baseline to beat?</li>
+      <li><strong>Collect the data.</strong> Gather historical examples with known outcomes. Check that the data you train on looks like the data the model will see later.</li>
+      <li><strong>Explore</strong> (exploratory data analysis, <em>EDA</em>). Look at distributions, missing values, outliers, duplicates, and how each feature relates to the target.</li>
+      <li><strong>Split</strong> into training, validation and test data <em>before</em> fitting anything (next section).</li>
+      <li><strong>Prepare</strong> the features: fill missing values (<em>imputation</em>), turn categories into numbers (<em>encoding</em>), put numbers on a similar scale (<em>scaling</em>), and create useful new features (<em>feature engineering</em>). Fit these steps on the training data only, ideally inside a scikit-learn <code>Pipeline</code>, which chains preprocessing and model into one object.</li>
+      <li><strong>Train</strong> a simple baseline first (for regression: always predict the mean, then plain linear regression), then more flexible models.</li>
+      <li><strong>Validate and tune.</strong> Compare models and hyperparameters on validation data or with cross-validation (see the <a href="classification-guide.html#cv">classification guide, section 9</a>).</li>
+      <li><strong>Test once.</strong> Evaluate the final chosen model on the untouched test set. This number is your honest estimate of real-world performance.</li>
+      <li><strong>Deploy and monitor.</strong> Put the model into use and watch its performance: the world changes (<em>data drift</em>) and models need retraining.</li>
+    </ol>
+    <div class="callout good"><p><strong>Always build a baseline.</strong> For regression, <code>DummyRegressor(strategy="mean")</code> predicts the average target for everyone. If your clever model can't beat it clearly, something is wrong.</p></div>
+  </section>
+
+  <!-- ============ 5. SPLITTING ============ -->
+  <section id="splitting">
+    <h2><span class="num">5</span>Training, validation and test data</h2>
+    <p class="intuition"><strong>Intuition.</strong> You don't judge a student with the exact questions they practised on. Keep some data hidden so you can check whether the model has <em>learned</em> or just <em>memorised</em>.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Set</th><th>Typical share</th><th>Used for</th><th>Analogy</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Training set</strong></td><td>60–80%</td><td>Fitting the model: learning its parameters</td><td>The textbook and practice exercises</td></tr>
+        <tr><td><strong>Validation set</strong></td><td>10–20%</td><td>Choosing between models and hyperparameters; early stopping</td><td>Mock exams, taken many times</td></tr>
+        <tr><td><strong>Test set</strong></td><td>10–20%</td><td>One final, honest estimate of performance on new data</td><td>The real exam, taken once</td></tr>
+      </tbody>
+    </table></div>
+    <p>If you keep checking the test set while tuning, you gradually tune the model to that particular test set and its score stops being honest. That's why the validation set exists. With small data, <strong>cross-validation</strong> replaces the single validation set by rotating which part of the training data plays that role (covered in the <a href="classification-guide.html#cv">classification guide</a>).</p>
+
+    <h3>train_test_split</h3>
+<pre><code>from sklearn.model_selection import train_test_split
+
+# 80% train, 20% test
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.2,      # fraction (or number of rows) held out for testing
+    random_state=42,    # fixes the shuffle so you get the same split every run
+)
+
+# Three-way split: 60% train / 20% validation / 20% test
+X_temp, X_test, y_temp, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_val, y_train, y_val = train_test_split(X_temp, y_temp, test_size=0.25, random_state=42)  # 0.25 × 0.8 = 0.2</code></pre>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Argument</th><th>What it does</th><th>Tip</th></tr></thead>
+      <tbody>
+        <tr><td><code>test_size</code></td><td>Share (0–1) or number of rows for the test set</td><td>0.2 is a common default; with lots of data a smaller share is fine</td></tr>
+        <tr><td><code>random_state</code></td><td>Seed for the random shuffle</td><td>Set it so results are <em>reproducible</em> (you and your colleagues get the same split)</td></tr>
+        <tr><td><code>shuffle</code></td><td>Shuffle before splitting (default <code>True</code>)</td><td>Set <code>shuffle=False</code> for time-ordered data</td></tr>
+        <tr><td><code>stratify</code></td><td>Keep the same class proportions in train and test</td><td><strong>Classification:</strong> use <code>stratify=y</code>, especially when one class is rare. Not used directly for a numeric target</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Time series: split by time, never at random</h3>
+    <p>If the data is ordered in time (sales, prices, sensor readings), a random split lets the model "see the future": it trains on Wednesday and is tested on Tuesday. Real predictions are always about the future, so the test set must come <strong>after</strong> the training set.</p>
+<pre><code>df = df.sort_values("date")
+cut = int(len(df) * 0.8)
+train, test = df.iloc[:cut], df.iloc[cut:]          # first 80% of time → train, last 20% → test
+
+# or, equivalently, without shuffling (rows must already be in time order):
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+
+# for cross-validation on time series:
+from sklearn.model_selection import TimeSeriesSplit
+tscv = TimeSeriesSplit(n_splits=5)                  # always trains on the past, validates on the future</code></pre>
+
+    <h3 id="leakage">Data leakage</h3>
+    <p><strong>Data leakage</strong> happens when information that would not be available at prediction time sneaks into training. The model looks brilliant in testing and then disappoints in real use.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Type of leakage</th><th>Example</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Preprocessing on all the data</strong></td><td>Scaling or imputing with the mean of the <em>whole</em> dataset, so test-set statistics influence training</td><td>Split first; fit preprocessing on training data only, inside a <code>Pipeline</code></td></tr>
+        <tr><td><strong>Target leakage</strong></td><td>Predicting a house's price using "stamp duty paid", which is calculated from the price</td><td>Ask of every feature: "would I know this at the moment of prediction?"</td></tr>
+        <tr><td><strong>Time leakage</strong></td><td>Random split of time-series data; using next month's figures as a feature</td><td>Chronological split; only use features from the past</td></tr>
+        <tr><td><strong>Group leakage</strong></td><td>The same customer or patient appears in both train and test</td><td>Split by group (<code>GroupShuffleSplit</code>, <code>GroupKFold</code>)</td></tr>
+        <tr><td><strong>Duplicates</strong></td><td>Identical rows in train and test</td><td>Remove duplicates before splitting</td></tr>
+      </tbody>
+    </table></div>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0;color:var(--bad)">Leaky</h4>
+<pre style="margin:0"><code>scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)   # sees the test rows!
+X_tr, X_te, y_tr, y_te = train_test_split(X_scaled, y)</code></pre></div>
+      <div class="card"><h4 style="margin-top:0;color:var(--good)">Safe</h4>
+<pre style="margin:0"><code>X_tr, X_te, y_tr, y_te = train_test_split(X, y)
+model = make_pipeline(StandardScaler(), LinearRegression())
+model.fit(X_tr, y_tr)                # scaler fitted on train only</code></pre></div>
+    </div>
+    <div class="callout warn"><p><strong>Too good to be true?</strong> An R² of 0.99 on a messy real-world problem is usually leakage, not genius. Check which features drive the predictions and whether you'd really have them in time.</p></div>
+  </section>
+
+  <!-- ============ 6. PARAMS ============ -->
+  <section id="params">
+    <h2><span class="num">6</span>Parameters vs hyperparameters</h2>
+    <p class="intuition"><strong>Intuition.</strong> Parameters are what the model <em>learns</em>; hyperparameters are the settings <em>you</em> choose before learning starts.</p>
+    <p><strong>Parameters</strong> are learned from the training data: in linear regression, the intercept and the coefficients (<code>intercept_</code> and <code>coef_</code> in scikit-learn). <strong>Hyperparameters</strong> are set by you before training and control <em>how</em> the model learns and how complex it can become: the polynomial degree, the regularisation strength <code>alpha</code> in Ridge and Lasso, the depth of a tree, the number of neighbours in KNN. You can't learn hyperparameters from the training error itself (the most complex setting would always win), so you choose them by comparing scores on validation data or with cross-validation, for example with <code>GridSearchCV</code>. Tuning, grid search and random search are covered in the <a href="classification-guide.html#hyperparameters">classification guide, section 8</a>; the same tools work for regression with a regression scoring metric such as <code>"neg_root_mean_squared_error"</code> or <code>"r2"</code>.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Model</th><th>Parameters (learned)</th><th>Hyperparameters (chosen)</th></tr></thead>
+      <tbody>
+        <tr><td>Linear regression</td><td>Intercept, coefficients</td><td>Which features / polynomial degree</td></tr>
+        <tr><td>Ridge / Lasso</td><td>Intercept, coefficients</td><td><code>alpha</code></td></tr>
+        <tr><td>Decision tree regressor</td><td>Split features, thresholds, leaf values</td><td><code>max_depth</code>, <code>min_samples_leaf</code></td></tr>
+        <tr><td>KNN regressor</td><td>None (it stores the training data)</td><td><code>n_neighbors</code>, <code>weights</code></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ============ 7. LINEAR REGRESSION ============ -->
+  <section id="linreg">
+    <h2><span class="num">7</span>Linear regression</h2>
+    <p class="intuition"><strong>Intuition.</strong> Draw the straight line (or flat surface) through the data that keeps the predictions as close as possible to the real values.</p>
+
+    <h3>Regression problems</h3>
+    <p>A <strong>regression</strong> problem is any supervised problem where the target is a <strong>continuous number</strong>: a price, a temperature, a duration, a quantity. The model's output can be any value, not just one of a fixed list. Linear regression is the simplest regression model and the baseline everyone should start with.</p>
+
+    <h3>Simple vs multiple linear regression</h3>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0">Simple linear regression</h4><p>One feature:</p><p><code>ŷ = b₀ + b₁x</code></p><p style="margin:0"><code>b₀</code> is the <strong>intercept</strong> (the prediction when x = 0) and <code>b₁</code> is the <strong>slope</strong> (how much ŷ changes when x goes up by 1). The model is a straight line.</p></div>
+      <div class="card"><h4 style="margin-top:0">Multiple linear regression</h4><p>Several features:</p><p><code>ŷ = b₀ + b₁x₁ + b₂x₂ + … + b<sub>p</sub>x<sub>p</sub></code></p><p style="margin:0">Each feature gets its own <strong>coefficient</strong> (weight). With two features the model is a flat plane; with more, a "hyperplane" you can't draw but can still compute.</p></div>
+    </div>
+    <p>"Linear" means linear in the <em>coefficients</em>. You can still model curves by adding transformed features such as <code>x²</code> or <code>log(x)</code>: <code>ŷ = b₀ + b₁x + b₂x²</code> is still linear regression. That's <strong>polynomial regression</strong>, and it reappears in <a href="#generalisation">section 11</a>.</p>
+
+    <div class="widget" id="lfWidget">
+      <div class="widget-title">Try it: fit the line yourself</div>
+      <div class="widget-sub">15 shops: advertising spend (£k) against sales (£k). Move the intercept and slope to make the line fit. The vertical segments are the <strong>residuals</strong>; least squares makes the sum of their squares as small as possible. Turn on "Show squares" to see the squared errors being minimised.</div>
+      <div class="controls">
+        <label><span>Intercept b₀: <b id="lfB0">4.00</b></span><input type="range" id="lfB0In" min="-5" max="12" step="0.05" value="4"></label>
+        <label><span>Slope b₁: <b id="lfB1">0.80</b></span><input type="range" id="lfB1In" min="-1" max="4" step="0.01" value="0.8"></label>
+      </div>
+      <div class="btn-row">
+        <button class="btn" type="button" id="lfBest">Best fit (least squares)</button>
+        <button class="btn" type="button" id="lfGd">50 gradient-descent steps</button>
+        <button class="btn" type="button" id="lfSq" aria-pressed="false">Show squares</button>
+        <button class="btn" type="button" id="lfReset">Reset</button>
+      </div>
+      <svg id="lfSvg" viewBox="0 0 600 300" role="img" aria-label="Scatter plot with adjustable regression line and residuals"></svg>
+      <div class="metrics-row" id="lfMetrics"></div>
+      <p id="lfText" style="font-size:.92rem;margin:10px 0 0"></p>
+    </div>
+
+    <h3 id="learning">How it learns: least squares</h3>
+    <p>For each sample, the <strong>residual</strong> is <code>eᵢ = yᵢ − ŷᵢ</code>. Ordinary least squares (<strong>OLS</strong>) picks the coefficients that minimise the <strong>sum of squared residuals</strong>:</p>
+    <p><code>minimise  SSE = Σ (yᵢ − ŷᵢ)² = Σ (yᵢ − b₀ − b₁xᵢ)²</code></p>
+    <p>Why square the errors? Squaring makes every error positive (so errors above and below the line don't cancel out), punishes big errors more than small ones, and gives a smooth bowl-shaped function with a single lowest point that can be found with a formula. For simple linear regression that formula is:</p>
+    <div class="card">
+      <p><code>b₁ = Σ (xᵢ − x̄)(yᵢ − ȳ) / Σ (xᵢ − x̄)²</code></p>
+      <p><code>b₀ = ȳ − b₁x̄</code></p>
+      <p style="margin:0">where <code>x̄</code> and <code>ȳ</code> are the means. The best line always passes through the point (x̄, ȳ). For multiple regression the same idea in matrix form is the <strong>normal equation</strong>: <code>b = (XᵀX)⁻¹Xᵀy</code>, where X has an extra column of 1s for the intercept. scikit-learn's <code>LinearRegression</code> solves this with a numerically stable method rather than inverting the matrix directly.</p>
+    </div>
+    <h4>Gradient descent, the other way to learn</h4>
+    <p>When there are millions of rows or features, or when the model has no neat formula (neural networks, logistic regression), we use <strong>gradient descent</strong>. Picture the error as a valley over all possible coefficient values. Start somewhere, measure the slope of the ground under your feet (the <em>gradient</em>: here <code>∂MSE/∂b₀ = −(2/n) Σ (yᵢ − ŷᵢ)</code> and <code>∂MSE/∂b₁ = −(2/n) Σ xᵢ(yᵢ − ŷᵢ)</code>), and take a small step downhill: <code>b ← b − η × gradient</code>. The step size <code>η</code> (eta) is the <strong>learning rate</strong>: too small and it crawls, too large and it overshoots and can diverge. Repeat until the steps stop improving the error. For linear regression it reaches the same answer as the formula. Press "50 gradient-descent steps" above a few times: the slope settles quickly but the intercept creeps, because an unscaled feature makes the valley long and narrow. That's one more reason to scale features.</p>
+  </section>
+
+  <!-- ============ 8. COEFFICIENTS ============ -->
+  <section id="coefs">
+    <h2><span class="num">8</span>Interpreting coefficients</h2>
+    <p class="intuition"><strong>Intuition.</strong> A coefficient says how much the prediction changes when that one feature goes up by one unit <em>and everything else stays the same</em>.</p>
+    <p>Suppose a house-price model learns:</p>
+    <p><code>price = 40,000 + 2,500 × floor_area_m2 + 8,000 × bedrooms − 900 × age_years − 15,000 × distance_to_station_km</code></p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Term</th><th>Value</th><th>Plain-English reading</th></tr></thead>
+      <tbody>
+        <tr><td>Intercept <code>b₀</code></td><td>40,000</td><td>The predicted price when every feature is 0. Often meaningless on its own (a house with 0 m²); it anchors the line.</td></tr>
+        <tr><td><code>floor_area_m2</code></td><td>+2,500</td><td>Each extra square metre adds about £2,500, <em>holding bedrooms, age and distance fixed</em>.</td></tr>
+        <tr><td><code>bedrooms</code></td><td>+8,000</td><td>One more bedroom <em>with the same total floor area</em> adds about £8,000 (so it's about layout, not size).</td></tr>
+        <tr><td><code>age_years</code></td><td>−900</td><td>Each extra year of age lowers the predicted price by about £900.</td></tr>
+        <tr><td><code>distance_to_station_km</code></td><td>−15,000</td><td>Each extra kilometre from the station lowers it by about £15,000.</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Things to watch out for</h3>
+    <ul>
+      <li><strong>Units matter.</strong> A coefficient's size depends on the feature's units. Measure distance in metres instead of kilometres and its coefficient becomes −15 instead of −15,000, with identical predictions. So <strong>you can't compare raw coefficients to decide which feature matters most</strong>.</li>
+      <li><strong>Standardise to compare.</strong> After <code>StandardScaler</code> (each feature has mean 0 and standard deviation 1), a coefficient means "change in ŷ for a one-standard-deviation increase in the feature", and sizes become comparable.</li>
+      <li><strong>Association, not causation.</strong> A coefficient describes a pattern in the data, not what would happen if you intervened. Ice-cream sales may "predict" sunburn; banning ice cream won't help.</li>
+      <li><strong>Correlated features</strong> (<em>multicollinearity</em>, see the next section) make individual coefficients unstable, and their signs can even flip, while the predictions stay fine.</li>
+      <li><strong>Sign surprises</strong> are a clue: check for correlated features, leakage or a data error before trusting them.</li>
+    </ul>
+<pre><code>model = make_pipeline(StandardScaler(), LinearRegression()).fit(X_train, y_train)
+lr = model[-1]                                    # the LinearRegression step
+print("intercept:", lr.intercept_)
+print(pd.Series(lr.coef_, index=X_train.columns).sort_values())   # per 1 standard deviation</code></pre>
+  </section>
+
+  <!-- ============ 9. ASSUMPTIONS ============ -->
+  <section id="assumptions">
+    <h2><span class="num">9</span>Assumptions and residual plots</h2>
+    <p class="intuition"><strong>Intuition.</strong> If the model has captured the pattern, what's left over (the residuals) should look like random noise. Any visible shape in the residuals is a pattern the model missed.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Assumption</th><th>In plain words</th><th>How it shows up in a residual plot</th><th>If it's broken</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Linearity</strong></td><td>The target really does change in a straight-line way with each feature</td><td>A curve or U-shape</td><td>Add transformed features (<code>x²</code>, <code>log x</code>), or use a non-linear model</td></tr>
+        <tr><td><strong>Independent errors</strong></td><td>One sample's error tells you nothing about the next one's</td><td>Waves or runs when residuals are plotted in time order</td><td>Time-series methods; add lag features; split chronologically or by group</td></tr>
+        <tr><td><strong>Constant variance</strong> (<em>homoscedasticity</em>)</td><td>Errors are about the same size everywhere, for cheap and expensive houses alike</td><td>A funnel or fan shape</td><td>Transform the target (e.g. <code>log(price)</code>); use relative-error metrics</td></tr>
+        <tr><td><strong>No strong multicollinearity</strong></td><td>Features aren't near-copies of each other</td><td>Not visible in residuals: check correlations or the variance inflation factor (VIF)</td><td>Drop or combine features; use Ridge regularisation</td></tr>
+      </tbody>
+    </table></div>
+    <p>A fifth assumption, <strong>normally distributed errors</strong>, matters mainly for confidence intervals and p-values in statistics; for pure prediction it is the least important. Breaking these assumptions doesn't stop the model making predictions, but it makes them less accurate in places and makes the coefficients less trustworthy.</p>
+
+    <div class="widget" id="rpWidget">
+      <div class="widget-title">Try it: read a residual plot</div>
+      <div class="widget-sub">Each dot is one prediction: the predicted value on the x-axis, the residual (actual − predicted) on the y-axis. Pick a pattern.</div>
+      <div class="btn-row" role="group" aria-label="Residual pattern">
+        <button class="btn" type="button" data-rp="good" aria-pressed="true">Healthy</button>
+        <button class="btn" type="button" data-rp="curve" aria-pressed="false">Curved</button>
+        <button class="btn" type="button" data-rp="funnel" aria-pressed="false">Funnel</button>
+        <button class="btn" type="button" data-rp="time" aria-pressed="false">Time pattern</button>
+      </div>
+      <svg id="rpSvg" viewBox="0 0 600 240" role="img" aria-label="Residual plot"></svg>
+      <div class="verdict" id="rpText"></div>
+    </div>
+<pre><code>import matplotlib.pyplot as plt
+
+pred = model.predict(X_test)
+resid = y_test - pred
+plt.scatter(pred, resid, alpha=0.5)
+plt.axhline(0, color="grey")
+plt.xlabel("predicted"); plt.ylabel("residual (actual − predicted)")
+plt.show()
+
+# Multicollinearity: correlation matrix, or variance inflation factor (needs statsmodels)
+print(X_train.corr().round(2))
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+vif = [variance_inflation_factor(X_train.values, i) for i in range(X_train.shape[1])]   # above ~5–10 = worrying</code></pre>
+  </section>
+
+  <!-- ============ 10. METRICS ============ -->
+  <section id="metrics">
+    <h2><span class="num">10</span>Regression metrics</h2>
+    <p class="intuition"><strong>Intuition.</strong> Every regression metric summarises the residuals in a different way: their average size, their squared size, or how much better the model is than just guessing the mean.</p>
+    <p>Notation: <code>yᵢ</code> = actual value, <code>ŷᵢ</code> = prediction, <code>ȳ</code> = mean of the actual values, <code>n</code> = number of samples, <code>p</code> = number of features.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Metric</th><th>Formula</th><th>Units</th><th>Reading it</th></tr></thead>
+      <tbody>
+        <tr><td><strong>MAE</strong>, mean absolute error</td><td><code>(1/n) Σ |yᵢ − ŷᵢ|</code></td><td>Same as y</td><td>"On average we're off by this much." Easy to explain; treats all errors equally; robust to outliers</td></tr>
+        <tr><td><strong>MSE</strong>, mean squared error</td><td><code>(1/n) Σ (yᵢ − ŷᵢ)²</code></td><td>y squared</td><td>What least squares minimises. Punishes large errors heavily. Hard to interpret (£²)</td></tr>
+        <tr><td><strong>RMSE</strong>, root mean squared error</td><td><code>√MSE</code></td><td>Same as y</td><td>Like MAE but big errors count more. Always ≥ MAE; a large gap between them means a few big errors</td></tr>
+        <tr><td><strong>R²</strong>, coefficient of determination</td><td><code>1 − SS<sub>res</sub> / SS<sub>tot</sub></code><br><small><code>SS<sub>res</sub> = Σ (yᵢ − ŷᵢ)²</code>, <code>SS<sub>tot</sub> = Σ (yᵢ − ȳ)²</code></small></td><td>None (≤ 1)</td><td>Share of the target's variation the model explains. 1 = perfect; 0 = no better than predicting the mean; <strong>negative = worse than the mean</strong></td></tr>
+        <tr><td><strong>Adjusted R²</strong></td><td><code>1 − (1 − R²)(n − 1) / (n − p − 1)</code></td><td>None</td><td>Training R² never goes down when you add a feature, even a useless one. Adjusted R² charges a penalty per feature, so it only rises if the feature helps enough</td></tr>
+        <tr><td><strong>MAPE</strong>, mean absolute percentage error</td><td><code>(100% / n) Σ |(yᵢ − ŷᵢ) / yᵢ|</code></td><td>%</td><td>"Off by 6% on average." Business-friendly and scale-free. Breaks when any yᵢ is 0 or near 0, and penalises over-prediction more than under-prediction</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="worked">Worked example with 5 points</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>i</th><th>Actual y</th><th>Predicted ŷ</th><th>Error y − ŷ</th><th>|error|</th><th>error²</th><th>|error| / y</th><th>(y − ȳ)²</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>10</td><td>11</td><td>−1</td><td>1</td><td>1</td><td>0.1000</td><td>25</td></tr>
+        <tr><td>2</td><td>12</td><td>12</td><td>0</td><td>0</td><td>0</td><td>0.0000</td><td>9</td></tr>
+        <tr><td>3</td><td>15</td><td>14</td><td>1</td><td>1</td><td>1</td><td>0.0667</td><td>0</td></tr>
+        <tr><td>4</td><td>18</td><td>19</td><td>−1</td><td>1</td><td>1</td><td>0.0556</td><td>9</td></tr>
+        <tr><td>5</td><td>20</td><td>18</td><td>2</td><td>2</td><td>4</td><td>0.1000</td><td>25</td></tr>
+        <tr><td><strong>Sum</strong></td><td>75</td><td>74</td><td>1</td><td><strong>5</strong></td><td><strong>7</strong></td><td><strong>0.3222</strong></td><td><strong>68</strong></td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout">
+      <ul style="margin:0">
+        <li>Mean of actual values: <code>ȳ = 75 / 5 = 15</code></li>
+        <li><strong>MAE</strong> = 5 / 5 = <strong>1.00</strong></li>
+        <li><strong>MSE</strong> = 7 / 5 = <strong>1.40</strong></li>
+        <li><strong>RMSE</strong> = √1.40 = <strong>1.18</strong> (slightly above MAE, because the one error of 2 counts extra)</li>
+        <li><strong>R²</strong> = 1 − SS<sub>res</sub> / SS<sub>tot</sub> = 1 − 7 / 68 = 1 − 0.103 = <strong>0.897</strong></li>
+        <li><strong>Adjusted R²</strong> with n = 5 and p = 1 feature = 1 − (7/68) × (5 − 1) / (5 − 1 − 1) = 1 − 0.103 × 4/3 = <strong>0.863</strong></li>
+        <li><strong>MAPE</strong> = 0.3222 / 5 = 0.0644 = <strong>6.44%</strong></li>
+      </ul>
+    </div>
+<pre><code>import numpy as np
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, mean_absolute_percentage_error
+
+y_true = np.array([10, 12, 15, 18, 20])
+y_pred = np.array([11, 12, 14, 19, 18])
+
+mae  = mean_absolute_error(y_true, y_pred)            # 1.0
+mse  = mean_squared_error(y_true, y_pred)             # 1.4
+rmse = np.sqrt(mse)                                   # 1.183  (or root_mean_squared_error in scikit-learn ≥ 1.4)
+r2   = r2_score(y_true, y_pred)                       # 0.897
+mape = mean_absolute_percentage_error(y_true, y_pred) # 0.0644: a FRACTION, not a percentage
+
+def adjusted_r2(r2, n, p):
+    return 1 - (1 - r2) * (n - 1) / (n - p - 1)
+print(adjusted_r2(r2, n=5, p=1))                      # 0.863</code></pre>
+
+    <h3 id="which-metric">Which metric when?</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Use</th><th>When</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><strong>MAE</strong></td><td>You want a plain "typical error" figure, and an error of 10 is just twice as bad as an error of 5. The data has outliers you don't want to dominate</td><td>Delivery-time estimates; reporting to non-technical stakeholders</td></tr>
+        <tr><td><strong>RMSE</strong></td><td>Large errors are disproportionately costly, so you want to punish them. The usual default for comparing models</td><td>Energy demand (a big miss causes a blackout); stock planning</td></tr>
+        <tr><td><strong>MSE</strong></td><td>As a training loss and for maths; rarely for reporting because of its squared units</td><td>The objective inside least squares and many neural networks</td></tr>
+        <tr><td><strong>R²</strong></td><td>A unit-free "how much is explained" summary, comparing models on the <em>same</em> data</td><td>"The model explains 78% of the variation in house prices"</td></tr>
+        <tr><td><strong>Adjusted R²</strong></td><td>Comparing linear models with different numbers of features</td><td>Deciding whether adding 5 extra features was worth it</td></tr>
+        <tr><td><strong>MAPE</strong></td><td>Stakeholders think in percentages, and targets are well away from zero</td><td>Sales forecasting across products of very different sizes</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn"><p><strong>R² can't be compared across datasets.</strong> A model on a target with little variation can have a low R² and still small errors. Always report an error in real units (MAE or RMSE) alongside R², and always compare against the mean-prediction baseline.</p></div>
+  </section>
+
+  <!-- ============ 11. GENERALISATION ============ -->
+  <section id="generalisation">
+    <h2><span class="num">11</span>Generalisation: bias, variance, underfitting, overfitting</h2>
+    <p class="intuition"><strong>Intuition.</strong> A good model learns the <em>signal</em> and ignores the <em>noise</em>. Too simple and it misses the signal (underfitting); too flexible and it memorises the noise (overfitting).</p>
+    <p><strong>Generalisation</strong> is how well a model performs on new data it has never seen. That's the only performance that matters in practice: a low training error is easy to get and proves little.</p>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0;color:var(--warn)">Bias → underfitting</h4><p style="margin:0"><strong>Bias</strong> is error from wrong simplifying assumptions, such as fitting a straight line to a curve. A high-bias model is too rigid: it misses the pattern, so training error <em>and</em> test error are both high. That's <strong>underfitting</strong>.</p></div>
+      <div class="card"><h4 style="margin-top:0;color:var(--bad)">Variance → overfitting</h4><p style="margin:0"><strong>Variance</strong> is error from being too sensitive to the particular training sample. Train a high-variance model on a slightly different sample and you get a very different model. It fits the training data almost perfectly but the test error is much higher. That's <strong>overfitting</strong>.</p></div>
+    </div>
+    <h3>The bias–variance trade-off</h3>
+    <p>For squared error, the expected test error of a model can be split into three parts:</p>
+    <p><code>expected test MSE = bias² + variance + irreducible noise</code></p>
+    <p>The <strong>irreducible noise</strong> (σ²) comes from things the features can't explain, such as measurement error or genuine randomness; no model can remove it. Making a model more complex usually lowers its bias but raises its variance. The best model sits at the sweet spot where their sum is smallest. You find it by watching the <strong>test (or validation) error</strong>, not the training error, which only ever goes down as complexity grows.</p>
+
+    <div class="widget" id="ofWidget">
+      <div class="widget-title">Try it: polynomial degree and overfitting</div>
+      <div class="widget-sub">30 noisy points from a smooth curve (dashed). Filled dots are the 15 <strong>training</strong> points the polynomial is fitted to by least squares; hollow dots are 15 <strong>test</strong> points it never sees. Raise the degree and watch training error keep falling while test error falls, then shoots up.</div>
+      <div class="controls"><label><span>Polynomial degree: <b id="ofDegV">1</b></span><input type="range" id="ofDeg" min="1" max="12" step="1" value="1"></label></div>
+      <div class="sim-grid">
+        <div><svg id="ofSvg" viewBox="0 0 520 300" role="img" aria-label="Polynomial fit with training and test points"></svg></div>
+        <div><svg id="ofChart" viewBox="0 0 300 300" role="img" aria-label="Training and test RMSE by degree"></svg></div>
+      </div>
+      <div class="metrics-row" id="ofMetrics"></div>
+      <div class="verdict" id="ofVerdict"></div>
+    </div>
+
+    <h3>Diagnosing from training and test error</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Training error</th><th>Test / validation error</th><th>Diagnosis</th><th>What to try</th></tr></thead>
+      <tbody>
+        <tr><td>High</td><td>High, similar</td><td><strong>Underfitting</strong> (high bias)</td><td>More flexible model, more or better features, less regularisation</td></tr>
+        <tr><td>Low</td><td>Much higher</td><td><strong>Overfitting</strong> (high variance)</td><td>More data, simpler model, more regularisation, fewer features</td></tr>
+        <tr><td>Low</td><td>Low, close to training</td><td><strong>Good fit</strong></td><td>Check on the test set once, then ship</td></tr>
+        <tr><td>Low</td><td>Suspiciously low</td><td>Possible <strong>leakage</strong></td><td>Audit the features and the split</td></tr>
+      </tbody>
+    </table></div>
+<pre><code>from sklearn.preprocessing import PolynomialFeatures
+
+for degree in [1, 3, 12]:
+    model = make_pipeline(PolynomialFeatures(degree, include_bias=False), StandardScaler(), LinearRegression())
+    model.fit(X_train, y_train)
+    train_rmse = np.sqrt(mean_squared_error(y_train, model.predict(X_train)))
+    test_rmse  = np.sqrt(mean_squared_error(y_test,  model.predict(X_test)))
+    print(degree, round(train_rmse, 3), round(test_rmse, 3))</code></pre>
+    <p>Learning curves, validation curves and a full table of causes and fixes are in the <a href="classification-guide.html#fit">classification guide, section 10</a>: the ideas are identical for regression.</p>
+  </section>
+
+  <!-- ============ 12. REGULARISATION ============ -->
+  <section id="regularisation">
+    <h2><span class="num">12</span>Regularisation: Ridge, Lasso and ElasticNet</h2>
+    <p class="intuition"><strong>Intuition.</strong> Add a "complexity tax" to the error: the model may only use large coefficients if they reduce the error by more than the tax costs. Smaller coefficients mean a smoother, calmer model.</p>
+    <p>An overfitting model, like the degree-12 polynomial above, typically has <strong>large coefficients</strong> that cancel each other out to thread through every training point. <strong>Regularisation</strong> adds a penalty on coefficient size to the training objective, which pulls them towards zero:</p>
+    <p><code>minimise  (error on the training data) + α × (size of the coefficients)</code></p>
+    <p><strong><code>alpha</code> (α)</strong> is a hyperparameter that sets the strength of the penalty. α = 0 gives plain least squares; a very large α squashes every coefficient to (nearly) zero, so the model predicts roughly the mean everywhere and underfits. The intercept is not penalised.</p>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0">Ridge (L2)</h4><p><code>Σ (yᵢ − ŷᵢ)² + α Σ bⱼ²</code></p><p style="margin:0">Penalises the <strong>squares</strong> of the coefficients. Shrinks all of them smoothly towards zero but <strong>never exactly to zero</strong>. Handles correlated features well by sharing the weight between them.</p></div>
+      <div class="card"><h4 style="margin-top:0">Lasso (L1)</h4><p><code>(1 / 2n) Σ (yᵢ − ŷᵢ)² + α Σ |bⱼ|</code></p><p style="margin:0">Penalises the <strong>absolute values</strong>. Pushes some coefficients to <strong>exactly zero</strong>, removing those features: automatic <strong>feature selection</strong>. Tends to pick one feature from a correlated group.</p></div>
+    </div>
+    <p style="font-size:.9rem;color:var(--muted)">These are the objectives scikit-learn uses. Note the different scaling (Lasso divides the error by 2n), so the same α number does not mean the same strength in Ridge and Lasso.</p>
+
+    <div class="widget" id="rgWidget">
+      <div class="widget-title">Try it: regularise the degree-12 polynomial</div>
+      <div class="widget-sub">The same 15 training points, now with 12 features (x, x², …, x¹², each standardised). Slide α from almost nothing to very strong and watch the curve calm down and the coefficients shrink. Switch to Lasso to see coefficients hit exactly zero.</div>
+      <div class="btn-row" role="group" aria-label="Regularisation type">
+        <button class="btn" type="button" data-reg="ridge" aria-pressed="true">Ridge (L2)</button>
+        <button class="btn" type="button" data-reg="lasso" aria-pressed="false">Lasso (L1)</button>
+      </div>
+      <div class="controls"><label><span>α (log scale): <b id="rgAlphaV">1e-6</b></span><input type="range" id="rgAlpha" min="-6" max="2" step="0.1" value="-6"></label></div>
+      <div class="sim-grid">
+        <div><svg id="rgSvg" viewBox="0 0 520 300" role="img" aria-label="Regularised polynomial fit"></svg></div>
+        <div><svg id="rgBars" viewBox="0 0 300 300" role="img" aria-label="Coefficient sizes"></svg></div>
+      </div>
+      <div class="metrics-row" id="rgMetrics"></div>
+      <div class="verdict" id="rgVerdict"></div>
+    </div>
+
+    <h3>L1 vs L2 at a glance</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th></th><th>Ridge (L2)</th><th>Lasso (L1)</th><th>ElasticNet (L1 + L2)</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Penalty</strong></td><td><code>α Σ bⱼ²</code></td><td><code>α Σ |bⱼ|</code></td><td>A mix of both, set by <code>l1_ratio</code></td></tr>
+        <tr><td><strong>Effect on coefficients</strong></td><td>Shrinks all, none exactly zero</td><td>Shrinks, many become exactly zero</td><td>Some zero, the rest shrunk</td></tr>
+        <tr><td><strong>Feature selection</strong></td><td>No</td><td><strong>Yes</strong></td><td>Yes</td></tr>
+        <tr><td><strong>Correlated features</strong></td><td>Shares weight among them (stable)</td><td>Picks one somewhat arbitrarily (unstable)</td><td>Tends to keep groups together</td></tr>
+        <tr><td><strong>Best when</strong></td><td>Many features each contributing a little; multicollinearity</td><td>You suspect only a few features matter; you want a simpler model</td><td>Many correlated features and you still want selection</td></tr>
+        <tr><td><strong>Solution</strong></td><td>Has a closed-form formula</td><td>Iterative (coordinate descent)</td><td>Iterative</td></tr>
+        <tr><td><strong>scikit-learn</strong></td><td><code>Ridge(alpha=1.0)</code></td><td><code>Lasso(alpha=0.1)</code></td><td><code>ElasticNet(alpha=0.1, l1_ratio=0.5)</code></td></tr>
+      </tbody>
+    </table></div>
+    <h3>Why L1 gives exact zeros</h3>
+    <p>The L2 penalty's pull on a coefficient gets weaker as the coefficient gets smaller (the slope of b² near 0 is nearly 0), so coefficients get small but never reach zero. The L1 penalty pulls with the <em>same</em> force however small the coefficient is, so if a feature's benefit to the error is smaller than α, the cheapest choice is to set its coefficient to exactly 0.</p>
+    <p><strong>ElasticNet</strong> combines both penalties: <code>l1_ratio = 1</code> is pure Lasso, <code>l1_ratio = 0</code> is pure Ridge, and values in between give some feature selection while staying stable with correlated features.</p>
+
+    <div class="callout warn"><p><strong>Always scale before regularising.</strong> The penalty treats every coefficient the same, but coefficient size depends on the feature's units. Without scaling, a feature measured in metres (tiny coefficient) would barely be penalised, while the same feature in kilometres (large coefficient) would be penalised heavily. Put <code>StandardScaler()</code> before <code>Ridge</code> / <code>Lasso</code> in a <code>Pipeline</code>.</p></div>
+    <h3>Choosing α</h3>
+    <p>α is a hyperparameter, so choose it with cross-validation. Search on a <strong>log scale</strong> (0.001, 0.01, 0.1, 1, 10, 100…), because what matters is the order of magnitude. scikit-learn has built-in cross-validated versions:</p>
+<pre><code>from sklearn.linear_model import RidgeCV, LassoCV, ElasticNetCV
+
+alphas = np.logspace(-3, 3, 13)   # 0.001 … 1000
+ridge = make_pipeline(StandardScaler(), RidgeCV(alphas=alphas)).fit(X_train, y_train)
+lasso = make_pipeline(StandardScaler(), LassoCV(alphas=alphas, cv=5, max_iter=10_000)).fit(X_train, y_train)
+enet  = make_pipeline(StandardScaler(), ElasticNetCV(l1_ratio=[0.2, 0.5, 0.8], cv=5, max_iter=10_000)).fit(X_train, y_train)
+
+print("Ridge alpha:", ridge[-1].alpha_)
+print("Lasso alpha:", lasso[-1].alpha_, "features kept:", (lasso[-1].coef_ != 0).sum())</code></pre>
+  </section>
+
+  <!-- ============ 13. OTHER REGRESSORS ============ -->
+  <section id="other">
+    <h2><span class="num">13</span>Other regressors</h2>
+    <p class="intuition"><strong>Intuition.</strong> Most classification algorithms have a regression twin: instead of voting for a class, they average numbers.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Model</th><th>How it predicts a number</th><th>Strengths</th><th>Weaknesses</th><th>Use when</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Decision tree</strong><br><code>DecisionTreeRegressor</code></td><td>Asks yes/no questions; each leaf predicts the <em>mean</em> target of its training rows. Splits are chosen to reduce squared error</td><td>Interpretable; captures non-linear patterns and interactions; no scaling needed</td><td>Overfits easily; step-shaped predictions; <strong>can't extrapolate</strong> beyond the training range</td><td>You need explainable rules</td></tr>
+        <tr><td><strong>Random forest</strong><br><code>RandomForestRegressor</code></td><td>Averages the predictions of many trees, each trained on a bootstrap sample with random feature subsets</td><td>Strong default; robust; little tuning; feature importances</td><td>Slower and larger; less interpretable; still can't extrapolate</td><td>A reliable non-linear model on tabular data</td></tr>
+        <tr><td><strong>K-nearest neighbours</strong><br><code>KNeighborsRegressor</code></td><td>Finds the k most similar training rows and averages their targets</td><td>Simple; no real training step; captures local patterns</td><td>Needs scaling; slow on big data; poor with many features</td><td>Small, low-dimensional data where "similar inputs, similar outputs" holds</td></tr>
+        <tr><td><strong>Gradient boosting</strong><br><code>HistGradientBoostingRegressor</code>, XGBoost, LightGBM</td><td>Adds trees one at a time, each correcting the remaining errors</td><td>Usually the most accurate on tabular data</td><td>More tuning; can overfit</td><td>You need top accuracy and can tune (see the <a href="classification-guide.html#ensembles">classification guide</a>)</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout"><p><strong>Extrapolation:</strong> tree-based models predict averages of training targets, so they can never predict a value higher than the highest one they've seen. If house prices rise next year, a random forest will cap out; a linear model will follow the trend (for better or worse).</p></div>
+<pre><code>from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.neighbors import KNeighborsRegressor
+
+tree = DecisionTreeRegressor(max_depth=5, min_samples_leaf=20, random_state=42)
+rf   = RandomForestRegressor(n_estimators=300, min_samples_leaf=3, n_jobs=-1, random_state=42)
+knn  = make_pipeline(StandardScaler(), KNeighborsRegressor(n_neighbors=10, weights="distance"))</code></pre>
+  </section>
+
+  <!-- ============ 14. CODE ============ -->
+  <section id="code">
+    <h2><span class="num">14</span>scikit-learn end to end</h2>
+    <p class="intuition"><strong>Intuition.</strong> Split first, wrap preprocessing and model together in a pipeline, compare against a baseline, choose with cross-validation, and test once.</p>
+<pre><code>import numpy as np
+import pandas as pd
+from sklearn.datasets import fetch_california_housing
+from sklearn.model_selection import train_test_split, cross_val_score, KFold
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.dummy import DummyRegressor
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+# 1. Data: median house value (in $100,000s) for California districts
+X, y = fetch_california_housing(return_X_y=True, as_frame=True)
+
+# 2. Split BEFORE anything else
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 3. Candidate models: scaling lives inside each pipeline, so no leakage
+models = {
+    "baseline (mean)": DummyRegressor(strategy="mean"),
+    "linear":          make_pipeline(StandardScaler(), LinearRegression()),
+    "ridge":           make_pipeline(StandardScaler(), Ridge(alpha=1.0)),
+    "lasso":           make_pipeline(StandardScaler(), Lasso(alpha=0.01, max_iter=10_000)),
+}
+
+# 4. Compare with 5-fold cross-validation on the TRAINING data only
+cv = KFold(n_splits=5, shuffle=True, random_state=42)
+for name, model in models.items():
+    scores = cross_val_score(model, X_train, y_train, cv=cv, scoring="neg_root_mean_squared_error")
+    print(f"{name:16s} CV RMSE = {-scores.mean():.3f} ± {scores.std():.3f}")
+
+# 5. Fit the chosen model on all the training data and test ONCE
+best = models["ridge"].fit(X_train, y_train)
+pred = best.predict(X_test)
+print("MAE :", mean_absolute_error(y_test, pred))
+print("RMSE:", np.sqrt(mean_squared_error(y_test, pred)))
+print("R²  :", r2_score(y_test, pred))
+
+# 6. Inspect the coefficients (per one standard deviation of each feature)
+print(pd.Series(best[-1].coef_, index=X.columns).sort_values())
+
+# Lasso: which features survived?
+lasso = models["lasso"].fit(X_train, y_train)
+print("Lasso kept:", list(X.columns[lasso[-1].coef_ != 0]))</code></pre>
+    <div class="callout"><p>scikit-learn's scorers follow "higher is better", so error metrics come out <strong>negative</strong> (<code>"neg_mean_absolute_error"</code>, <code>"neg_root_mean_squared_error"</code>). Flip the sign when you report them.</p></div>
+  </section>
+
+  <!-- ============ 15. CHEAT SHEET ============ -->
+  <section id="cheatsheet">
+    <h2><span class="num">15</span>Cheat sheet</h2>
+    <p class="intuition"><strong>Intuition.</strong> One table to come back to when you start a regression project.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Topic</th><th>Remember</th></tr></thead>
+      <tbody>
+        <tr><td>Regression vs classification</td><td>"How much?" → regression. "Which one?" → classification</td></tr>
+        <tr><td>Split</td><td><code>train_test_split(X, y, test_size=0.2, random_state=42)</code>; <code>stratify=y</code> for classification; chronological for time series</td></tr>
+        <tr><td>Leakage</td><td>Split first; preprocessing inside a <code>Pipeline</code>; only features known at prediction time</td></tr>
+        <tr><td>Baseline</td><td><code>DummyRegressor(strategy="mean")</code>, then <code>LinearRegression</code></td></tr>
+        <tr><td>Linear regression</td><td><code>ŷ = b₀ + b₁x₁ + … + b<sub>p</sub>x<sub>p</sub></code>, fitted by minimising Σ(y − ŷ)²</td></tr>
+        <tr><td>Coefficients</td><td>Change in ŷ per unit of the feature, others held fixed. Standardise to compare sizes. Not causal</td></tr>
+        <tr><td>Assumptions</td><td>Linearity · independent errors · constant variance · no strong multicollinearity. Check the residual plot</td></tr>
+        <tr><td>Metrics</td><td>MAE (typical error) · RMSE (punishes big errors) · R² (share explained, can be negative) · adjusted R² (penalises extra features) · MAPE (%; not near zero)</td></tr>
+        <tr><td>Underfitting</td><td>Train and test error both high → more flexible model, better features, less regularisation</td></tr>
+        <tr><td>Overfitting</td><td>Train error low, test error much higher → more data, simpler model, more regularisation</td></tr>
+        <tr><td>Ridge (L2)</td><td>Shrinks all coefficients, none to zero; good with correlated features</td></tr>
+        <tr><td>Lasso (L1)</td><td>Sets some coefficients to exactly zero: feature selection</td></tr>
+        <tr><td>ElasticNet</td><td>L1 + L2; <code>l1_ratio</code> sets the mix</td></tr>
+        <tr><td>α</td><td>Bigger = simpler model. Tune on a log scale with <code>RidgeCV</code> / <code>LassoCV</code>. Always scale first</td></tr>
+        <tr><td>Non-linear data</td><td>Polynomial features + Ridge, or random forest / gradient boosting. Trees can't extrapolate</td></tr>
+        <tr><td>Test set</td><td>Use it once, at the very end</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ============ 16. QUIZ ============ -->
+  <section id="quiz">
+    <h2><span class="num">16</span>Quiz</h2>
+    <p class="intuition"><strong>Intuition.</strong> Ten questions to check the key ideas, with instant feedback and an explanation for each.</p>
+    <div class="card quiz" id="quizBox"></div>
+    <p><strong id="quizScore"></strong> <button class="btn" type="button" id="quizReset">Try again</button></p>
+  </section>
+
+  <footer>Data Science &amp; Agentic AI Programme · Week 1 · <a href="../index.html">All course docs</a></footer>
+</main>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : "–");
+
+  /* ---------- theme ---------- */
+  const root = document.documentElement;
+  try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch {}
+  const redrawers = [];
+  $("themeToggle").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+    redrawers.forEach((f) => f());
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => redrawers.forEach((f) => f()));
+
+  /* ---------- table of contents highlight ---------- */
+  const tocLinks = [...document.querySelectorAll("aside.toc a")];
+  const sections = tocLinks.map((a) => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        tocLinks.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id));
+      }
+    });
+  }, { rootMargin: "0px 0px -70% 0px" });
+  sections.forEach((s) => obs.observe(s));
+
+  /* ---------- svg + maths helpers ---------- */
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs = {}, text) {
+    const n = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+  function mulberry32(a) { return function () { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function gaussian(rand) { return () => { let u = 0, v = 0; while (!u) u = rand(); while (!v) v = rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }; }
+  // Solve A x = b by Gaussian elimination with partial pivoting (A is small and square).
+  function solve(A, b) {
+    const n = b.length, M = A.map((row, i) => [...row, b[i]]);
+    for (let c = 0; c < n; c++) {
+      let p = c;
+      for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+      [M[c], M[p]] = [M[p], M[c]];
+      for (let r = c + 1; r < n; r++) { const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; }
+    }
+    const x = new Array(n).fill(0);
+    for (let r = n - 1; r >= 0; r--) { let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; }
+    return x;
+  }
+  const metricsHtml = (items) => items.map(([k, v, hl]) => `<div class="metric${hl ? " hl" : ""}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+  function setVerdict(node, kind, text) { node.style.background = css(`--${kind}-soft`); node.style.color = css(`--${kind}`); node.textContent = text; }
+  function clipRect(svg, id, L, T, R, B) {
+    const defs = el("defs"), cp = el("clipPath", { id });
+    cp.append(el("rect", { x: L, y: T, width: R - L, height: B - T }));
+    defs.append(cp); svg.append(defs);
+    const g = el("g", { "clip-path": `url(#${id})` }); return g;
+  }
+
+  /* ---------- (a) fit-the-line widget ---------- */
+  const lfPts = (() => {
+    const r = mulberry32(11), g = gaussian(r);
+    return Array.from({ length: 15 }, () => { const x = +(0.5 + 9 * r()).toFixed(1); return { x, y: +(3 + 1.4 * x + 1.8 * g()).toFixed(1) }; });
+  })();
+  const LF = (() => {
+    const n = lfPts.length;
+    const mx = lfPts.reduce((s, p) => s + p.x, 0) / n, my = lfPts.reduce((s, p) => s + p.y, 0) / n;
+    let sxx = 0, sxy = 0, sst = 0, sx2 = 0;
+    lfPts.forEach((p) => { sxx += (p.x - mx) ** 2; sxy += (p.x - mx) * (p.y - my); sst += (p.y - my) ** 2; sx2 += p.x * p.x; });
+    const b1 = sxy / sxx, b0 = my - b1 * mx;
+    // Hessian of MSE(b0, b1) = 2 [[1, x̄], [x̄, mean(x²)]]; learning rate = 1 / largest eigenvalue keeps gradient descent stable.
+    const h11 = 2, h12 = 2 * mx, h22 = 2 * sx2 / n, tr = h11 + h22, det = h11 * h22 - h12 * h12;
+    const lmax = (tr + Math.sqrt(tr * tr - 4 * det)) / 2;
+    return { n, mx, my, sst, b0, b1, lr: 1 / lmax };
+  })();
+  function lfStats(b0, b1) {
+    let sa = 0, ss = 0;
+    lfPts.forEach((p) => { const e = p.y - (b0 + b1 * p.x); sa += Math.abs(e); ss += e * e; });
+    return { mae: sa / LF.n, mse: ss / LF.n, rmse: Math.sqrt(ss / LF.n), r2: 1 - ss / LF.sst };
+  }
+  const LF_BEST = lfStats(LF.b0, LF.b1);
+  let lfB0 = 4, lfB1 = 0.8, lfSq = false, lfSteps = 0;
+  function lfSync() { $("lfB0In").value = lfB0; $("lfB1In").value = lfB1; }
+  function drawLf() {
+    $("lfB0").textContent = lfB0.toFixed(2); $("lfB1").textContent = lfB1.toFixed(2);
+    const svg = $("lfSvg"); svg.innerHTML = "";
+    const L = 50, R = 580, T = 15, B = 250, YMAX = 20;
+    const X = (x) => L + (x / 10) * (R - L), Y = (y) => B - (y / YMAX) * (B - T);
+    for (let v = 0; v <= 20; v += 5) {
+      svg.append(el("line", { x1: L, y1: Y(v), x2: R, y2: Y(v), stroke: css("--border"), "stroke-dasharray": v ? "2 4" : "" }));
+      svg.append(el("text", { x: L - 8, y: Y(v) + 4, class: "svg-text", "text-anchor": "end" }, v));
+    }
+    for (let v = 0; v <= 10; v += 2) svg.append(el("text", { x: X(v), y: B + 16, class: "svg-text", "text-anchor": "middle" }, v));
+    svg.append(el("line", { x1: L, y1: T, x2: L, y2: B, class: "svg-axis" }));
+    svg.append(el("text", { x: (L + R) / 2, y: B + 34, class: "svg-text", "text-anchor": "middle" }, "advertising spend (£k)"));
+    svg.append(el("text", { x: 12, y: (T + B) / 2, class: "svg-text", "text-anchor": "middle", transform: `rotate(-90 12 ${(T + B) / 2})` }, "sales (£k)"));
+    const g = clipRect(svg, "lfClip", L, T, R, B); svg.append(g);
+    const posC = css("--pos"), negC = css("--neg");
+    lfPts.forEach((p) => {
+      const yh = lfB0 + lfB1 * p.x, e = p.y - yh, c = e >= 0 ? posC : negC;
+      if (lfSq) {
+        const side = Math.abs(Y(p.y) - Y(yh));
+        g.append(el("rect", { x: X(p.x), y: Math.min(Y(p.y), Y(yh)), width: side, height: side, fill: c, "fill-opacity": 0.12, stroke: c, "stroke-opacity": 0.5 }));
+      }
+      g.append(el("line", { x1: X(p.x), y1: Y(p.y), x2: X(p.x), y2: Y(yh), stroke: c, "stroke-width": 2 }));
+    });
+    g.append(el("line", { x1: X(0), y1: Y(lfB0), x2: X(10), y2: Y(lfB0 + 10 * lfB1), stroke: css("--accent"), "stroke-width": 3 }));
+    lfPts.forEach((p) => g.append(el("circle", { cx: X(p.x), cy: Y(p.y), r: 5, fill: css("--text"), stroke: css("--surface"), "stroke-width": 1.5 })));
+    svg.append(el("text", { x: L + 8, y: T + 14, class: "svg-text" }, `ŷ = ${lfB0.toFixed(2)} ${lfB1 < 0 ? "−" : "+"} ${Math.abs(lfB1).toFixed(2)}x`));
+    svg.append(el("line", { x1: R - 196, y1: T + 10, x2: R - 184, y2: T + 10, stroke: posC, "stroke-width": 2 }));
+    svg.append(el("text", { x: R - 180, y: T + 14, class: "svg-text" }, "above line"));
+    svg.append(el("line", { x1: R - 104, y1: T + 10, x2: R - 92, y2: T + 10, stroke: negC, "stroke-width": 2 }));
+    svg.append(el("text", { x: R - 88, y: T + 14, class: "svg-text" }, "below line"));
+
+    const s = lfStats(lfB0, lfB1);
+    $("lfMetrics").innerHTML = metricsHtml([
+      ["MAE", fmt(s.mae)], ["MSE", fmt(s.mse)], ["RMSE", fmt(s.rmse)], ["R²", fmt(s.r2, 3), s.r2 < 0],
+      ["Best possible MSE", fmt(LF_BEST.mse)],
+    ]);
+    const extra = (s.mse / LF_BEST.mse - 1) * 100;
+    let txt;
+    if (extra < 0.05) {
+      txt = `This is the least-squares line, ŷ = ${LF.b0.toFixed(2)} + ${LF.b1.toFixed(2)}x. No other straight line has a lower MSE on these 15 shops. It passes through the mean point (x̄ = ${LF.mx.toFixed(2)}, ȳ = ${LF.my.toFixed(2)}), and R² = ${LF_BEST.r2.toFixed(3)}: the line explains about ${Math.round(LF_BEST.r2 * 100)}% of the variation in sales.`;
+    } else {
+      txt = `Your line's MSE is ${extra.toFixed(1)}% above the best possible. `;
+      if (s.r2 < 0) txt += `R² is negative: this line is worse than simply predicting the mean sales (ȳ = ${LF.my.toFixed(2)}) for every shop. `;
+      txt += "Try to shrink the residuals, or press “Best fit”.";
+    }
+    if (lfSteps) txt += ` Gradient descent: ${lfSteps} steps taken so far (learning rate η = ${LF.lr.toFixed(4)}).`;
+    $("lfText").textContent = txt;
+  }
+  $("lfB0In").addEventListener("input", (e) => { lfB0 = +e.target.value; lfSteps = 0; drawLf(); });
+  $("lfB1In").addEventListener("input", (e) => { lfB1 = +e.target.value; lfSteps = 0; drawLf(); });
+  $("lfBest").addEventListener("click", () => { lfB0 = LF.b0; lfB1 = LF.b1; lfSteps = 0; lfSync(); drawLf(); });
+  $("lfGd").addEventListener("click", () => {
+    for (let k = 0; k < 50; k++) {
+      let g0 = 0, g1 = 0;
+      lfPts.forEach((p) => { const e = p.y - (lfB0 + lfB1 * p.x); g0 += e; g1 += p.x * e; });
+      g0 *= -2 / LF.n; g1 *= -2 / LF.n;
+      lfB0 -= LF.lr * g0; lfB1 -= LF.lr * g1;
+    }
+    lfSteps += 50; lfSync(); drawLf();
+  });
+  $("lfSq").addEventListener("click", (e) => { lfSq = !lfSq; e.currentTarget.setAttribute("aria-pressed", String(lfSq)); drawLf(); });
+  $("lfReset").addEventListener("click", () => { lfB0 = 4; lfB1 = 0.8; lfSteps = 0; lfSync(); drawLf(); });
+  drawLf(); redrawers.push(drawLf);
+
+  /* ---------- residual-pattern widget ---------- */
+  const RP_INFO = {
+    good: ["good", "Healthy: the residuals scatter randomly around zero in an even band, with no shape. The model has captured the pattern; what's left looks like noise."],
+    curve: ["bad", "Curved: residuals are positive at both ends and negative in the middle, so the relationship isn't a straight line (linearity is broken). Add features such as x² or log(x), or use a non-linear model."],
+    funnel: ["warn", "Funnel: errors grow as the predicted value grows (non-constant variance). Predictions for large values are much less reliable than the overall metrics suggest. Try predicting log(y), and consider a relative metric such as MAPE."],
+    time: ["bad", "Time pattern: neighbouring residuals are alike and form long waves above and below zero, so the errors aren't independent. Common in time series: add lag features or use time-series methods, and split chronologically."],
+  };
+  let rpMode = "good";
+  function rpData(mode) {
+    const r = mulberry32(5), g = gaussian(r), pts = [];
+    let prev = 0;
+    for (let i = 0; i < 70; i++) {
+      if (mode === "time") { prev = 0.85 * prev + 0.5 * g(); pts.push({ x: (i / 69) * 10, e: prev }); continue; }
+      const x = 0.3 + 9.4 * r();
+      let e;
+      if (mode === "good") e = g();
+      else if (mode === "curve") e = 0.16 * (x - 5) ** 2 - 1.33 + 0.45 * g();
+      else e = (0.12 + 0.22 * x) * g();
+      pts.push({ x, e });
+    }
+    return pts;
+  }
+  function drawRp() {
+    const svg = $("rpSvg"); svg.innerHTML = "";
+    const L = 50, R = 580, T = 12, B = 200, YR = 3.5;
+    const X = (x) => L + (x / 10) * (R - L), Y = (e) => (T + B) / 2 - (e / YR) * ((B - T) / 2);
+    svg.append(el("line", { x1: L, y1: T, x2: L, y2: B, class: "svg-axis" }), el("line", { x1: L, y1: B, x2: R, y2: B, class: "svg-axis" }));
+    svg.append(el("line", { x1: L, y1: Y(0), x2: R, y2: Y(0), stroke: css("--muted"), "stroke-dasharray": "6 4" }));
+    [-3, 0, 3].forEach((v) => svg.append(el("text", { x: L - 8, y: Y(v) + 4, class: "svg-text", "text-anchor": "end" }, v)));
+    const g = clipRect(svg, "rpClip", L, T, R, B); svg.append(g);
+    const pts = rpData(rpMode);
+    if (rpMode === "time") g.append(el("path", { d: pts.map((p, i) => (i ? "L" : "M") + X(p.x).toFixed(1) + "," + Y(p.e).toFixed(1)).join(""), fill: "none", stroke: css("--accent"), "stroke-opacity": 0.4 }));
+    pts.forEach((p) => g.append(el("circle", { cx: X(p.x), cy: Y(p.e), r: 4.5, fill: css("--accent"), "fill-opacity": 0.75 })));
+    svg.append(el("text", { x: (L + R) / 2, y: B + 22, class: "svg-text", "text-anchor": "middle" }, rpMode === "time" ? "observation order (time) →" : "predicted value (ŷ) →"));
+    svg.append(el("text", { x: 12, y: (T + B) / 2, class: "svg-text", "text-anchor": "middle", transform: `rotate(-90 12 ${(T + B) / 2})` }, "residual"));
+    const [kind, text] = RP_INFO[rpMode];
+    setVerdict($("rpText"), kind, text);
+  }
+  document.querySelectorAll("#rpWidget [data-rp]").forEach((b) => b.addEventListener("click", () => {
+    rpMode = b.dataset.rp;
+    document.querySelectorAll("#rpWidget [data-rp]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    drawRp();
+  }));
+  drawRp(); redrawers.push(drawRp);
+
+  /* ---------- shared data for (b) and (c): noisy points from sin(2πx) ---------- */
+  const truth = (x) => Math.sin(2 * Math.PI * x);
+  const NOISE_SD = 0.3;
+  const polyData = (() => {
+    const r = mulberry32(99), g = gaussian(r);
+    const mk = (i) => { const x = (i + 0.15 + 0.7 * r()) / 15; return { x, y: truth(x) + NOISE_SD * g() }; };
+    const train = Array.from({ length: 15 }, (_, i) => mk(i));
+    const test = Array.from({ length: 15 }, (_, i) => mk(i));
+    return { train, test };
+  })();
+  const rmseOf = (f, data) => Math.sqrt(data.reduce((s, p) => s + (p.y - f(p.x)) ** 2, 0) / data.length);
+
+  // Plot frame shared by the two curve plots: x in [0, 1], y in [-2.2, 2.2].
+  function drawCurvePlot(svg, clipId, f) {
+    svg.innerHTML = "";
+    const L = 40, R = 510, T = 12, B = 255, YR = 2.2;
+    const X = (x) => L + x * (R - L), Y = (y) => (T + B) / 2 - (y / YR) * ((B - T) / 2);
+    svg.append(el("line", { x1: L, y1: T, x2: L, y2: B, class: "svg-axis" }), el("line", { x1: L, y1: B, x2: R, y2: B, class: "svg-axis" }));
+    svg.append(el("line", { x1: L, y1: Y(0), x2: R, y2: Y(0), stroke: css("--border"), "stroke-dasharray": "2 4" }));
+    [-2, -1, 0, 1, 2].forEach((v) => svg.append(el("text", { x: L - 8, y: Y(v) + 4, class: "svg-text", "text-anchor": "end" }, v)));
+    [0, 0.5, 1].forEach((v) => svg.append(el("text", { x: X(v), y: B + 15, class: "svg-text", "text-anchor": "middle" }, v)));
+    const g = clipRect(svg, clipId, L, T, R, B); svg.append(g);
+    const path = (fn) => Array.from({ length: 401 }, (_, i) => { const x = i / 400, y = Math.max(-50, Math.min(50, fn(x))); return (i ? "L" : "M") + X(x).toFixed(1) + "," + Y(y).toFixed(1); }).join("");
+    g.append(el("path", { d: path(truth), fill: "none", stroke: css("--muted"), "stroke-width": 1.5, "stroke-dasharray": "6 5" }));
+    g.append(el("path", { d: path(f), fill: "none", stroke: css("--accent"), "stroke-width": 3 }));
+    polyData.test.forEach((p) => g.append(el("circle", { cx: X(p.x), cy: Y(p.y), r: 5, fill: css("--surface"), stroke: css("--pos"), "stroke-width": 2 })));
+    polyData.train.forEach((p) => g.append(el("circle", { cx: X(p.x), cy: Y(p.y), r: 5, fill: css("--text"), stroke: css("--surface"), "stroke-width": 1.5 })));
+    const ly = 290;
+    svg.append(el("circle", { cx: L + 6, cy: ly - 4, r: 5, fill: css("--text") }));
+    svg.append(el("text", { x: L + 16, y: ly, class: "svg-text" }, "training"));
+    svg.append(el("circle", { cx: L + 90, cy: ly - 4, r: 5, fill: css("--surface"), stroke: css("--pos"), "stroke-width": 2 }));
+    svg.append(el("text", { x: L + 100, y: ly, class: "svg-text" }, "test"));
+    svg.append(el("line", { x1: L + 150, y1: ly - 4, x2: L + 172, y2: ly - 4, stroke: css("--accent"), "stroke-width": 3 }));
+    svg.append(el("text", { x: L + 178, y: ly, class: "svg-text" }, "model"));
+    svg.append(el("line", { x1: L + 235, y1: ly - 4, x2: L + 257, y2: ly - 4, stroke: css("--muted"), "stroke-dasharray": "6 5", "stroke-width": 1.5 }));
+    svg.append(el("text", { x: L + 263, y: ly, class: "svg-text" }, "true curve"));
+  }
+
+  /* ---------- (b) polynomial degree widget ---------- */
+  // Fit in the Legendre polynomial basis on u = 2x − 1 ∈ [−1, 1]. It spans exactly the same functions as
+  // 1, x, …, x^d (so the least-squares fit is identical) but the normal equations are far better conditioned.
+  function legendre(u, d) { const P = [1, u]; for (let k = 1; k < d; k++) P.push(((2 * k + 1) * u * P[k] - k * P[k - 1]) / (k + 1)); return P.slice(0, d + 1); }
+  function fitPoly(d) {
+    const Phi = polyData.train.map((p) => legendre(2 * p.x - 1, d)), m = d + 1;
+    const G = Array.from({ length: m }, (_, i) => Array.from({ length: m }, (_, j) => Phi.reduce((s, row) => s + row[i] * row[j], 0) + (i === j ? 1e-10 : 0)));
+    const rhs = Array.from({ length: m }, (_, i) => Phi.reduce((s, row, k) => s + row[i] * polyData.train[k].y, 0));
+    const beta = solve(G, rhs);
+    return (x) => legendre(2 * x - 1, d).reduce((s, v, i) => s + v * beta[i], 0);
+  }
+  const OF = Array.from({ length: 12 }, (_, i) => {
+    const f = fitPoly(i + 1);
+    return { d: i + 1, f, tr: rmseOf(f, polyData.train), te: rmseOf(f, polyData.test) };
+  });
+  const OF_BEST = OF.reduce((a, b) => (b.te < a.te ? b : a));
+  function drawOf() {
+    const d = +$("ofDeg").value, cur = OF[d - 1];
+    $("ofDegV").textContent = d;
+    drawCurvePlot($("ofSvg"), "ofClip", cur.f);
+
+    // train / test RMSE by degree, log scale
+    const svg = $("ofChart"); svg.innerHTML = "";
+    const L = 44, R = 290, T = 14, B = 240, LO = Math.log10(0.1), HI = Math.log10(2);
+    const X = (k) => L + ((k - 1) / 11) * (R - L), Y = (v) => B - ((Math.log10(Math.min(2, Math.max(0.1, v))) - LO) / (HI - LO)) * (B - T);
+    [0.1, 0.2, 0.5, 1, 2].forEach((v) => {
+      svg.append(el("line", { x1: L, y1: Y(v), x2: R, y2: Y(v), stroke: css("--border"), "stroke-dasharray": "2 4" }));
+      svg.append(el("text", { x: L - 6, y: Y(v) + 4, class: "svg-text", "text-anchor": "end" }, v));
+    });
+    [1, 3, 6, 9, 12].forEach((k) => svg.append(el("text", { x: X(k), y: B + 15, class: "svg-text", "text-anchor": "middle" }, k)));
+    svg.append(el("line", { x1: L, y1: T, x2: L, y2: B, class: "svg-axis" }), el("line", { x1: L, y1: B, x2: R, y2: B, class: "svg-axis" }));
+    svg.append(el("line", { x1: X(d), y1: T, x2: X(d), y2: B, stroke: css("--text"), "stroke-dasharray": "4 3" }));
+    const line = (key, color) => {
+      svg.append(el("path", { d: OF.map((o, i) => (i ? "L" : "M") + X(o.d).toFixed(1) + "," + Y(o[key]).toFixed(1)).join(""), fill: "none", stroke: color, "stroke-width": 2.5 }));
+      OF.forEach((o) => svg.append(el("circle", { cx: X(o.d), cy: Y(o[key]), r: o.d === d ? 6 : 3, fill: color })));
+    };
+    line("tr", css("--accent")); line("te", css("--pos"));
+    svg.append(el("text", { x: (L + R) / 2, y: B + 32, class: "svg-text", "text-anchor": "middle" }, "polynomial degree"));
+    svg.append(el("text", { x: 10, y: (T + B) / 2, class: "svg-text", "text-anchor": "middle", transform: `rotate(-90 10 ${(T + B) / 2})` }, "RMSE (log scale)"));
+    svg.append(el("line", { x1: L + 4, y1: 290, x2: L + 20, y2: 290, stroke: css("--accent"), "stroke-width": 2.5 }));
+    svg.append(el("text", { x: L + 24, y: 294, class: "svg-text" }, "train"));
+    svg.append(el("line", { x1: L + 74, y1: 290, x2: L + 90, y2: 290, stroke: css("--pos"), "stroke-width": 2.5 }));
+    svg.append(el("text", { x: L + 94, y: 294, class: "svg-text" }, "test (capped at 2)"));
+
+    $("ofMetrics").innerHTML = metricsHtml([
+      ["Train RMSE", fmt(cur.tr, 3)], ["Test RMSE", fmt(cur.te, 3), cur.te > 1.15 * OF_BEST.te],
+      ["Gap (test − train)", fmt(cur.te - cur.tr, 3)], ["Coefficients", String(d + 1)],
+    ]);
+    const v = $("ofVerdict");
+    if (cur.te <= 1.15 * OF_BEST.te) {
+      setVerdict(v, "good", `Good fit: test RMSE ${fmt(cur.te, 3)} is close to the best achievable here (${fmt(OF_BEST.te, 3)} at degree ${OF_BEST.d}), and close to the noise level of about ${NOISE_SD}, which no model can beat on average.`);
+    } else if (d < OF_BEST.d) {
+      setVerdict(v, "warn", `Underfitting (high bias): a degree-${d} polynomial is too stiff to follow the wave. Training RMSE (${fmt(cur.tr, 3)}) and test RMSE (${fmt(cur.te, 3)}) are both high. Increase the degree.`);
+    } else {
+      setVerdict(v, "bad", `Overfitting (high variance): training RMSE has dropped to ${fmt(cur.tr, 3)}, but test RMSE is ${fmt(cur.te, 3)}. With ${d + 1} coefficients for 15 points, the curve bends to chase the noise and swings wildly between and beyond the training points.`);
+    }
+  }
+  $("ofDeg").addEventListener("input", drawOf);
+  drawOf(); redrawers.push(drawOf);
+
+  /* ---------- (c) regularisation widget ---------- */
+  // Features x^1 … x^12 (with x rescaled to u = 2x − 1), standardised on the training data, as StandardScaler would do.
+  const RD = 12, nTr = polyData.train.length;
+  const rawFeat = (x) => { const u = 2 * x - 1; return Array.from({ length: RD }, (_, j) => u ** (j + 1)); };
+  const RG = (() => {
+    const raw = polyData.train.map((p) => rawFeat(p.x));
+    const mu = Array.from({ length: RD }, (_, j) => raw.reduce((s, r) => s + r[j], 0) / nTr);
+    const sd = Array.from({ length: RD }, (_, j) => Math.sqrt(raw.reduce((s, r) => s + (r[j] - mu[j]) ** 2, 0) / nTr));
+    const Z = raw.map((r) => r.map((v, j) => (v - mu[j]) / sd[j]));
+    const ybar = polyData.train.reduce((s, p) => s + p.y, 0) / nTr;
+    const yc = polyData.train.map((p) => p.y - ybar);
+    return { mu, sd, Z, ybar, yc };
+  })();
+  // Ridge (scikit-learn objective ||y − Zw||² + α||w||²): solve (ZᵀZ + αI) w = Zᵀ(y − ȳ).
+  function ridgeFit(alpha) {
+    const G = Array.from({ length: RD }, (_, i) => Array.from({ length: RD }, (_, j) => RG.Z.reduce((s, r) => s + r[i] * r[j], 0) + (i === j ? alpha : 0)));
+    const rhs = Array.from({ length: RD }, (_, i) => RG.Z.reduce((s, r, k) => s + r[i] * RG.yc[k], 0));
+    return solve(G, rhs);
+  }
+  // Lasso (scikit-learn objective (1/2n)||y − Zw||² + α||w||₁) by cyclic coordinate descent with soft-thresholding.
+  function lassoFit(alpha) {
+    const w = new Array(RD).fill(0), r = RG.yc.slice();
+    w.converged = false;
+    const colSq = Array.from({ length: RD }, (_, j) => RG.Z.reduce((s, row) => s + row[j] * row[j], 0) / nTr);
+    for (let sweep = 0; sweep < 20000; sweep++) {
+      let maxChange = 0;
+      for (let j = 0; j < RD; j++) {
+        let rho = 0;
+        for (let i = 0; i < nTr; i++) rho += RG.Z[i][j] * r[i];
+        rho = rho / nTr + colSq[j] * w[j];
+        const nw = Math.sign(rho) * Math.max(0, Math.abs(rho) - alpha) / colSq[j];
+        const dw = nw - w[j];
+        if (dw !== 0) { for (let i = 0; i < nTr; i++) r[i] -= dw * RG.Z[i][j]; w[j] = nw; maxChange = Math.max(maxChange, Math.abs(dw)); }
+      }
+      if (maxChange < 1e-8) { w.converged = true; break; }
+    }
+    return w;
+  }
+  const rgPredict = (w) => (x) => { const f = rawFeat(x); let s = RG.ybar; for (let j = 0; j < RD; j++) s += w[j] * (f[j] - RG.mu[j]) / RG.sd[j]; return s; };
+  const rgCache = new Map();
+  let rgType = "ridge";
+  const fmtAlpha = (a) => (a >= 0.01 ? String(+a.toPrecision(2)) : a.toExponential(1).replace(".0e", "e"));
+  function drawRg() {
+    const la = +$("rgAlpha").value, alpha = 10 ** la, key = rgType + la.toFixed(1);
+    $("rgAlphaV").textContent = fmtAlpha(alpha);
+    if (!rgCache.has(key)) rgCache.set(key, rgType === "ridge" ? ridgeFit(alpha) : lassoFit(alpha));
+    const w = rgCache.get(key), f = rgPredict(w);
+    drawCurvePlot($("rgSvg"), "rgClip", f);
+
+    // coefficient magnitudes on a log axis; colour = sign; exact zeros labelled "0"
+    const svg = $("rgBars"); svg.innerHTML = "";
+    const L = 44, R = 290, T = 14, B = 240, LO = -3, HI = 2;
+    const Y = (v) => B - ((v - LO) / (HI - LO)) * (B - T);
+    [-3, -2, -1, 0, 1, 2].forEach((e) => {
+      svg.append(el("line", { x1: L, y1: Y(e), x2: R, y2: Y(e), stroke: css("--border"), "stroke-dasharray": "2 4" }));
+      svg.append(el("text", { x: L - 6, y: Y(e) + 4, class: "svg-text", "text-anchor": "end" }, String(10 ** e)));
+    });
+    svg.append(el("line", { x1: L, y1: T, x2: L, y2: B, class: "svg-axis" }), el("line", { x1: L, y1: B, x2: R, y2: B, class: "svg-axis" }));
+    const bw = (R - L) / RD;
+    w.forEach((c, j) => {
+      const cx = L + j * bw + bw / 2;
+      if (c === 0) {
+        svg.append(el("text", { x: cx, y: B - 6, class: "svg-text", "text-anchor": "middle", fill: css("--good"), style: `fill:${css("--good")};font-weight:700` }, "0"));
+      } else {
+        const top = Y(Math.max(LO + 0.06, Math.min(HI, Math.log10(Math.abs(c)))));
+        svg.append(el("rect", { x: L + j * bw + 2, y: top, width: bw - 4, height: B - top, fill: c > 0 ? css("--accent") : css("--pos"), rx: 2 }));
+      }
+      svg.append(el("text", { x: cx, y: B + 15, class: "svg-text", "text-anchor": "middle" }, j + 1));
+    });
+    svg.append(el("text", { x: (L + R) / 2, y: B + 32, class: "svg-text", "text-anchor": "middle" }, "power of x (feature)"));
+    svg.append(el("text", { x: 10, y: (T + B) / 2, class: "svg-text", "text-anchor": "middle", transform: `rotate(-90 10 ${(T + B) / 2})` }, "|coefficient| (log scale)"));
+    svg.append(el("rect", { x: L + 4, y: 284, width: 10, height: 10, fill: css("--accent") }));
+    svg.append(el("text", { x: L + 18, y: 293, class: "svg-text" }, "positive"));
+    svg.append(el("rect", { x: L + 76, y: 284, width: 10, height: 10, fill: css("--pos") }));
+    svg.append(el("text", { x: L + 90, y: 293, class: "svg-text" }, "negative"));
+    svg.append(el("text", { x: L + 150, y: 293, class: "svg-text", style: `fill:${css("--good")};font-weight:700` }, "0"));
+    svg.append(el("text", { x: L + 160, y: 293, class: "svg-text" }, "= exactly zero"));
+
+    const tr = rmseOf(f, polyData.train), te = rmseOf(f, polyData.test);
+    const nz = w.filter((c) => c !== 0).length, maxAbs = Math.max(...w.map(Math.abs));
+    $("rgMetrics").innerHTML = metricsHtml([
+      ["Train RMSE", fmt(tr, 3)], ["Test RMSE", fmt(te, 3), te > 1.3 * OF_BEST.te],
+      ["Largest |coef|", fmt(maxAbs, 2)], ["Non-zero coefs", `${nz} / ${RD}`],
+    ]);
+    const ols12 = OF[11].te;
+    let zeroNote = rgType === "lasso" ? ` Lasso has set ${RD - nz} of ${RD} coefficients to exactly zero.` : " Ridge shrinks coefficients but none is exactly zero.";
+    if (rgType === "lasso" && !w.converged) zeroNote += " (At very small α coordinate descent converges slowly; the widget stops after 20,000 sweeps, so this fit is approximate.)";
+    const v = $("rgVerdict");
+    if (tr > 0.45) {
+      setVerdict(v, "warn", `Too much regularisation (underfitting): α = ${fmtAlpha(alpha)} has squashed the coefficients so far that the curve can't follow the wave. Training RMSE ${fmt(tr, 3)}, test RMSE ${fmt(te, 3)}.${zeroNote}`);
+    } else if (te > 1.3 * OF_BEST.te) {
+      setVerdict(v, "bad", `Still overfitting: with α = ${fmtAlpha(alpha)} the penalty is too weak. Training RMSE ${fmt(tr, 3)} but test RMSE ${fmt(te, 3)} (plain degree-12 least squares: ${fmt(ols12, 3)}). Increase α.${zeroNote}`);
+    } else {
+      setVerdict(v, "good", `Well regularised: the penalty keeps the curve smooth instead of chasing the noise. Test RMSE ${fmt(te, 3)}, compared with ${fmt(ols12, 3)} for unregularised degree 12.${zeroNote}`);
+    }
+  }
+  document.querySelectorAll("#rgWidget [data-reg]").forEach((b) => b.addEventListener("click", () => {
+    rgType = b.dataset.reg;
+    document.querySelectorAll("#rgWidget [data-reg]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    drawRg();
+  }));
+  $("rgAlpha").addEventListener("input", drawRg);
+  drawRg(); redrawers.push(drawRg);
+
+  /* ---------- quiz ---------- */
+  const QUIZ = [
+    { q: "Predicting how many kilowatt-hours a household will use next month is…", o: ["Classification", "Regression", "Clustering", "Reinforcement learning"], a: 1, w: "The target is a continuous number (\"how much?\"), so it's regression." },
+    { q: "Which of these is a hyperparameter rather than a parameter?", o: ["The intercept of a linear regression", "A linear regression coefficient", "alpha in Ridge regression", "The value predicted at a tree leaf"], a: 2, w: "alpha is chosen by you before training (ideally by cross-validation); the others are learned from the data." },
+    { q: "You fit StandardScaler on the whole dataset, then split into train and test. What's wrong?", o: ["Nothing, scaling is harmless", "Data leakage: test-set statistics influenced training", "The model will underfit", "StandardScaler only works on the test set"], a: 1, w: "Split first, then fit preprocessing on the training data only, ideally inside a Pipeline." },
+    { q: "You're forecasting daily sales. How should you create the test set?", o: ["train_test_split with shuffle=True", "Use the most recent period as the test set", "stratify=y", "Pick random days from every month"], a: 1, w: "With time-ordered data the test set must come after the training data, otherwise the model 'sees the future'." },
+    { q: "A model's test R² is −0.2. What does that mean?", o: ["It explains 20% of the variation", "It's worse than always predicting the mean", "It's a perfect fit", "R² can't be negative, so there's a bug"], a: 1, w: "R² = 1 − SS_res/SS_tot. If the model's squared errors exceed those of the mean prediction, R² goes below zero." },
+    { q: "MAE = 10 and RMSE = 30 on the same predictions. What does the large gap suggest?", o: ["The model is perfect", "A few predictions have very large errors", "All errors are about the same size", "The data has no outliers"], a: 1, w: "RMSE squares errors before averaging, so a few big errors push it well above MAE. Equal-sized errors give RMSE = MAE." },
+    { q: "A price model has coefficient +2,500 for floor_area_m2. The correct reading is…", o: ["Floor area causes a £2,500 price rise", "Each extra m² adds about £2,500 to the prediction, holding the other features fixed", "Floor area is the most important feature", "2,500 houses were used"], a: 1, w: "Coefficients are per unit change with other features held constant. They don't prove causation, and their size depends on units." },
+    { q: "Residuals fan out, getting larger as the predicted value grows. Which assumption is broken?", o: ["Linearity", "Constant variance (homoscedasticity)", "Independent errors", "No multicollinearity"], a: 1, w: "A funnel shape means the error size depends on the prediction: non-constant variance. A log transform of the target often helps." },
+    { q: "A degree-12 polynomial has train RMSE 0.05 and test RMSE 2.4. Which is the best fix?", o: ["Increase the degree to 15", "Add Ridge regularisation or lower the degree", "Evaluate on the training set instead", "Remove the test set"], a: 1, w: "Low train error with high test error is overfitting. Reduce complexity: regularise, use a lower degree, or get more data." },
+    { q: "Which regularisation can set coefficients to exactly zero, performing feature selection?", o: ["Ridge (L2)", "Lasso (L1)", "Ordinary least squares", "StandardScaler"], a: 1, w: "The L1 penalty pulls with constant force, so weak features are set to exactly 0. Ridge only shrinks them towards zero." },
+  ];
+  let answered = 0, correct = 0;
+  function renderQuiz() {
+    answered = 0; correct = 0;
+    $("quizScore").textContent = `0 / ${QUIZ.length} answered`;
+    $("quizBox").innerHTML = QUIZ.map((it, qi) => `<div class="q" data-q="${qi}"><div class="prompt">${qi + 1}. ${esc(it.q)}</div><div class="opts">${it.o.map((o, oi) => `<button class="opt" type="button" data-o="${oi}">${esc(o)}</button>`).join("")}</div><div class="why">${esc(it.w)}</div></div>`).join("");
+  }
+  $("quizBox").addEventListener("click", (e) => {
+    const b = e.target.closest(".opt"); if (!b || b.disabled) return;
+    const qEl = b.closest(".q"), it = QUIZ[+qEl.dataset.q];
+    qEl.querySelectorAll(".opt").forEach((o) => { o.disabled = true; if (+o.dataset.o === it.a) o.classList.add("right"); });
+    if (+b.dataset.o !== it.a) b.classList.add("wrong"); else correct++;
+    qEl.classList.add("answered"); answered++;
+    $("quizScore").textContent = answered === QUIZ.length ? `Score: ${correct} / ${QUIZ.length}` : `${correct} correct · ${answered} / ${QUIZ.length} answered`;
+  });
+  $("quizReset").addEventListener("click", renderQuiz);
+  renderQuiz();
+})();
+</script>
+</body>
+</html>
