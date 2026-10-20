@@ -1,0 +1,22 @@
+artifact_path: file:c:/Users/tejas/OneDrive/week0/ds-october-2026-week2/week2/mlruns/1/models/m-b08942e1bbfb493d8fc0333b18a7ad89/artifacts
+flavors:
+  python_function:
+    data: data
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.tensorflow
+    python_version: 3.14.7
+  tensorflow:
+    code: null
+    data: data
+    keras_version: 2.22.0-rc0
+    model_type: keras
+    save_format: tf
+mlflow_version: 3.17.1
+model_id: m-b08942e1bbfb493d8fc0333b18a7ad89
+model_size_bytes: 341246
+model_uuid: m-b08942e1bbfb493d8fc0333b18a7ad89
+prompts: null
+run_id: edbaa84fca1044028bda2641ccf566d9
+utc_time_created: '2026-10-17 19:01:39.965613'
