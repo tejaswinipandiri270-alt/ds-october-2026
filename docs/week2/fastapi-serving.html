@@ -1,0 +1,1886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Serving Models with FastAPI</title>
+<meta name="description" content="Week 2 reference: how the web works, URLs, IP addresses, localhost, ports, routes and endpoints, HTTP methods, requests and responses, status codes, and serving the MLflow champion model with FastAPI.">
+<style>
+  :root {
+    --bg: #f7f6f2; --surface: #ffffff; --surface-2: #f0eee8; --text: #1d1d1b; --muted: #5f5d57;
+    --border: #dcd9d0; --accent: #2f5bd3; --accent-soft: #e3eafc;
+    --pos: #c2410c; --pos-soft: #fde8dc; --neg: #2f5bd3; --neg-soft: #e3eafc;
+    --good: #1f7a4d; --good-soft: #ddf2e6; --bad: #b3261e; --bad-soft: #fbe3e1; --warn: #8a5a00; --warn-soft: #fbf0d9;
+    --code-bg: #f3f1ec; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05); --radius: 14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+      --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+      --pos: #ff9a62; --pos-soft: #3d2618; --neg: #8aa8ff; --neg-soft: #1f2a47;
+      --good: #6fd3a0; --good-soft: #173326; --bad: #ff8a80; --bad-soft: #3d1f1d; --warn: #f0c56b; --warn-soft: #3a2f17;
+      --code-bg: #232321; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+    --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+    --pos: #ff9a62; --pos-soft: #3d2618; --neg: #8aa8ff; --neg-soft: #1f2a47;
+    --good: #6fd3a0; --good-soft: #173326; --bad: #ff8a80; --bad-soft: #3d1f1d; --warn: #f0c56b; --warn-soft: #3a2f17;
+    --code-bg: #232321; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .layout { display: grid; grid-template-columns: 1fr; max-width: 1240px; margin: 0 auto; }
+  @media (min-width: 1000px) { .layout { grid-template-columns: 250px minmax(0, 1fr); gap: 32px; padding: 0 24px; } }
+  aside.toc { display: none; }
+  @media (min-width: 1000px) {
+    aside.toc { display: block; position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; padding: 28px 0 28px; }
+  }
+  aside.toc .toc-title { font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px 10px; }
+  aside.toc a { display: block; color: var(--muted); text-decoration: none; font-size: .9rem; padding: 4px 10px; border-left: 2px solid transparent; border-radius: 0 6px 6px 0; }
+  aside.toc a:hover { color: var(--text); background: var(--surface-2); }
+  aside.toc a.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+  aside.toc a.sub { padding-left: 22px; font-size: .84rem; }
+  details.mobile-toc { margin: 16px 0 0; }
+  @media (min-width: 1000px) { details.mobile-toc { display: none; } }
+  details.mobile-toc summary { cursor: pointer; font-weight: 600; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  details.mobile-toc nav { display: grid; gap: 2px; padding: 8px 4px; }
+  details.mobile-toc a { color: var(--text); text-decoration: none; padding: 4px 10px; font-size: .92rem; }
+  main { min-width: 0; padding: 28px 16px 96px; max-width: 880px; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.7rem); line-height: 1.12; margin: 4px 0 12px; letter-spacing: -0.02em; }
+  h2 { font-size: 1.6rem; margin: 0 0 8px; letter-spacing: -0.01em; line-height: 1.25; }
+  h3 { font-size: 1.15rem; margin: 26px 0 8px; }
+  h4 { font-size: 1rem; margin: 18px 0 6px; }
+  p { margin: 0 0 12px; }
+  ul, ol { margin: 0 0 12px; padding-left: 22px; }
+  li { margin: 3px 0; }
+  a { color: var(--accent); }
+  .eyebrow { color: var(--muted); font-size: .82rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; }
+  .lede { color: var(--muted); font-size: 1.12rem; max-width: 64ch; }
+  section { margin-top: 56px; }
+  .num { color: var(--accent); margin-right: 6px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin: 16px 0; }
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 16px 0; }
+  .callout.good { border-color: var(--good); background: var(--good-soft); }
+  .callout.bad { border-color: var(--bad); background: var(--bad-soft); }
+  .callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+  .callout > :last-child { margin-bottom: 0; }
+  .intuition { font-size: 1.05rem; border-left: 4px solid var(--good); background: var(--good-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 12px 0 16px; }
+  .intuition strong:first-child { color: var(--good); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 5px; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: .85rem; line-height: 1.55; margin: 12px 0 16px; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .table-scroll { overflow-x: auto; margin: 12px 0 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  th { font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); }
+  td code { white-space: nowrap; }
+  .grid-2 { display: grid; gap: 14px; grid-template-columns: 1fr; }
+  @media (min-width: 720px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+  .grid-2 .card { margin: 0; }
+  .pill { display: inline-block; font-size: .74rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+  .pill.up { background: var(--bad-soft); color: var(--bad); }
+  .pill.down { background: var(--good-soft); color: var(--good); }
+  .pill.neutral { background: var(--surface-2); color: var(--muted); }
+  .proscons { display: grid; gap: 12px; grid-template-columns: 1fr; margin: 12px 0; }
+  @media (min-width: 640px) { .proscons { grid-template-columns: 1fr 1fr; } }
+  .proscons > div { border-radius: 10px; padding: 12px 14px; }
+  .proscons .pros { background: var(--good-soft); }
+  .proscons .cons { background: var(--bad-soft); }
+  .proscons h4 { margin: 0 0 6px; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+  .proscons .pros h4 { color: var(--good); } .proscons .cons h4 { color: var(--bad); }
+  .proscons ul { margin: 0; }
+  .theme-toggle { position: fixed; top: 12px; right: 12px; z-index: 5; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  /* widgets */
+  .widget { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; margin: 18px 0; }
+  .widget-title { font-weight: 700; margin-bottom: 4px; }
+  .widget-sub { color: var(--muted); font-size: .9rem; margin-bottom: 12px; }
+  .controls { display: grid; gap: 10px 18px; grid-template-columns: 1fr; margin-bottom: 12px; }
+  @media (min-width: 640px) { .controls { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }
+  .controls label { display: grid; gap: 2px; font-size: .86rem; color: var(--muted); }
+  .controls label span b { color: var(--text); }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .widget svg { width: 100%; height: auto; display: block; }
+  .svg-text { fill: var(--muted); font-size: 11px; font-family: system-ui, sans-serif; }
+  .svg-axis { stroke: var(--border); stroke-width: 1; }
+  .metrics-row { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); margin-top: 12px; }
+  .metric { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+  .metric .k { font-size: .74rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+  .metric .v { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .metric.hl { outline: 2px solid var(--bad); }
+  .cm { display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px; font-size: .85rem; max-width: 360px; }
+  .cm div { padding: 8px; border-radius: 8px; text-align: center; }
+  .cm .h { color: var(--muted); font-size: .75rem; font-weight: 700; background: none; }
+  .cm .tp { background: var(--good-soft); } .cm .tn { background: var(--good-soft); }
+  .cm .fp { background: var(--bad-soft); } .cm .fn { background: var(--bad-soft); }
+  .cm b { display: block; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+  .sim-grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .sim-grid { grid-template-columns: 1.4fr 1fr; } }
+  .verdict { font-weight: 700; padding: 8px 12px; border-radius: 10px; margin-top: 10px; }
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 6px 12px; border-radius: 9px; cursor: pointer; font: inherit; font-size: .9rem; }
+  .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .folds { display: grid; gap: 4px; }
+  .fold-row { display: grid; gap: 3px; align-items: center; grid-template-columns: 64px 1fr 70px; font-size: .8rem; color: var(--muted); }
+  .fold-cells { display: grid; gap: 3px; }
+  .fold-cells div { height: 22px; border-radius: 5px; background: var(--accent-soft); border: 1px solid var(--accent); opacity: .55; }
+  .fold-cells div.val { background: var(--pos); border-color: var(--pos); opacity: 1; }
+  .diagram { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 14px 0; font-size: .85rem; }
+  .diagram .box { border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px; padding: 6px 10px; text-align: center; }
+  .diagram .arrow { color: var(--muted); }
+  .quiz .q { margin-bottom: 16px; }
+  .quiz .prompt { font-weight: 600; margin-bottom: 6px; }
+  .quiz .opts { display: grid; gap: 6px; }
+  .quiz .opt { text-align: left; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); padding: 8px 12px; border-radius: 9px; cursor: pointer; font: inherit; }
+  .quiz .opt:disabled { cursor: default; }
+  .quiz .opt.right { border-color: var(--good); background: var(--good-soft); color: var(--good); font-weight: 600; }
+  .quiz .opt.wrong { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
+  .quiz .why { display: none; color: var(--muted); font-size: .88rem; margin-top: 4px; }
+  .quiz .q.answered .why { display: block; }
+  footer { margin-top: 64px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 16px; }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+</style>
+<style>
+  /* page-specific: URL anatomy */
+  .url-anatomy { display: flex; flex-wrap: wrap; gap: 4px 2px; align-items: flex-start; justify-content: center; margin: 16px 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .seg { display: inline-flex; flex-direction: column; align-items: center; min-width: 0; }
+  .seg > span { padding: 4px 6px; border-radius: 6px; border-bottom: 3px solid var(--border); font-size: .95rem; overflow-wrap: anywhere; background: var(--surface-2); }
+  .seg > small { font-family: system-ui, sans-serif; font-size: .72rem; color: var(--muted); margin-top: 3px; text-align: center; line-height: 1.25; }
+  .seg.plain > span { background: none; border-bottom-color: transparent; color: var(--muted); padding: 4px 1px; }
+  .c-scheme > span { background: var(--accent-soft); border-bottom-color: var(--accent); }
+  .c-host > span { background: var(--pos-soft); border-bottom-color: var(--pos); }
+  .c-port > span { background: var(--warn-soft); border-bottom-color: var(--warn); }
+  .c-path > span { background: var(--good-soft); border-bottom-color: var(--good); }
+  .c-query > span { background: var(--bad-soft); border-bottom-color: var(--bad); }
+  .c-frag > span { background: var(--surface-2); border-bottom-color: var(--muted); }
+  .url-input { width: 100%; font: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .92rem; padding: 8px 10px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+  .kv { display: grid; grid-template-columns: minmax(90px, max-content) 1fr; gap: 6px 12px; font-size: .9rem; margin: 10px 0; }
+  .kv > div:nth-child(odd) { color: var(--muted); font-weight: 600; }
+  .kv > div { min-width: 0; overflow-wrap: anywhere; }
+  .tag { display: inline-block; font-size: .74rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); margin-left: 4px; }
+  .tag.good { background: var(--good-soft); color: var(--good); }
+  .tag.warn { background: var(--warn-soft); color: var(--warn); }
+  .tag.bad { background: var(--bad-soft); color: var(--bad); }
+  .tag.acc { background: var(--accent-soft); color: var(--accent); }
+
+  /* status codes */
+  .sc-group { margin: 10px 0; }
+  .sc-group h4 { margin: 0 0 6px; font-size: .82rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { border: 1px solid var(--border); border-radius: 9px; padding: 4px 10px; font: inherit; font-size: .88rem; cursor: pointer; background: var(--surface-2); color: var(--text); }
+  .chip b { font-variant-numeric: tabular-nums; margin-right: 4px; }
+  .chip.s1 { border-color: var(--muted); }
+  .chip.s2 { border-color: var(--good); background: var(--good-soft); color: var(--good); }
+  .chip.s3 { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+  .chip.s4 { border-color: var(--warn); background: var(--warn-soft); color: var(--warn); }
+  .chip.s5 { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
+  .chip[aria-pressed="true"] { outline: 3px solid currentColor; outline-offset: 1px; font-weight: 700; }
+  .sc-detail { border-radius: 10px; padding: 14px 16px; margin-top: 12px; background: var(--surface-2); }
+  .sc-detail h4 { margin: 0 0 8px; font-size: 1.05rem; }
+  .sc-detail pre { margin: 8px 0 0; }
+
+  /* mock console */
+  .console-grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 820px) { .console-grid { grid-template-columns: 1fr 1fr; } }
+  .console-grid > div { min-width: 0; }
+  .req-line { display: grid; grid-template-columns: auto 1fr; gap: 8px; margin-bottom: 10px; }
+  select, textarea { font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; padding: 6px 8px; min-width: 0; }
+  textarea { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85rem; line-height: 1.5; resize: vertical; }
+  .checks { display: grid; gap: 4px; font-size: .88rem; margin: 10px 0; }
+  .checks label { display: flex; gap: 8px; align-items: flex-start; }
+  .checks input { margin-top: 4px; accent-color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); font-weight: 700; }
+  .status-line { font-size: 1.25rem; font-weight: 800; padding: 8px 12px; border-radius: 10px; margin-bottom: 10px; font-variant-numeric: tabular-nums; }
+  .status-line.s1 { background: var(--surface-2); color: var(--muted); }
+  .status-line.s2 { background: var(--good-soft); color: var(--good); }
+  .status-line.s3 { background: var(--accent-soft); color: var(--accent); }
+  .status-line.s4 { background: var(--warn-soft); color: var(--warn); }
+  .status-line.s5 { background: var(--bad-soft); color: var(--bad); }
+  .out-label { font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-top: 10px; }
+  pre.out { margin: 4px 0 8px; max-height: 340px; overflow: auto; }
+  .trace { display: grid; gap: 4px; margin: 8px 0; font-size: .86rem; }
+  .trace div { display: grid; grid-template-columns: 22px 1fr; gap: 6px; padding: 3px 8px; border-radius: 7px; background: var(--surface-2); }
+  .trace .ok { color: var(--good); }
+  .trace .fail { color: var(--bad); background: var(--bad-soft); font-weight: 600; }
+  .trace .skip { color: var(--muted); opacity: .6; }
+
+  /* client-server picture */
+  .flow-svg { width: 100%; max-width: 700px; height: auto; display: block; margin: 10px auto; }
+</style>
+<style>
+  main div, main section, main details { min-width: 0; }
+  :not(pre) > code { overflow-wrap: anywhere; }
+  @media (max-width: 999px) { main { padding-top: 56px; } }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">◐ Theme</button>
+<div class="layout">
+  <aside class="toc" aria-label="Contents">
+    <p class="toc-title">Contents</p>
+    <a href="#why">1 · Why an API?</a>
+    <a href="#web">2 · How the web works</a>
+    <a href="#url">3 · Anatomy of a URL</a>
+    <a class="sub" href="#url-widget">Try it: URL dissector</a>
+    <a href="#ip">4 · IP addresses &amp; localhost</a>
+    <a href="#ports">5 · Ports</a>
+    <a href="#routes">6 · Routes &amp; endpoints</a>
+    <a href="#methods">7 · HTTP methods</a>
+    <a href="#reqres">8 · Requests &amp; responses</a>
+    <a href="#status">9 · Status codes</a>
+    <a class="sub" href="#status-explorer">Status code explorer</a>
+    <a class="sub" href="#status-400-422">400 vs 422</a>
+    <a href="#fastapi">10 · FastAPI basics</a>
+    <a href="#build">11 · Building the course API</a>
+    <a href="#console">12 · Try it: mock API console</a>
+    <a href="#mlflow">13 · Serving the MLflow champion</a>
+    <a href="#calling">14 · Calling &amp; testing the API</a>
+    <a href="#production">15 · Production notes</a>
+    <a href="#cheatsheet">16 · Cheat sheet</a>
+    <a href="#quiz">17 · Quiz</a>
+  </aside>
+
+<main>
+  <header>
+    <div class="eyebrow">Week 2 · MLflow, MLOps &amp; FastAPI</div>
+    <h1>Serving models with FastAPI: URLs, ports, endpoints and status codes</h1>
+    <p class="lede">A trained model in a notebook helps nobody else. This guide explains, from the ground up, how other programs talk to a model over HTTP: what a URL is made of, what IP addresses, <code>localhost</code> and ports are, how routes, methods and status codes work, and how to build and test a FastAPI service that serves your MLflow champion model.</p>
+    <details class="mobile-toc">
+      <summary>Contents</summary>
+      <nav>
+        <a href="#why">1 · Why an API?</a><a href="#web">2 · How the web works</a><a href="#url">3 · Anatomy of a URL</a>
+        <a href="#ip">4 · IP addresses &amp; localhost</a><a href="#ports">5 · Ports</a><a href="#routes">6 · Routes &amp; endpoints</a>
+        <a href="#methods">7 · HTTP methods</a><a href="#reqres">8 · Requests &amp; responses</a><a href="#status">9 · Status codes</a>
+        <a href="#fastapi">10 · FastAPI basics</a><a href="#build">11 · Building the course API</a><a href="#console">12 · Mock API console</a>
+        <a href="#mlflow">13 · Serving the MLflow champion</a><a href="#calling">14 · Calling &amp; testing</a><a href="#production">15 · Production notes</a>
+        <a href="#cheatsheet">16 · Cheat sheet</a><a href="#quiz">17 · Quiz</a>
+      </nav>
+    </details>
+  </header>
+
+  <!-- ============ 1. WHY ============ -->
+  <section id="why">
+    <h2><span class="num">1</span>Why put a model behind an API?</h2>
+    <p class="intuition"><strong>Intuition.</strong> An API turns your model into a service, like a shop counter: anyone who knows the address can walk up, hand over the inputs and get a prediction back, without knowing anything about Python, scikit-learn or how the model was trained.</p>
+    <p>An <strong>API</strong> (application programming interface) is a defined way for one program to ask another program to do something. A <strong>web API</strong> does this over <strong>HTTP</strong>, the same protocol your browser uses to load web pages. You send a request to an address; the API sends back a response, usually in <strong>JSON</strong> (a plain-text format for data that almost every language can read).</p>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0">Without an API</h4><ul style="margin:0">
+        <li>The model lives in a notebook or a <code>.pkl</code> file on one laptop.</li>
+        <li>Every app that wants predictions must load the file itself, in Python, with the same library versions.</li>
+        <li>Updating the model means copying a new file to every app.</li>
+        <li>No central place to log, monitor or secure usage.</li></ul></div>
+      <div class="card"><h4 style="margin-top:0">With an API</h4><ul style="margin:0">
+        <li>The model lives in <strong>one place</strong>, loaded once into a running server.</li>
+        <li><strong>Any language</strong> can call it: a JavaScript web page, a Java back end, Excel, a Streamlit dashboard, another team's service.</li>
+        <li>Swap in a new champion model and every caller benefits immediately.</li>
+        <li>One place to add <strong>validation</strong>, <strong>logging</strong>, <strong>monitoring</strong> and <strong>authentication</strong>.</li></ul></div>
+    </div>
+    <div class="diagram">
+      <div class="box">Streamlit dashboard</div><div class="box">Mobile app</div><div class="box">Batch job</div><div class="box">Other team's service</div>
+      <span class="arrow">→ HTTP + JSON →</span>
+      <div class="box"><b>Churn API</b><br><small>FastAPI + champion model</small></div>
+    </div>
+    <p><strong>FastAPI</strong> is a Python web framework for building APIs. It is popular for machine-learning services because it is fast, uses ordinary Python type hints to <strong>validate inputs automatically</strong>, and generates interactive documentation for free. Through this guide we build one small service, the <em>Churn API</em>, which predicts whether a customer will leave.</p>
+    <div class="callout"><p>This page assumes you already know MLflow tracking and the model registry. For registry aliases, champion/challenger, drift and retraining, see the companion page <a href="mlflow-mlops-pipeline.html">MLflow MLOps pipeline</a>. For tracking basics, see <a href="../week2/mlflow-experiment-tracking.html">MLflow experiment tracking</a>.</p></div>
+  </section>
+
+  <!-- ============ 2. WEB ============ -->
+  <section id="web">
+    <h2><span class="num">2</span>How the web works in one picture</h2>
+    <p class="intuition"><strong>Intuition.</strong> The web is a conversation with strict turn-taking: a <strong>client</strong> asks (a <em>request</em>), a <strong>server</strong> answers (a <em>response</em>). The server never speaks first.</p>
+    <svg class="flow-svg" id="flowSvg" viewBox="0 0 700 250" role="img" aria-label="Client sends an HTTP request to a server, which replies with an HTTP response"></svg>
+    <ul>
+      <li>The <strong>client</strong> is whatever starts the conversation: your browser, <code>curl</code> in a terminal, a Python script using <code>httpx</code>, a Streamlit app.</li>
+      <li>The <strong>server</strong> is a program that is always running and <em>listening</em> for requests. For us that is <strong>uvicorn</strong> (a fast Python web server) running our <strong>FastAPI</strong> app.</li>
+      <li>The <strong>request</strong> says <em>what</em> you want (the method, e.g. <code>POST</code>), <em>where</em> (the URL) and optionally sends data (the body).</li>
+      <li>The <strong>response</strong> says <em>how it went</em> (a status code, e.g. <code>200</code>) and returns data (the body).</li>
+    </ul>
+    <div class="callout"><p><strong>An everyday analogy</strong> we'll keep using: the <strong>IP address</strong> is the building's street address; the <strong>port</strong> is the flat or door number; the <strong>route</strong> (path) is which desk inside; the <strong>method</strong> is what you want to do at that desk (ask a question, hand in a form); the <strong>body</strong> is the form you hand over; the <strong>status code</strong> is the stamp the receptionist puts on your reply.</p></div>
+    <p>Each request is <strong>independent</strong>: HTTP is <em>stateless</em>, so the server does not remember previous requests unless you build that in. This is a good thing for model serving: any copy of the server can answer any request.</p>
+  </section>
+
+  <!-- ============ 3. URL ============ -->
+  <section id="url">
+    <h2><span class="num">3</span>Anatomy of a URL</h2>
+    <p class="intuition"><strong>Intuition.</strong> A URL is a full delivery address: which <em>protocol</em> to speak, which <em>machine</em>, which <em>door</em> on that machine, which <em>desk</em> inside, plus optional notes.</p>
+    <p>A <strong>URL</strong> (uniform resource locator) is the address of something on a network. Here is the one we'll call most:</p>
+    <div class="url-anatomy" aria-label="URL broken into labelled parts">
+      <div class="seg c-scheme"><span>http</span><small>scheme</small></div>
+      <div class="seg plain"><span>://</span><small>&nbsp;</small></div>
+      <div class="seg c-host"><span>127.0.0.1</span><small>host<br>(IP address)</small></div>
+      <div class="seg plain"><span>:</span><small>&nbsp;</small></div>
+      <div class="seg c-port"><span>8000</span><small>port</small></div>
+      <div class="seg c-path"><span>/v1/process</span><small>path<br>(route)</small></div>
+      <div class="seg c-query"><span>?debug=true</span><small>query string</small></div>
+      <div class="seg c-frag"><span>#top</span><small>fragment<br>(optional)</small></div>
+    </div>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Part</th><th>Example</th><th>What it means</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Scheme</strong></td><td><code>http</code>, <code>https</code></td><td>The protocol. <code>https</code> is HTTP wrapped in encryption (TLS), so nobody in between can read or change the traffic. Use <code>http</code> only on your own machine.</td></tr>
+        <tr><td><strong>Host</strong></td><td><code>127.0.0.1</code>, <code>localhost</code>, <code>api.example.com</code></td><td>Which machine. Either an <strong>IP address</strong> (numbers) or a <strong>domain name</strong> (words) that gets turned into an IP address.</td></tr>
+        <tr><td><strong>Port</strong></td><td><code>8000</code></td><td>Which program on that machine. Optional: if missing, it defaults to <strong>80</strong> for http and <strong>443</strong> for https.</td></tr>
+        <tr><td><strong>Path</strong></td><td><code>/v1/process</code></td><td>Which resource or function inside the program. In FastAPI the path selects the <strong>route</strong>. If missing, it is <code>/</code> (the root).</td></tr>
+        <tr><td><strong>Query string</strong></td><td><code>?debug=true&amp;limit=5</code></td><td>Optional <code>key=value</code> pairs after <code>?</code>, separated by <code>&amp;</code>. Used for options and filters. In FastAPI they become <strong>query parameters</strong>.</td></tr>
+        <tr><td><strong>Fragment</strong></td><td><code>#top</code></td><td>A position <em>within</em> the page, handled by the browser. It is <strong>never sent to the server</strong>.</td></tr>
+      </tbody>
+    </table></div>
+    <p>Characters with a special meaning (spaces, <code>&amp;</code>, <code>?</code>, <code>#</code>) must be <strong>percent-encoded</strong> inside a URL: a space becomes <code>%20</code>, <code>&amp;</code> becomes <code>%26</code>. Libraries like <code>httpx</code> do this for you when you pass <code>params={...}</code>.</p>
+
+    <h3>DNS: turning names into numbers</h3>
+    <p>Computers find each other by IP address, but people prefer names. <strong>DNS</strong> (the Domain Name System) is the internet's phone book: when you request <code>https://api.example.com</code>, your computer first asks a DNS server "what is the IP address of <code>api.example.com</code>?", gets back something like <code>93.184.215.14</code>, and then connects to that address. The name <code>localhost</code> is special: it is answered by your own computer (from its <code>hosts</code> file) without asking DNS, and always means "this machine".</p>
+
+    <div class="widget" id="url-widget">
+      <div class="widget-title">Try it: URL dissector</div>
+      <div class="widget-sub">Pick a preset or type any URL. Each part is coloured and explained, including what kind of host it is and which port is really used.</div>
+      <div class="btn-row" id="urlPresets" role="group" aria-label="URL presets"></div>
+      <label for="urlInput" class="out-label" style="display:block;margin-top:0">URL</label>
+      <input id="urlInput" class="url-input" type="text" spellcheck="false" autocomplete="off" value="http://127.0.0.1:8000/v1/process?debug=true">
+      <div class="url-anatomy" id="urlParts" aria-live="polite"></div>
+      <div id="urlInfo"></div>
+    </div>
+  </section>
+
+  <!-- ============ 4. IP ============ -->
+  <section id="ip">
+    <h2><span class="num">4</span>IP addresses, localhost and 0.0.0.0</h2>
+    <p class="intuition"><strong>Intuition.</strong> An IP address is a building's street address on a network. <code>127.0.0.1</code> is the special address that always means "this building, the one I'm standing in".</p>
+
+    <h3>IPv4 addresses</h3>
+    <p>An <strong>IP address</strong> (Internet Protocol address) identifies a device on a network. The classic form, <strong>IPv4</strong>, is four numbers from <strong>0 to 255</strong> separated by dots, for example <code>192.168.1.20</code>. Each number is one byte (8 bits), so there are 2<sup>32</sup> ≈ 4.3 billion possible addresses, which is not enough for every device on Earth. That shortage is why <em>private</em> addresses exist.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Range</th><th>Kind</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>127.0.0.0</code> – <code>127.255.255.255</code></td><td><span class="tag good">loopback</span></td><td>"This computer". Traffic never leaves the machine. <code>127.0.0.1</code> is the one everyone uses.</td></tr>
+        <tr><td><code>10.0.0.0</code> – <code>10.255.255.255</code></td><td><span class="tag acc">private</span></td><td>Used inside organisations and cloud networks (e.g. an AWS VPC).</td></tr>
+        <tr><td><code>172.16.0.0</code> – <code>172.31.255.255</code></td><td><span class="tag acc">private</span></td><td>Also private; Docker's internal networks often use <code>172.17.x.x</code>. Note <code>172.32.0.1</code> is <em>not</em> private.</td></tr>
+        <tr><td><code>192.168.0.0</code> – <code>192.168.255.255</code></td><td><span class="tag acc">private</span></td><td>Home and office routers. Your laptop on Wi-Fi is probably <code>192.168.x.x</code>.</td></tr>
+        <tr><td><code>169.254.x.x</code></td><td><span class="tag">link-local</span></td><td>Self-assigned when no router gave you an address. Usually a sign something is wrong.</td></tr>
+        <tr><td><code>0.0.0.0</code></td><td><span class="tag warn">unspecified</span></td><td>"No particular address". For a server, it means "listen on every network interface" (see below).</td></tr>
+        <tr><td>Everything else</td><td><span class="tag bad">public</span></td><td>Reachable across the internet, e.g. <code>8.8.8.8</code> (a Google DNS server).</td></tr>
+      </tbody>
+    </table></div>
+    <p><strong>Private addresses</strong> only work inside their own network, like internal extension numbers in an office. Many homes all use <code>192.168.1.20</code> at the same time without conflict. The router translates between private addresses and its one public address (this is called <em>NAT</em>, network address translation).</p>
+
+    <h3>IPv6 in one paragraph</h3>
+    <p><strong>IPv6</strong> is the newer, much larger address format: eight groups of hexadecimal digits separated by colons, e.g. <code>2001:db8::8a2e:370:7334</code> (<code>::</code> squashes a run of zeros). It has 2<sup>128</sup> addresses, enough to give every device a public address. The IPv6 loopback is <code>::1</code>. In a URL an IPv6 address goes in square brackets so its colons aren't confused with the port: <code>http://[::1]:8000/health</code>. You will mostly meet it when <code>localhost</code> resolves to <code>::1</code> instead of <code>127.0.0.1</code>.</p>
+
+    <h3>localhost and 127.0.0.1: "this computer"</h3>
+    <p><code>localhost</code> is a <strong>name</strong>; <code>127.0.0.1</code> is the <strong>address</strong> it normally points to. Both mean the <strong>loopback</strong> interface: a virtual network connection from your computer to itself. Requests to it never touch Wi-Fi or the internet, which makes it perfect for development: <code>http://127.0.0.1:8000</code> and <code>http://localhost:8000</code> reach the same server on your laptop.</p>
+    <div class="callout warn"><p><strong>"localhost" is relative.</strong> It always means "the machine <em>this code</em> is running on". Inside a Docker container, <code>localhost</code> is the container itself, not your laptop. If your Streamlit container calls <code>http://localhost:8000</code>, it is looking for the API inside the Streamlit container and will fail. Use the other container's service name instead (e.g. <code>http://api:8000</code> in Docker Compose).</p></div>
+
+    <h3>0.0.0.0 vs 127.0.0.1 when starting a server</h3>
+    <p>When you <strong>start</strong> a server you choose which network interfaces it <em>listens</em> on (this is called <strong>binding</strong>). A computer has several interfaces: the loopback (<code>127.0.0.1</code>), Wi-Fi (e.g. <code>192.168.1.20</code>), maybe Ethernet and Docker networks.</p>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0"><code>--host 127.0.0.1</code> (uvicorn's default)</h4><p style="margin:0">Listens <strong>only on loopback</strong>. Only programs on the same machine can connect. Safe default for development: nobody on the café Wi-Fi can reach your API.</p></div>
+      <div class="card"><h4 style="margin-top:0"><code>--host 0.0.0.0</code></h4><p style="margin:0">Listens on <strong>all interfaces</strong>. Other machines can connect using any of this machine's addresses. <strong>Required inside Docker</strong>: traffic arrives at the container's network interface, not at its loopback, so a server bound to <code>127.0.0.1</code> inside a container is unreachable from outside.</p></div>
+    </div>
+<pre><code># only this machine can call it (development)
+uvicorn main:app --host 127.0.0.1 --port 8000
+
+# anyone who can reach this machine can call it (Docker, servers, a colleague on your network)
+uvicorn main:app --host 0.0.0.0 --port 8000</code></pre>
+    <div class="callout"><p><strong>Why can't I open <code>http://0.0.0.0:8000</code>?</strong> <code>0.0.0.0</code> is a <em>listening</em> instruction ("any address"), not a real destination. When uvicorn prints <code>Uvicorn running on http://0.0.0.0:8000</code>, you should browse to <code>http://127.0.0.1:8000</code> or <code>http://localhost:8000</code> (or the machine's real IP from another computer). Some systems (macOS, Linux) quietly treat <code>0.0.0.0</code> as "this machine" and it seems to work; Windows and many browsers refuse it. Don't rely on it.</p></div>
+  </section>
+
+  <!-- ============ 5. PORTS ============ -->
+  <section id="ports">
+    <h2><span class="num">5</span>Ports</h2>
+    <p class="intuition"><strong>Intuition.</strong> If the IP address is the building, the port is the flat number. One computer runs many servers at once (an API, Streamlit, Jupyter, MLflow); each one listens behind its own numbered door.</p>
+    <p>A <strong>port</strong> is a number from <strong>0 to 65535</strong> that identifies one listening program on a machine. Only <strong>one program at a time</strong> can listen on a given port and address. Ports below 1024 are "well-known" and usually need administrator rights to use; for development you pick numbers above 1024.</p>
+    <div class="grid-2">
+      <div class="table-scroll" style="margin:0"><table>
+        <thead><tr><th>Well-known port</th><th>Used by</th></tr></thead>
+        <tbody>
+          <tr><td><code>80</code></td><td>HTTP (default when no port is written)</td></tr>
+          <tr><td><code>443</code></td><td>HTTPS (default for <code>https://</code>)</td></tr>
+          <tr><td><code>22</code></td><td>SSH (remote terminal)</td></tr>
+          <tr><td><code>5432</code></td><td>PostgreSQL database</td></tr>
+          <tr><td><code>3306</code></td><td>MySQL database</td></tr>
+          <tr><td><code>6379</code></td><td>Redis</td></tr>
+        </tbody>
+      </table></div>
+      <div class="table-scroll" style="margin:0"><table>
+        <thead><tr><th>Development port</th><th>Convention</th></tr></thead>
+        <tbody>
+          <tr><td><code>8000</code></td><td>FastAPI / uvicorn default</td></tr>
+          <tr><td><code>8501</code></td><td>Streamlit default</td></tr>
+          <tr><td><code>5000</code></td><td>MLflow UI (<code>mlflow ui</code>) default</td></tr>
+          <tr><td><code>8888</code></td><td>Jupyter</td></tr>
+          <tr><td><code>3000</code></td><td>Many JavaScript front ends</td></tr>
+          <tr><td><code>8080</code></td><td>"Alternative HTTP"; common in containers</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <p>So on one laptop you might have, all at once: the API at <code>http://localhost:8000</code>, the Streamlit front end at <code>http://localhost:8501</code>, and the MLflow UI at <code>http://localhost:5000</code>. Same building, three different doors.</p>
+    <div class="callout warn"><p><strong>macOS note:</strong> on recent macOS versions the AirPlay Receiver also listens on port 5000, which can clash with <code>mlflow ui</code>. Use <code>mlflow ui --port 5001</code> or turn off AirPlay Receiver.</p></div>
+
+    <h3>"Address already in use"</h3>
+    <p>If you start a server on a port that something else is already listening on, it fails straight away. This is what we saw from uvicorn while testing this page:</p>
+<pre><code>ERROR:    [Errno 48] error while attempting to bind on address ('127.0.0.1', 8851): address already in use</code></pre>
+    <p>(On Linux the error number is 98; on Windows it says "only one usage of each socket address is normally permitted".) Usually the culprit is <strong>your own earlier server</strong> still running in another terminal. Two fixes:</p>
+    <ol>
+      <li><strong>Choose another port:</strong> <code>uvicorn main:app --port 8001</code>.</li>
+      <li><strong>Find and stop the process</strong> holding the port:</li>
+    </ol>
+<pre><code># macOS / Linux: who is listening on port 8000?  (-nP prints numbers, not names)
+lsof -nP -i :8000
+kill &lt;PID&gt;            # polite stop; use kill -9 &lt;PID&gt; only if it refuses
+
+# Windows (Command Prompt or PowerShell)
+netstat -ano | findstr :8000      # the last column of the LISTENING line is the PID
+taskkill /PID &lt;PID&gt; /F</code></pre>
+    <p>For example, this is what <code>lsof -nP -iTCP:8873 -sTCP:LISTEN</code> printed for one of our test servers (some columns trimmed). The second column, <code>61667</code>, is the process ID to pass to <code>kill</code>:</p>
+<pre><code>COMMAND     PID   USER   FD   TYPE  ...  NAME
+python3.1 61667 samuel    9u  IPv4  ...  TCP 127.0.0.1:8873 (LISTEN)</code></pre>
+  </section>
+
+  <!-- ============ 6. ROUTES ============ -->
+  <section id="routes">
+    <h2><span class="num">6</span>Routes, endpoints and parameters</h2>
+    <p class="intuition"><strong>Intuition.</strong> Once you're through the right door (port), the <strong>path</strong> says which desk you want. A <strong>route</strong> is a desk the app has set up; an <strong>endpoint</strong> is a desk <em>plus</em> the kind of request it accepts <em>plus</em> the person (function) who deals with it.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Term</th><th>Meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Path</strong></td><td>The part of a <em>specific</em> URL after the host and port, before <code>?</code></td><td><code>/customers/42</code></td></tr>
+        <tr><td><strong>Route</strong></td><td>A path <em>pattern</em> registered in the app, which may contain placeholders</td><td><code>/customers/{customer_id}</code></td></tr>
+        <tr><td><strong>Endpoint</strong></td><td>A route + an HTTP method + the Python function that handles it</td><td><code>GET /customers/{customer_id}</code> → <code>get_customer()</code></td></tr>
+      </tbody>
+    </table></div>
+    <p>In everyday speech people use "route" and "endpoint" interchangeably. The distinction matters when one path has several methods: <code>GET /v1/models</code> (list models) and <code>POST /v1/models</code> (register a model) are <strong>one route, two endpoints</strong>.</p>
+<pre><code>from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/health")                      # endpoint: GET /health  -&gt; health()
+def health() -&gt; dict:
+    return {"status": "ok"}
+
+@app.post("/v1/process")                 # endpoint: POST /v1/process -&gt; process()
+def process(...): ...</code></pre>
+
+    <h3>Three ways to send inputs</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Where</th><th>Looks like</th><th>Use for</th><th>FastAPI recognises it when…</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Path parameter</strong></td><td><code>/customers/<b>42</b></code></td><td>Identifying <em>which</em> thing (an ID)</td><td>The function argument's name matches a <code>{placeholder}</code> in the route</td></tr>
+        <tr><td><strong>Query parameter</strong></td><td><code>/customers?<b>limit=10&amp;country=UK</b></code></td><td>Optional settings, filters, paging, flags such as <code>debug</code></td><td>The argument is a simple type (int, str, bool…) not in the route</td></tr>
+        <tr><td><strong>Request body</strong></td><td>JSON sent after the headers</td><td>Larger or structured data: the model's input features</td><td>The argument's type is a Pydantic model</td></tr>
+      </tbody>
+    </table></div>
+<pre><code>from fastapi import FastAPI
+
+app = FastAPI(title="Hello API")
+
+
+@app.get("/")
+def root() -&gt; dict:
+    return {"message": "Hello from FastAPI"}
+
+
+@app.get("/items/{item_id}")
+def read_item(item_id: int, debug: bool = False) -&gt; dict:
+    return {"item_id": item_id, "debug": debug}</code></pre>
+    <p>Responses we observed from this exact code:</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Request</th><th>Status</th><th>Body</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET /items/42</code></td><td>200</td><td><code>{"item_id":42,"debug":false}</code></td></tr>
+        <tr><td><code>GET /items/42?debug=true</code></td><td>200</td><td><code>{"item_id":42,"debug":true}</code></td></tr>
+        <tr><td><code>GET /items/abc</code></td><td>422</td><td><code>{"detail":[{"type":"int_parsing","loc":["path","item_id"],"msg":"Input should be a valid integer, unable to parse string as an integer","input":"abc"}]}</code></td></tr>
+      </tbody>
+    </table></div>
+    <p>Notice how FastAPI converted the text <code>"42"</code> from the URL into the integer <code>42</code> and <code>"true"</code> into <code>True</code>, purely from the type hints. And <code>"loc":["path","item_id"]</code> tells the caller exactly <em>where</em> the bad input was.</p>
+
+    <h3>Versioning: why <code>/v1/</code>?</h3>
+    <p>Other people's code depends on your API's exact shape. If you rename a field from <code>tenure_months</code> to <code>tenure</code>, every caller breaks. Putting a <strong>version</strong> in the path lets you make breaking changes safely:</p>
+    <ul>
+      <li>Keep <code>/v1/process</code> working exactly as before.</li>
+      <li>Add <code>/v2/process</code> with the new shape. Callers move over when they're ready.</li>
+      <li>Announce a date, then retire <code>/v1</code>.</li>
+    </ul>
+    <p>Adding a new <em>optional</em> field is not a breaking change and doesn't need a new version. Removing or renaming fields, changing types, or changing what a field means does. Note the API version (<code>v1</code>) is not the same as the <em>model</em> version (registry version 7): you can retrain and swap models many times behind the same <code>/v1</code> contract, as long as the inputs and outputs keep the same shape.</p>
+  </section>
+
+  <!-- ============ 7. METHODS ============ -->
+  <section id="methods">
+    <h2><span class="num">7</span>HTTP methods</h2>
+    <p class="intuition"><strong>Intuition.</strong> The method is the verb of the request: <em>read</em> something, <em>send</em> something, <em>replace</em>, <em>edit</em> or <em>delete</em> it. Same desk, different requests.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Method</th><th>Meaning</th><th>Has a body?</th><th>Safe</th><th>Idempotent</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><strong>GET</strong></td><td>Read / fetch</td><td>No</td><td>✅</td><td>✅</td><td><code>GET /health</code>, <code>GET /v1/models/churn</code></td></tr>
+        <tr><td><strong>POST</strong></td><td>Send data to be processed; create something</td><td>Yes</td><td>❌</td><td>❌</td><td><code>POST /v1/process</code>, <code>POST /v1/jobs</code></td></tr>
+        <tr><td><strong>PUT</strong></td><td>Replace a whole resource</td><td>Yes</td><td>❌</td><td>✅</td><td><code>PUT /v1/thresholds/churn</code> with the full new config</td></tr>
+        <tr><td><strong>PATCH</strong></td><td>Change part of a resource</td><td>Yes</td><td>❌</td><td>Usually not</td><td><code>PATCH /v1/thresholds/churn</code> with <code>{"threshold": 0.4}</code></td></tr>
+        <tr><td><strong>DELETE</strong></td><td>Remove</td><td>Rarely</td><td>❌</td><td>✅</td><td><code>DELETE /v1/jobs/17</code></td></tr>
+      </tbody>
+    </table></div>
+    <ul>
+      <li><strong>Safe</strong> = it doesn't change anything on the server. You can call it as often as you like, and browsers, caches and crawlers will happily do so.</li>
+      <li><strong>Idempotent</strong> = doing it twice has the same effect as doing it once. Deleting job 17 twice still leaves job 17 deleted. Sending "create a new order" twice creates <em>two</em> orders, so POST is not idempotent. Idempotent requests are safe to <strong>retry</strong> after a network glitch.</li>
+    </ul>
+    <h3>Why prediction endpoints use POST</h3>
+    <p>A prediction doesn't change anything, so in theory it could be a GET with the features in the query string. In practice almost everyone uses <strong>POST with a JSON body</strong>, because:</p>
+    <ul>
+      <li>Model inputs are often <strong>large or nested</strong> (many features, lists, a batch of rows, text). URLs have practical length limits of a few thousand characters.</li>
+      <li>A JSON body keeps <strong>types</strong> (numbers, booleans, lists); a query string is all text.</li>
+      <li>URLs end up in <strong>logs, browser history and proxies</strong>. Customer data in a URL leaks; data in a body is far less exposed.</li>
+      <li>FastAPI validates a JSON body against a Pydantic model and documents it automatically.</li>
+    </ul>
+    <p>If you call an endpoint with a method it doesn't support, FastAPI answers <strong>405 Method Not Allowed</strong> and includes an <code>allow</code> header listing the methods that <em>would</em> work.</p>
+  </section>
+
+  <!-- ============ 8. REQ/RES ============ -->
+  <section id="reqres">
+    <h2><span class="num">8</span>Requests and responses</h2>
+    <p class="intuition"><strong>Intuition.</strong> An HTTP message is like a letter: an envelope line saying what it is, some labels (headers), a blank line, then the contents (body).</p>
+    <p>HTTP messages are plain text. This is (almost exactly) what <code>curl</code> sends to our API and what comes back:</p>
+    <div class="grid-2">
+      <div><p class="out-label">Request</p>
+<pre style="margin-top:4px"><code><b>POST /v1/process HTTP/1.1</b>          &lt;- method, path, version
+Host: 127.0.0.1:8000                 &lt;- headers
+Content-Type: application/json
+Content-Length: 65
+                                     &lt;- blank line
+{"tenure_months": 3, "monthly_charges": 79.5, "support_calls": 6}</code></pre></div>
+      <div><p class="out-label">Response (observed)</p>
+<pre style="margin-top:4px"><code><b>HTTP/1.1 200 OK</b>                      &lt;- status line
+date: Mon, 19 Oct 2026 11:13:58 GMT
+server: uvicorn
+content-length: 66
+content-type: application/json
+
+{"churn_probability":0.9773,"will_churn":true,"model_version":"1"}</code></pre></div>
+    </div>
+    <h3>Headers</h3>
+    <p><strong>Headers</strong> are <code>Name: value</code> labels with information <em>about</em> the message. Names are case-insensitive. The ones you'll meet most:</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Header</th><th>Direction</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>Content-Type: application/json</code></td><td>both</td><td>"The body is JSON." Without it on a request, the server may not parse your body as JSON (see the warning below).</td></tr>
+        <tr><td><code>Accept: application/json</code></td><td>request</td><td>"I'd like JSON back."</td></tr>
+        <tr><td><code>Content-Length</code></td><td>both</td><td>Size of the body in bytes. Set automatically by clients.</td></tr>
+        <tr><td><code>Authorization: Bearer …</code> / <code>X-API-Key: …</code></td><td>request</td><td>Credentials. Headers, not URLs, are the place for secrets.</td></tr>
+        <tr><td><code>Allow: POST</code></td><td>response</td><td>Sent with 405: which methods this route accepts.</td></tr>
+        <tr><td><code>Location: …</code></td><td>response</td><td>Sent with redirects (3xx) and sometimes 201: where to go next.</td></tr>
+        <tr><td><code>Retry-After: 30</code></td><td>response</td><td>Sent with 429 or 503: wait this many seconds before retrying.</td></tr>
+        <tr><td><code>X-Request-ID</code></td><td>both</td><td>A unique ID per request, so a caller's complaint can be matched to your logs.</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Body and JSON</h3>
+    <p>The <strong>body</strong> carries the data. For APIs this is almost always <strong>JSON</strong> (JavaScript Object Notation), which maps neatly onto Python: objects <code>{}</code> ↔ <code>dict</code>, arrays <code>[]</code> ↔ <code>list</code>, strings ↔ <code>str</code>, numbers ↔ <code>int</code>/<code>float</code>, <code>true</code>/<code>false</code> ↔ <code>True</code>/<code>False</code>, <code>null</code> ↔ <code>None</code>. JSON is stricter than Python: keys must use <strong>double quotes</strong>, and no trailing commas are allowed.</p>
+    <div class="callout warn"><p><strong>Forgetting the Content-Type header is a classic mistake.</strong> <code>curl -d '...'</code> without <code>-H "Content-Type: application/json"</code> sends the body as a web form. We tried it: FastAPI read the body as one long string and answered <strong>422</strong> with <code>"type":"model_attributes_type"</code>, <code>"msg":"Input should be a valid dictionary or object to extract fields from"</code>. Python clients avoid this if you pass <code>json=payload</code> (not <code>data=</code>), which sets the header for you.</p></div>
+  </section>
+
+  <!-- ============ 9. STATUS ============ -->
+  <section id="status">
+    <h2><span class="num">9</span>Status codes</h2>
+    <p class="intuition"><strong>Intuition.</strong> The status code is the receptionist's stamp on your reply. The first digit tells you who to blame: <strong>4xx = the client's fault</strong> (fix your request), <strong>5xx = the server's fault</strong> (fix the server, or try later).</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Class</th><th>Meaning</th><th>What the caller should do</th></tr></thead>
+      <tbody>
+        <tr><td><strong>1xx</strong> Informational</td><td>"Received, carry on." Rare in APIs.</td><td>Nothing; handled by libraries.</td></tr>
+        <tr><td><strong>2xx</strong> Success</td><td>It worked.</td><td>Use the response.</td></tr>
+        <tr><td><strong>3xx</strong> Redirection</td><td>It's somewhere else.</td><td>Follow the <code>Location</code> header (most clients can do this automatically).</td></tr>
+        <tr><td><strong>4xx</strong> Client error</td><td>Your request was wrong: bad address, bad data, not allowed.</td><td><strong>Fix the request.</strong> Retrying the same request gives the same error (except 429).</td></tr>
+        <tr><td><strong>5xx</strong> Server error</td><td>The request looked fine, but the server failed.</td><td>Not your fault. Retry later, and tell the API owner.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>The codes you'll actually meet</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Code</th><th>Name</th><th>When you'd see it in our API</th></tr></thead>
+      <tbody>
+        <tr><td><code>200</code></td><td>OK</td><td>Prediction returned; health check passed.</td></tr>
+        <tr><td><code>201</code></td><td>Created</td><td>A POST that creates something with its own ID (e.g. a batch job).</td></tr>
+        <tr><td><code>204</code></td><td>No Content</td><td>Success with nothing to return (e.g. a DELETE).</td></tr>
+        <tr><td><code>400</code></td><td>Bad Request</td><td>Well-formed data that breaks a <strong>business rule</strong>, raised by our code.</td></tr>
+        <tr><td><code>401</code></td><td>Unauthorized</td><td>Missing or wrong API key. (Despite the name, it means "not <em>authenticated</em>": we don't know who you are.)</td></tr>
+        <tr><td><code>403</code></td><td>Forbidden</td><td>We know who you are, but you're not allowed (e.g. a read-only key calling the reload endpoint).</td></tr>
+        <tr><td><code>404</code></td><td>Not Found</td><td>Typo in the path (<code>/v1/procss</code>), wrong version (<code>/v2/…</code>), or an ID that doesn't exist.</td></tr>
+        <tr><td><code>405</code></td><td>Method Not Allowed</td><td>Right path, wrong verb: <code>GET /v1/process</code>.</td></tr>
+        <tr><td><code>409</code></td><td>Conflict</td><td>The request clashes with current state (e.g. creating something that already exists).</td></tr>
+        <tr><td><code>422</code></td><td>Unprocessable Entity</td><td><strong>FastAPI's automatic answer to invalid input</strong>: missing fields, wrong types, out-of-range values, broken JSON.</td></tr>
+        <tr><td><code>429</code></td><td>Too Many Requests</td><td>The caller has hit a rate limit. Slow down and retry after <code>Retry-After</code> seconds.</td></tr>
+        <tr><td><code>500</code></td><td>Internal Server Error</td><td>A bug or unexpected failure inside our code (e.g. the model raised an exception).</td></tr>
+        <tr><td><code>502</code></td><td>Bad Gateway</td><td>A proxy or load balancer in front of us got no valid answer from our app (it crashed, or is on another port).</td></tr>
+        <tr><td><code>503</code></td><td>Service Unavailable</td><td>We're up but can't serve right now: <strong>model not loaded</strong>, overloaded, maintenance.</td></tr>
+        <tr><td><code>504</code></td><td>Gateway Timeout</td><td>The proxy gave up waiting because our app took too long to answer.</td></tr>
+      </tbody>
+    </table></div>
+    <p>Newer HTTP specifications renamed 422 to "Unprocessable Content". Python 3.12 (and so uvicorn on it) still prints <code>422 Unprocessable Entity</code>; Python 3.13 prints the new name. Same code, same meaning.</p>
+
+    <div class="widget" id="status-explorer">
+      <div class="widget-title">Try it: status code explorer</div>
+      <div class="widget-sub">Click a code to see what it means, what usually causes it, who should fix it, and a line of FastAPI that produces it.</div>
+      <div id="scGroups"></div>
+      <div class="sc-detail" id="scDetail" aria-live="polite"></div>
+    </div>
+
+    <h3 id="status-400-422">400 vs 422: who decides?</h3>
+    <p>Both mean "your input was wrong", but they come from different places in a FastAPI app:</p>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0">422: FastAPI decides, automatically</h4><p>Before your function runs, FastAPI parses the JSON and checks it against your Pydantic model. If anything fails (broken JSON, missing field, wrong type, value outside <code>ge</code>/<code>le</code>), FastAPI returns 422 with a list of <em>every</em> problem. <strong>Your function never runs.</strong></p><p style="margin:0">Think: "the form is filled in wrongly".</p></div>
+      <div class="card"><h4 style="margin-top:0">400: your code decides</h4><p>The data passed validation, but it breaks a <strong>business rule</strong> that types alone can't express: e.g. an annual contract for a customer with 3 months' tenure. You raise <code>HTTPException(status_code=400, detail=...)</code> yourself, with a clear message.</p><p style="margin:0">Think: "the form is filled in correctly, but what it asks for doesn't make sense".</p></div>
+    </div>
+    <p>The 422 body has a fixed shape. This is a real response from our API for <code>{"tenure_months": 3}</code>, with explanatory notes added on the right (they are not part of the JSON):</p>
+<pre><code>{
+  "detail": [
+    {
+      "type": "missing",                         <span style="color:var(--muted)">// machine-readable error type</span>
+      "loc": ["body", "monthly_charges"],        <span style="color:var(--muted)">// where: in the body, field monthly_charges</span>
+      "msg": "Field required",                   <span style="color:var(--muted)">// human-readable message</span>
+      "input": {"tenure_months": 3}              <span style="color:var(--muted)">// what was received at that level</span>
+    },
+    {
+      "type": "missing",
+      "loc": ["body", "support_calls"],
+      "msg": "Field required",
+      "input": {"tenure_months": 3}
+    }
+  ]
+}</code></pre>
+    <p>Constraint errors also include <code>ctx</code> with the limit that was broken, e.g. <code>"ctx": {"le": 50}</code>. A 400 from your own <code>HTTPException</code> has a simpler shape: <code>{"detail": "An annual contract needs tenure_months &gt;= 12"}</code>. Some teams convert 422s to 400s with a custom exception handler so all input errors share one code; either is fine, as long as you're consistent and document it.</p>
+  </section>
+
+  <!-- ============ 10. FASTAPI BASICS ============ -->
+  <section id="fastapi">
+    <h2><span class="num">10</span>FastAPI basics</h2>
+    <p class="intuition"><strong>Intuition.</strong> You write ordinary Python functions with type hints; decorators like <code>@app.get("/health")</code> attach them to URLs. FastAPI handles the HTTP, the JSON and the validation; uvicorn is the server that listens on the port.</p>
+    <h3>Install</h3>
+<pre><code>uv add "fastapi[standard]"       # FastAPI + uvicorn + the `fastapi` command + httpx (for TestClient)
+# or: pip install "fastapi[standard]"</code></pre>
+    <h3>A minimal app</h3>
+    <p>Save this as <code>main.py</code>:</p>
+<pre><code>from fastapi import FastAPI
+
+app = FastAPI(title="Hello API")      # the application object
+
+
+@app.get("/")                         # GET requests to "/" call this function
+def root() -&gt; dict:
+    return {"message": "Hello from FastAPI"}   # dicts are returned as JSON</code></pre>
+    <h3>Run it</h3>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0">Development: <code>fastapi dev</code></h4>
+<pre style="margin:6px 0 8px"><code>fastapi dev main.py</code></pre>
+      <p style="margin:0">Starts uvicorn on <code>127.0.0.1:8000</code> with <strong>auto-reload</strong>: save the file and the server restarts. Prints the docs URL.</p></div>
+      <div class="card"><h4 style="margin-top:0">Explicit: <code>uvicorn</code></h4>
+<pre style="margin:6px 0 8px"><code>uvicorn main:app --reload --host 127.0.0.1 --port 8000</code></pre>
+      <p style="margin:0"><code>main:app</code> = "in the module <code>main.py</code>, the variable <code>app</code>". Every option is visible, which is useful in scripts and Dockerfiles.</p></div>
+    </div>
+    <p>Output we observed from <code>fastapi dev main.py --port 8874</code> (trimmed):</p>
+<pre><code> ⚡️ Starting FastAPI in development mode
+ 🌐 Server started at http://127.0.0.1:8874
+    Documentation at http://127.0.0.1:8874/docs
+INFO:     Uvicorn running on http://127.0.0.1:8874 (Press CTRL+C to quit)
+INFO:     Started reloader process [61741] using WatchFiles
+INFO:     Application startup complete.
+INFO:     127.0.0.1:52903 - "GET /health HTTP/1.1" 200 OK</code></pre>
+    <p>The last line is the <strong>access log</strong>: who called, which method and path, and the status code returned. Watch it while you test. Stop the server with <kbd>Ctrl</kbd>+<kbd>C</kbd>. Use <code>fastapi run main.py</code> (no reload, listens on <code>0.0.0.0</code>) or uvicorn without <code>--reload</code> in production.</p>
+    <h3>Free documentation</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>URL</th><th>What it is</th></tr></thead>
+      <tbody>
+        <tr><td><code>http://127.0.0.1:8000/docs</code></td><td><strong>Swagger UI</strong>: interactive docs. Every endpoint, its inputs and outputs, with a "Try it out" button that sends real requests. The fastest way to test while developing.</td></tr>
+        <tr><td><code>http://127.0.0.1:8000/redoc</code></td><td><strong>ReDoc</strong>: the same information as a clean, read-only reference page.</td></tr>
+        <tr><td><code>http://127.0.0.1:8000/openapi.json</code></td><td>The <strong>OpenAPI schema</strong>: a machine-readable JSON description of the whole API (our test returned <code>{"openapi":"3.1.0","info":{"title":"Hello API",...}</code>). Tools can generate client code from it.</td></tr>
+      </tbody>
+    </table></div>
+    <p>All three are generated from your type hints and Pydantic models, so they never go out of date. Add <code>description=</code> to fields and docstrings to functions to make them richer.</p>
+  </section>
+
+  <!-- ============ 11. BUILD ============ -->
+  <section id="build">
+    <h2><span class="num">11</span>Building the course API step by step</h2>
+    <p class="intuition"><strong>Intuition.</strong> A good model API does four jobs in order: <em>check the input</em>, <em>check it's able to answer</em>, <em>predict</em>, and <em>report clearly when anything goes wrong</em>, using the right status code each time.</p>
+    <p>The course API has two endpoints, as in Thursday's session:</p>
+    <ul>
+      <li><code>GET /health</code>: "Are you alive, and is the model loaded?" Used by people, monitoring and load balancers.</li>
+      <li><code>POST /v1/process</code>: send a customer's features, get back a churn probability.</li>
+    </ul>
+    <p>For a self-contained example we first train a toy churn model and save it with <code>joblib</code>. In <a href="#mlflow">section 13</a> we replace this file with the MLflow champion.</p>
+<pre><code># train_model.py
+import joblib
+import numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+rng = np.random.default_rng(42)
+X = np.column_stack([
+    rng.integers(0, 72, 500),          # tenure_months
+    rng.uniform(20, 120, 500),         # monthly_charges
+    rng.integers(0, 10, 500),          # support_calls
+])
+y = ((X[:, 2] &gt; 4) | (X[:, 0] &lt; 6)).astype(int)   # toy "churn" label
+
+model = make_pipeline(StandardScaler(), LogisticRegression()).fit(X, y)
+joblib.dump(model, "model.joblib")
+print("saved model.joblib")</code></pre>
+
+    <h3>Step 1: load the model once, at startup</h3>
+    <p>A <strong>lifespan</strong> function runs code when the server starts (before the <code>yield</code>) and when it shuts down (after it). Loading here means the model is read from disk <strong>once</strong>, not on every request. If loading fails, we log it and let the app start anyway, so <code>/health</code> can report the problem instead of the whole service vanishing.</p>
+<pre><code>@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        state["model"] = joblib.load("model.joblib")   # load ONCE at startup
+    except Exception:
+        logger.exception("Could not load model")    # app still starts; /health reports it
+    yield
+    state["model"] = None                             # runs on shutdown
+
+
+app = FastAPI(title="Churn API", version="1.0.0", lifespan=lifespan)</code></pre>
+
+    <h3>Step 2: describe the input and output with Pydantic</h3>
+    <p><strong>Pydantic</strong> models are classes that describe the shape of data. FastAPI uses the request model to parse and validate the JSON body, and the response model to check and document what you send back.</p>
+<pre><code>class ChurnRequest(BaseModel):
+    tenure_months: int = Field(ge=0, le=120, description="Months as a customer")
+    monthly_charges: float = Field(gt=0, le=1000, description="Monthly bill in GBP")
+    support_calls: int = Field(ge=0, le=50)
+    contract: Literal["monthly", "annual"] = "monthly"
+
+
+class ChurnResponse(BaseModel):
+    churn_probability: float
+    will_churn: bool
+    model_version: str</code></pre>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Syntax</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>tenure_months: int</code></td><td>Required, must be an integer. Note Pydantic is <em>lenient</em> by default: <code>"3"</code> and <code>3.0</code> are accepted and converted to <code>3</code>; <code>3.5</code> and <code>"three"</code> are rejected.</td></tr>
+        <tr><td><code>Field(ge=0, le=120)</code></td><td>Greater than or equal to 0, less than or equal to 120. Also <code>gt</code>/<code>lt</code> (strict), <code>min_length</code>/<code>max_length</code> for strings and lists.</td></tr>
+        <tr><td><code>= "monthly"</code></td><td>A default makes the field <strong>optional</strong>. No default = required.</td></tr>
+        <tr><td><code>Literal["monthly", "annual"]</code></td><td>Only these exact values are allowed.</td></tr>
+        <tr><td><code>description=...</code></td><td>Shown in <code>/docs</code>.</td></tr>
+      </tbody>
+    </table></div>
+    <p>Extra fields the model doesn't define are silently ignored by default. Add <code>model_config = ConfigDict(extra="forbid")</code> to the class if you'd rather reject them with a 422.</p>
+
+    <h3>Step 3: the health endpoint</h3>
+<pre><code>@app.get("/health")
+def health(response: Response) -&gt; dict:
+    loaded = state["model"] is not None
+    if not loaded:
+        response.status_code = 503                    # load balancers read the code
+    return {"status": "ok" if loaded else "unavailable",
+            "model_loaded": loaded,
+            "model_version": MODEL_VERSION if loaded else None}</code></pre>
+    <p>Why 503 and not 200 with <code>"model_loaded": false</code>? Because machines (load balancers, Kubernetes, AWS health checks) mostly look at the <strong>status code</strong>, not the body. 503 tells them "don't send traffic here yet". We still return a helpful body for humans. Adding a <code>response: Response</code> argument lets you change the status code while returning normal data.</p>
+
+    <h3>Step 4: the prediction endpoint, with every error path</h3>
+<pre><code>@app.post("/v1/process", response_model=ChurnResponse, status_code=200)
+def process(req: ChurnRequest) -&gt; ChurnResponse:
+    model = state["model"]
+    if model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+
+    # Business rule: valid JSON and valid types, but it makes no sense -&gt; 400
+    if req.contract == "annual" and req.tenure_months &lt; 12:
+        raise HTTPException(status_code=400,
+                            detail="An annual contract needs tenure_months &gt;= 12")
+
+    X = np.array([[req.tenure_months, req.monthly_charges, req.support_calls]])
+    try:
+        proba = float(model.predict_proba(X)[0, 1])
+    except Exception:
+        logger.exception("Prediction failed")          # full details go to the log...
+        raise HTTPException(status_code=500,            # ...not to the caller
+                            detail="Internal server error")
+
+    return ChurnResponse(churn_probability=round(proba, 4),
+                         will_churn=proba &gt;= 0.5,
+                         model_version=MODEL_VERSION)</code></pre>
+    <ul>
+      <li><code>req: ChurnRequest</code> makes FastAPI read the JSON body and validate it. Invalid input → <strong>422</strong> before this function even starts.</li>
+      <li><code>status_code=200</code> on the decorator sets the success code (200 is the default; you'd use <code>201</code> for an endpoint that creates something).</li>
+      <li><code>raise HTTPException(status_code=..., detail=...)</code> stops the function and sends that code with <code>{"detail": ...}</code>.</li>
+      <li><code>response_model=ChurnResponse</code> checks and filters what we return, and documents it in <code>/docs</code>.</li>
+    </ul>
+    <div class="callout bad"><p><strong>Never leak stack traces.</strong> If an exception escapes your function, FastAPI already returns a plain-text <code>Internal Server Error</code> with status 500 (we checked: <code>content-type: text/plain</code>), and the traceback appears only in the server log. Catching it yourself, as above, gives callers a consistent JSON error and lets you log useful context. Never put <code>str(e)</code> or a traceback in <code>detail</code>: it can expose file paths, library versions, SQL or customer data.</p></div>
+
+    <h3>The whole file</h3>
+    <details class="card"><summary style="cursor:pointer;font-weight:600">Show <code>main.py</code> (tested)</summary>
+<pre><code>import logging
+from contextlib import asynccontextmanager
+from typing import Literal
+
+import joblib
+import numpy as np
+from fastapi import FastAPI, HTTPException, Response
+from pydantic import BaseModel, Field
+
+logger = logging.getLogger("churn-api")
+MODEL_VERSION = "1"
+state: dict = {"model": None}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        state["model"] = joblib.load("model.joblib")   # load ONCE at startup
+    except Exception:
+        logger.exception("Could not load model")    # app still starts; /health reports it
+    yield
+    state["model"] = None                             # runs on shutdown
+
+
+app = FastAPI(title="Churn API", version="1.0.0", lifespan=lifespan)
+
+
+class ChurnRequest(BaseModel):
+    tenure_months: int = Field(ge=0, le=120, description="Months as a customer")
+    monthly_charges: float = Field(gt=0, le=1000, description="Monthly bill in GBP")
+    support_calls: int = Field(ge=0, le=50)
+    contract: Literal["monthly", "annual"] = "monthly"
+
+
+class ChurnResponse(BaseModel):
+    churn_probability: float
+    will_churn: bool
+    model_version: str
+
+
+@app.get("/health")
+def health(response: Response) -&gt; dict:
+    loaded = state["model"] is not None
+    if not loaded:
+        response.status_code = 503                    # load balancers read the code
+    return {"status": "ok" if loaded else "unavailable",
+            "model_loaded": loaded,
+            "model_version": MODEL_VERSION if loaded else None}
+
+
+@app.post("/v1/process", response_model=ChurnResponse, status_code=200)
+def process(req: ChurnRequest) -&gt; ChurnResponse:
+    model = state["model"]
+    if model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+
+    # Business rule: valid JSON and valid types, but it makes no sense -&gt; 400
+    if req.contract == "annual" and req.tenure_months &lt; 12:
+        raise HTTPException(status_code=400,
+                            detail="An annual contract needs tenure_months &gt;= 12")
+
+    X = np.array([[req.tenure_months, req.monthly_charges, req.support_calls]])
+    try:
+        proba = float(model.predict_proba(X)[0, 1])
+    except Exception:
+        logger.exception("Prediction failed")          # full details go to the log...
+        raise HTTPException(status_code=500,            # ...not to the caller
+                            detail="Internal server error")
+
+    return ChurnResponse(churn_probability=round(proba, 4),
+                         will_churn=proba &gt;= 0.5,
+                         model_version=MODEL_VERSION)</code></pre>
+    </details>
+
+    <h3>What it returned when we tested it</h3>
+    <p>Every row below was observed with FastAPI 0.147, Pydantic 2.14 and uvicorn on Python 3.12.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Request</th><th>Code</th><th>Body (shortened)</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET /health</code></td><td><span class="tag good">200</span></td><td><code>{"status":"ok","model_loaded":true,"model_version":"1"}</code></td></tr>
+        <tr><td><code>POST /v1/process</code> valid body</td><td><span class="tag good">200</span></td><td><code>{"churn_probability":0.9773,"will_churn":true,"model_version":"1"}</code></td></tr>
+        <tr><td><code>support_calls</code> missing</td><td><span class="tag warn">422</span></td><td><code>"type":"missing","loc":["body","support_calls"],"msg":"Field required"</code></td></tr>
+        <tr><td><code>"tenure_months": "three"</code></td><td><span class="tag warn">422</span></td><td><code>"type":"int_parsing", "msg":"Input should be a valid integer, unable to parse string as an integer"</code></td></tr>
+        <tr><td><code>"monthly_charges": -5</code></td><td><span class="tag warn">422</span></td><td><code>"type":"greater_than", "msg":"Input should be greater than 0", "ctx":{"gt":0.0}</code></td></tr>
+        <tr><td><code>"contract": "weekly"</code></td><td><span class="tag warn">422</span></td><td><code>"type":"literal_error", "msg":"Input should be 'monthly' or 'annual'"</code></td></tr>
+        <tr><td>Broken JSON <code>{"tenure_months": 3,</code></td><td><span class="tag warn">422</span></td><td><code>"type":"json_invalid","loc":["body",20],"msg":"JSON decode error"</code> (20 = character position)</td></tr>
+        <tr><td>Annual contract, 3 months' tenure</td><td><span class="tag warn">400</span></td><td><code>{"detail":"An annual contract needs tenure_months &gt;= 12"}</code></td></tr>
+        <tr><td><code>GET /v1/process</code></td><td><span class="tag warn">405</span></td><td><code>{"detail":"Method Not Allowed"}</code> + header <code>allow: POST</code></td></tr>
+        <tr><td><code>POST /v1/procss</code>, <code>POST /v2/process</code></td><td><span class="tag warn">404</span></td><td><code>{"detail":"Not Found"}</code></td></tr>
+        <tr><td>Model raises an exception</td><td><span class="tag bad">500</span></td><td><code>{"detail":"Internal server error"}</code> (traceback only in the log)</td></tr>
+        <tr><td>Model not loaded: <code>GET /health</code></td><td><span class="tag bad">503</span></td><td><code>{"status":"unavailable","model_loaded":false,"model_version":null}</code></td></tr>
+        <tr><td>Model not loaded: <code>POST /v1/process</code></td><td><span class="tag bad">503</span></td><td><code>{"detail":"Model not loaded"}</code></td></tr>
+      </tbody>
+    </table></div>
+    <p>One more surprise worth knowing: <code>GET /health/</code> (with a trailing slash) returned <strong>307 Temporary Redirect</strong> with <code>location: http://127.0.0.1:8877/health</code>. FastAPI redirects to the version without the slash; browsers and <code>curl -L</code> follow it automatically.</p>
+  </section>
+
+  <!-- ============ 12. CONSOLE ============ -->
+  <section id="console">
+    <h2><span class="num">12</span>Try it: mock API console</h2>
+    <p class="intuition"><strong>Intuition.</strong> Break the API on purpose. Every status code tells a story about <em>which check failed</em>; once you can predict the code before pressing Send, you understand how the server thinks.</p>
+    <p>This console runs entirely in your browser (no network). It imitates the Churn API from section 11, check by check, in the same order FastAPI does: <strong>route → method → JSON parsing → validation → model loaded → business rule → prediction</strong>. Response bodies use the exact shapes we observed from the real app, and predictions use the real toy model's coefficients.</p>
+    <div class="widget" id="consoleWidget">
+      <div class="widget-title">Mock API console · <code>http://127.0.0.1:8000</code></div>
+      <div class="widget-sub">Choose a method and path, edit the JSON body (or use a preset), then press Send.</div>
+      <div class="console-grid">
+        <div>
+          <div class="req-line">
+            <select id="cMethod" aria-label="HTTP method"><option>GET</option><option selected>POST</option><option>PUT</option></select>
+            <select id="cPath" aria-label="Path"><option>/health</option><option selected>/v1/process</option><option>/v1/procss</option><option>/v2/process</option></select>
+          </div>
+          <div class="btn-row" id="cPresets" role="group" aria-label="Body presets"></div>
+          <label for="cBody" class="out-label" style="display:block">Request body (JSON)</label>
+          <textarea id="cBody" rows="7" spellcheck="false"></textarea>
+          <div class="checks">
+            <label><input type="checkbox" id="cCT" checked> <span>Send header <code>Content-Type: application/json</code></span></label>
+            <label><input type="checkbox" id="cNoModel"> <span>Model not loaded (startup failed)</span></label>
+            <label><input type="checkbox" id="cBug"> <span>Simulate a bug: the model raises an exception</span></label>
+          </div>
+          <button class="btn primary" type="button" id="cSend">Send ▸</button>
+          <p class="out-label">Equivalent curl command</p>
+          <pre class="out" id="cCurl"></pre>
+        </div>
+        <div>
+          <div class="status-line s1" id="cStatus" aria-live="polite">Press Send</div>
+          <p class="out-label" style="margin-top:0">What the server checked</p>
+          <div class="trace" id="cTrace"></div>
+          <p class="out-label">Response headers</p>
+          <pre class="out" id="cHeaders"></pre>
+          <p class="out-label">Response body</p>
+          <pre class="out" id="cResBody"></pre>
+        </div>
+      </div>
+      <div class="callout" id="cExplain" style="margin-bottom:0"><p>The explanation of the status code will appear here.</p></div>
+      <p style="font-size:.82rem;color:var(--muted);margin:10px 0 0">The real server also sends <code>date</code> and <code>server: uvicorn</code> headers, omitted here. Rare edge cases (such as <code>NaN</code> in the JSON) aren't simulated.</p>
+    </div>
+    <p>Things to try: send the valid body as <code>GET</code>; untick the Content-Type box; send <code>{}</code>; set <code>"tenure_months": "3"</code> (a string, which Pydantic accepts) and then <code>"3.5"</code> (which it doesn't); tick "Model not loaded" and send an <em>invalid</em> body. Which check wins?</p>
+  </section>
+
+  <!-- ============ 13. MLFLOW ============ -->
+  <section id="mlflow">
+    <h2><span class="num">13</span>Serving the MLflow champion</h2>
+    <p class="intuition"><strong>Intuition.</strong> The API shouldn't care <em>which</em> model is best; it asks the registry for "whoever is champion today". Promoting a challenger then becomes a registry change, not a code change.</p>
+    <p>In the registry, the alias <code>@champion</code> points at one model version. The URI <code>models:/churn-classifier@champion</code> always means "the version the champion alias points at right now". (See <a href="mlflow-mlops-pipeline.html">the MLOps pipeline page</a> for how challengers are evaluated and promoted.)</p>
+    <h3>Register a model and set the alias</h3>
+<pre><code># register_model.py  (tested with MLflow 3.17)
+import mlflow
+import numpy as np
+import pandas as pd
+from mlflow import MlflowClient
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+mlflow.set_tracking_uri("sqlite:///mlflow.db")
+mlflow.set_experiment("churn")
+MODEL_NAME = "churn-classifier"
+
+rng = np.random.default_rng(42)
+X = pd.DataFrame({
+    "tenure_months": rng.integers(0, 72, 500).astype(float),
+    "monthly_charges": rng.uniform(20, 120, 500),
+    "support_calls": rng.integers(0, 10, 500).astype(float),
+})
+y = ((X.support_calls &gt; 4) | (X.tenure_months &lt; 6)).astype(int)
+model = make_pipeline(StandardScaler(), LogisticRegression()).fit(X, y)
+
+with mlflow.start_run():
+    info = mlflow.sklearn.log_model(
+        model,
+        name="model",
+        input_example=X.head(3),
+        pyfunc_predict_fn="predict_proba",      # pyfunc .predict() returns probabilities
+        registered_model_name=MODEL_NAME,
+    )
+
+client = MlflowClient()
+version = info.registered_model_version
+client.set_registered_model_alias(MODEL_NAME, "champion", version)
+print(f"{MODEL_NAME} v{version} is now @champion")</code></pre>
+    <p>Observed output on the first and second runs: <code>Created version '1' of model 'churn-classifier'.</code> … <code>churn-classifier v1 is now @champion</code>, then <code>v2 is now @champion</code>. <code>pyfunc_predict_fn="predict_proba"</code> matters: by default a scikit-learn model loaded through <code>mlflow.pyfunc</code> returns class labels (0/1), not probabilities.</p>
+
+    <h3>Load the champion at startup</h3>
+<pre><code># serve.py
+import logging
+import os
+from contextlib import asynccontextmanager
+
+import mlflow
+import pandas as pd
+from fastapi import FastAPI, HTTPException, Response
+from mlflow import MlflowClient
+from pydantic import BaseModel, Field
+
+logger = logging.getLogger("churn-api")
+MODEL_NAME = os.getenv("MODEL_NAME", "churn-classifier")
+MODEL_ALIAS = os.getenv("MODEL_ALIAS", "champion")
+mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db"))
+
+state: dict = {"model": None, "version": None}
+
+
+def load_champion() -&gt; None:
+    """Load models:/&lt;name&gt;@champion and remember which version it is."""
+    client = MlflowClient()
+    mv = client.get_model_version_by_alias(MODEL_NAME, MODEL_ALIAS)
+    model = mlflow.pyfunc.load_model(f"models:/{MODEL_NAME}@{MODEL_ALIAS}")
+    state["model"], state["version"] = model, str(mv.version)   # swap in one step
+    logger.info("Loaded %s version %s", MODEL_NAME, mv.version)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        load_champion()                    # once, at startup - never per request
+    except Exception:
+        logger.exception("Could not load the champion model")
+    yield
+
+
+app = FastAPI(title="Churn API", version="1.0.0", lifespan=lifespan)
+
+
+class ChurnRequest(BaseModel):
+    tenure_months: int = Field(ge=0, le=120)
+    monthly_charges: float = Field(gt=0, le=1000)
+    support_calls: int = Field(ge=0, le=50)
+
+
+class ChurnResponse(BaseModel):
+    churn_probability: float
+    will_churn: bool
+    model_version: str
+
+
+@app.get("/health")
+def health(response: Response) -&gt; dict:
+    loaded = state["model"] is not None
+    if not loaded:
+        response.status_code = 503
+    return {"status": "ok" if loaded else "unavailable", "model_loaded": loaded,
+            "model_name": MODEL_NAME, "model_version": state["version"]}
+
+
+@app.post("/v1/process", response_model=ChurnResponse)
+def process(req: ChurnRequest) -&gt; ChurnResponse:
+    if state["model"] is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+    X = pd.DataFrame([req.model_dump()]).astype(float)   # same columns as training
+    try:
+        proba = float(state["model"].predict(X)[0][1])
+    except Exception:
+        logger.exception("Prediction failed")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    return ChurnResponse(churn_probability=round(proba, 4), will_churn=proba &gt;= 0.5,
+                         model_version=str(state["version"]))
+
+
+@app.post("/admin/reload-model")
+def reload_model() -&gt; dict:
+    """Call this after moving the @champion alias (protect it with auth in real life)."""
+    try:
+        load_champion()
+    except Exception:
+        logger.exception("Reload failed; keeping the old model")
+        raise HTTPException(status_code=503, detail="Reload failed; previous model still serving")
+    return {"reloaded": True, "model_version": state["version"]}</code></pre>
+    <p>Run it with <code>uvicorn serve:app --port 8000</code>. What we observed with <code>curl</code> and a <code>TestClient</code> script:</p>
+<pre><code>GET  /health              -&gt; 200 {"status":"ok","model_loaded":true,"model_name":"churn-classifier","model_version":"1"}
+POST /v1/process          -&gt; 200 {"churn_probability":0.9773,"will_churn":true,"model_version":"1"}
+# ... run register_model.py again: v2 becomes @champion ...
+POST /admin/reload-model  -&gt; 200 {"reloaded":true,"model_version":"2"}
+GET  /health              -&gt; 200 {"status":"ok","model_loaded":true,"model_name":"churn-classifier","model_version":"2"}</code></pre>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0">Why report the version?</h4><p style="margin:0">When a prediction looks odd, the first question is "which model made it?". Returning <code>model_version</code> in <code>/health</code> <em>and</em> in each response lets you trace any prediction back to its MLflow run, data and metrics.</p></div>
+      <div class="card"><h4 style="margin-top:0">Never load per request</h4><p style="margin:0">Loading a model means reading files, unpickling and maybe downloading artefacts: tens of milliseconds to many seconds. Doing it inside <code>process()</code> would make every request slow and hammer the registry. Load once; reuse the object in memory.</p></div>
+    </div>
+    <h3>When the alias moves: reloading</h3>
+    <p>The server loaded the champion at startup. If you promote a new version, the running server keeps using the old one until told otherwise. Simple options, from simplest up:</p>
+    <ol>
+      <li><strong>Restart or redeploy</strong> the service. The new process loads the new champion. Simple and very common, especially with containers.</li>
+      <li><strong>A reload endpoint</strong> like <code>/admin/reload-model</code> above, called by your promotion pipeline after it moves the alias. Protect it with authentication. Notice it loads the new model <em>first</em> and only swaps it in if loading succeeded; on failure the old model keeps serving.</li>
+      <li><strong>Poll the registry</strong>: a background task checks <code>get_model_version_by_alias</code> every few minutes and calls <code>load_champion()</code> when the version number changes.</li>
+    </ol>
+    <div class="callout warn"><p><strong>Environment variables, not hard-coded values:</strong> the tracking URI, model name and alias come from <code>os.getenv</code>, so the same code can point at a local <code>sqlite:///mlflow.db</code> in development and at a shared MLflow server in production. Never hard-code credentials.</p></div>
+    <p>MLflow also has a built-in server, <code>mlflow models serve -m "models:/churn-classifier@champion" --port 5001</code>, which exposes a generic <code>/invocations</code> endpoint. It's handy for quick tests, but writing your own FastAPI app gives you your own input schema, business rules, error messages and health checks.</p>
+  </section>
+
+  <!-- ============ 14. CALLING ============ -->
+  <section id="calling">
+    <h2><span class="num">14</span>Calling and testing the API</h2>
+    <p class="intuition"><strong>Intuition.</strong> Any program that can send HTTP can use your model. Learn three callers (curl for quick checks, Python for scripts and Streamlit, TestClient for automated tests) and you've covered almost every situation.</p>
+    <h3>curl</h3>
+<pre><code># GET: is it alive?  (-i shows the status line and headers too)
+curl -i http://127.0.0.1:8000/health
+
+# POST a JSON body
+curl -X POST http://127.0.0.1:8000/v1/process \
+  -H "Content-Type: application/json" \
+  -d '{"tenure_months": 3, "monthly_charges": 79.5, "support_calls": 6}'
+# {"churn_probability":0.9773,"will_churn":true,"model_version":"1"}
+
+# Just the status code
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8000/v1/procss
+# 404</code></pre>
+    <p>On Windows PowerShell, type <code>curl.exe</code> (plain <code>curl</code> is an alias for a different command), and quoting JSON is awkward. The <code>/docs</code> page or a short Python script is often easier there.</p>
+    <h3>Python: httpx or requests</h3>
+<pre><code>import httpx
+
+BASE_URL = "http://127.0.0.1:8000"
+
+r = httpx.get(f"{BASE_URL}/health", timeout=5)
+print(r.status_code, r.json())
+
+payload = {"tenure_months": 3, "monthly_charges": 79.5, "support_calls": 6}
+r = httpx.post(f"{BASE_URL}/v1/process", json=payload, timeout=5)   # json= sets Content-Type
+if r.status_code == 200:
+    print("Churn probability:", r.json()["churn_probability"])
+elif r.status_code == 422:
+    for err in r.json()["detail"]:
+        print("Invalid field:", err["loc"][-1], "-", err["msg"])
+else:
+    print("Error", r.status_code, r.json().get("detail"))</code></pre>
+    <p>Observed output: <code>200 {'status': 'ok', 'model_loaded': True, ...}</code> then <code>Churn probability: 0.9773</code>. With the body <code>{"tenure_months": 3}</code> the 422 branch printed <code>Invalid field: monthly_charges - Field required</code> and <code>Invalid field: support_calls - Field required</code>.</p>
+    <p>With <code>requests</code> the call looks almost identical. <code>raise_for_status()</code> turns any 4xx or 5xx into an exception, which is handy in scripts:</p>
+<pre><code>import requests
+
+r = requests.post("http://127.0.0.1:8000/v1/process",
+                  json={"tenure_months": 3, "monthly_charges": 79.5, "support_calls": 6},
+                  timeout=5)
+r.raise_for_status()          # raises an exception for any 4xx or 5xx
+print(r.json())</code></pre>
+    <div class="callout warn"><p><strong>Always set a <code>timeout</code>.</strong> <code>requests</code> waits forever by default; httpx waits 5 seconds. A hung API should not hang your dashboard too.</p></div>
+
+    <h3>From Streamlit</h3>
+    <p>The Streamlit app is just another client. It holds no model and no business logic: it collects inputs, calls the API and displays the answer, handling each status code. Run the API (port 8000) and Streamlit (port 8501) side by side.</p>
+<pre><code>import httpx
+import streamlit as st
+
+API_URL = "http://127.0.0.1:8000"   # in Docker Compose this would be e.g. "http://api:8000"
+
+st.title("Churn checker")
+tenure = st.number_input("Tenure (months)", min_value=0, max_value=120, value=3)
+charges = st.number_input("Monthly charges (£)", min_value=1.0, max_value=1000.0, value=79.5)
+calls = st.number_input("Support calls", min_value=0, max_value=50, value=6)
+
+if st.button("Predict"):
+    payload = {"tenure_months": tenure, "monthly_charges": charges, "support_calls": calls}
+    try:
+        r = httpx.post(f"{API_URL}/v1/process", json=payload, timeout=10)
+    except httpx.RequestError:
+        st.error("Could not reach the API. Is the server running?")
+    else:
+        if r.status_code == 200:
+            body = r.json()
+            st.metric("Churn probability", f"{body['churn_probability']:.0%}")
+            st.caption(f"Model version {body['model_version']}")
+        elif r.status_code == 422:
+            st.warning(f"Invalid input: {r.json()['detail']}")
+        else:
+            st.error(f"API error {r.status_code}: {r.json().get('detail')}")</code></pre>
+    <p>We tested this with Streamlit's headless <code>AppTest</code> against the running API: after clicking the button it showed the metric <code>Churn probability: 98%</code> and the caption <code>Model version 1</code>. Note the difference between <code>httpx.RequestError</code> (no answer at all: wrong port, server down) and a non-200 status (the server answered, with an error).</p>
+
+    <h3>Automated tests with TestClient</h3>
+    <p>FastAPI's <code>TestClient</code> calls your app <strong>in memory</strong>: no server, no port, very fast. Put tests in <code>test_main.py</code> and run <code>pytest</code>. Using <code>with TestClient(app) as client:</code> runs the lifespan, so the model is loaded just as in production.</p>
+<pre><code># test_main.py
+from fastapi.testclient import TestClient
+from main import app
+
+VALID = {"tenure_months": 3, "monthly_charges": 79.5, "support_calls": 6}
+
+
+def test_health_ok():
+    with TestClient(app) as client:
+        r = client.get("/health")
+        assert r.status_code == 200
+        assert r.json()["model_loaded"] is True
+
+
+def test_process_valid_returns_200():
+    with TestClient(app) as client:
+        r = client.post("/v1/process", json=VALID)
+        assert r.status_code == 200
+        body = r.json()
+        assert 0.0 &lt;= body["churn_probability"] &lt;= 1.0
+        assert set(body) == {"churn_probability", "will_churn", "model_version"}
+
+
+def test_missing_field_returns_422():
+    with TestClient(app) as client:
+        r = client.post("/v1/process", json={"tenure_months": 3})
+        assert r.status_code == 422
+        locs = [err["loc"] for err in r.json()["detail"]]
+        assert ["body", "monthly_charges"] in locs
+
+
+def test_business_rule_returns_400():
+    with TestClient(app) as client:
+        r = client.post("/v1/process", json={**VALID, "contract": "annual"})
+        assert r.status_code == 400
+        assert "annual" in r.json()["detail"]
+
+
+def test_unknown_route_returns_404():
+    with TestClient(app) as client:
+        assert client.post("/v1/procss", json=VALID).status_code == 404</code></pre>
+<pre><code>$ pytest -q test_main.py
+.....                                                                    [100%]
+5 passed in 1.46s</code></pre>
+    <p>Test the <strong>unhappy paths</strong> as carefully as the happy one: they're what callers will actually hit. To test the 500 and 503 paths, replace <code>state["model"]</code> inside the test with an object whose <code>predict_proba</code> raises, or with <code>None</code>.</p>
+  </section>
+
+  <!-- ============ 15. PRODUCTION ============ -->
+  <section id="production">
+    <h2><span class="num">15</span>Production notes</h2>
+    <p class="intuition"><strong>Intuition.</strong> On your laptop the API serves one person. In production it serves many callers, over the internet, all day: it needs more workers, encryption, a lock on the door and a paper trail.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Concern</th><th>What to do</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Multiple workers</strong></td><td><code>uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4</code> (or <code>fastapi run main.py --workers 4</code>) runs 4 processes, so requests are served in parallel. Each worker loads <strong>its own copy</strong> of the model, so memory use multiplies. In Kubernetes or ECS you often run one worker per container and scale the number of containers instead.</td></tr>
+        <tr><td><strong>Reverse proxy</strong></td><td>Put a proxy or load balancer (nginx, Traefik, an AWS Application Load Balancer) in front. It receives traffic on 80/443, forwards it to your app's port, spreads load across copies, and uses <code>/health</code> to stop sending traffic to unhealthy ones. This is where 502 and 504 come from.</td></tr>
+        <tr><td><strong>HTTPS</strong></td><td>Anything leaving your machine must use <code>https</code>. Usually the proxy handles the certificates (this is called <em>TLS termination</em>) and talks plain HTTP to the app on the private network.</td></tr>
+        <tr><td><strong>Authentication</strong></td><td>At minimum an API key in a header, checked with a dependency; 401 if missing or wrong. Keys come from environment variables or a secrets manager, never the code. Example below.</td></tr>
+        <tr><td><strong>Logging with request IDs</strong></td><td>Log method, path, status code, latency, model version and a request ID for every call. Return the ID in an <code>X-Request-ID</code> header so callers can quote it. Don't log raw personal data.</td></tr>
+        <tr><td><strong>CORS</strong></td><td>Browsers block JavaScript on one site from calling an API on another origin unless the API allows it: <code>app.add_middleware(CORSMiddleware, allow_origins=["https://dashboard.example.com"])</code>. (Not needed for Streamlit, which calls the API from its Python server, not from the browser.)</td></tr>
+        <tr><td><strong>Docker</strong></td><td><code>CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]</code>: inside a container, bind to <code>0.0.0.0</code> or nothing outside can reach it.</td></tr>
+        <tr><td><strong>Rate limiting, input size</strong></td><td>Cap request rates (429) and body sizes at the proxy so one caller can't overwhelm the service.</td></tr>
+      </tbody>
+    </table></div>
+    <p>An API key check and a request-ID middleware, both tested (missing or wrong key → <code>401 {"detail":"Invalid or missing API key"}</code>; correct key → 200 with the <code>X-Request-ID</code> echoed back):</p>
+<pre><code>import logging
+import os
+import secrets
+import uuid
+
+from fastapi import Depends, FastAPI, HTTPException, Request, Security
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("churn-api")
+app = FastAPI()
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+def require_api_key(key: str | None = Security(api_key_header)) -&gt; None:
+    expected = os.environ["API_KEY"]                  # never hard-code secrets
+    if key is None or not secrets.compare_digest(key, expected):
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+
+
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    logger.info("%s %s -&gt; %s id=%s", request.method, request.url.path,
+                response.status_code, request_id)
+    return response
+
+
+app.add_middleware(CORSMiddleware, allow_origins=["https://dashboard.example.com"],
+                   allow_methods=["GET", "POST"], allow_headers=["*"])
+
+
+@app.post("/v1/process", dependencies=[Depends(require_api_key)])
+def process() -&gt; dict:
+    return {"ok": True}</code></pre>
+    <p><code>secrets.compare_digest</code> compares strings in constant time, so an attacker can't guess the key character by character from response timings.</p>
+  </section>
+
+  <!-- ============ 16. CHEAT SHEET ============ -->
+  <section id="cheatsheet">
+    <h2><span class="num">16</span>Cheat sheet</h2>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0">Addresses &amp; ports</h4><ul style="margin:0">
+        <li><code>scheme://host:port/path?query#fragment</code></li>
+        <li><code>localhost</code> = <code>127.0.0.1</code> = this machine (loopback)</li>
+        <li>Private: <code>10.x</code>, <code>172.16–31.x</code>, <code>192.168.x</code></li>
+        <li>Bind <code>127.0.0.1</code> = only me; <code>0.0.0.0</code> = everyone (Docker)</li>
+        <li>Browse to <code>127.0.0.1</code>, not <code>0.0.0.0</code></li>
+        <li>80 http · 443 https · 8000 FastAPI · 8501 Streamlit · 5000 MLflow · 8888 Jupyter</li>
+        <li>Port busy: <code>lsof -i :8000</code> / <code>netstat -ano | findstr :8000</code></li></ul></div>
+      <div class="card"><h4 style="margin-top:0">Methods &amp; inputs</h4><ul style="margin:0">
+        <li>GET read · POST send/create · PUT replace · PATCH edit · DELETE remove</li>
+        <li>Predictions: <code>POST</code> + JSON body</li>
+        <li>Path param <code>/items/{id}</code> = which thing</li>
+        <li>Query param <code>?debug=true</code> = options</li>
+        <li>Body (Pydantic model) = the data</li>
+        <li>Version the path: <code>/v1/…</code></li>
+        <li>Header <code>Content-Type: application/json</code></li></ul></div>
+      <div class="card"><h4 style="margin-top:0">Status codes</h4><ul style="margin:0">
+        <li><b>2xx</b> worked · <b>3xx</b> elsewhere · <b>4xx</b> client's fault · <b>5xx</b> server's fault</li>
+        <li>200 OK · 201 Created · 204 No Content</li>
+        <li>400 business rule · 401 who are you? · 403 not allowed</li>
+        <li>404 wrong path · 405 wrong method · 409 conflict</li>
+        <li>422 failed validation (automatic) · 429 slow down</li>
+        <li>500 bug · 502/504 proxy trouble · 503 not ready (no model)</li></ul></div>
+      <div class="card"><h4 style="margin-top:0">FastAPI</h4><ul style="margin:0">
+        <li><code>uv add "fastapi[standard]"</code></li>
+        <li><code>fastapi dev main.py</code> or <code>uvicorn main:app --reload --port 8000</code></li>
+        <li>Docs: <code>/docs</code> · <code>/redoc</code> · <code>/openapi.json</code></li>
+        <li><code>@app.post("/v1/process", response_model=Out, status_code=200)</code></li>
+        <li><code>Field(ge=0, le=120)</code> for ranges</li>
+        <li><code>raise HTTPException(status_code=400, detail="…")</code></li>
+        <li>Load models in <code>lifespan</code>, never per request</li>
+        <li><code>models:/name@champion</code> + report the version</li>
+        <li>Test: <code>with TestClient(app) as c: c.post(...)</code></li></ul></div>
+    </div>
+  </section>
+
+  <!-- ============ 17. QUIZ ============ -->
+  <section id="quiz">
+    <h2><span class="num">17</span>Quiz</h2>
+    <div class="card quiz" id="quizBox"></div>
+    <p><strong id="quizScore"></strong> <button class="btn" type="button" id="quizReset">Try again</button></p>
+  </section>
+
+  <footer>Data Science &amp; Agentic AI Programme · Week 2 · <a href="../index.html">All course docs</a> · Companion page: <a href="mlflow-mlops-pipeline.html">MLflow MLOps pipeline</a></footer>
+</main>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  /* ---------- theme ---------- */
+  const root = document.documentElement;
+  try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch {}
+  const redrawers = [];
+  $("themeToggle").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+    redrawers.forEach((f) => f());
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => redrawers.forEach((f) => f()));
+
+  /* ---------- table of contents highlight ---------- */
+  const tocLinks = [...document.querySelectorAll("aside.toc a")];
+  const sections = tocLinks.map((a) => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        tocLinks.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id));
+      }
+    });
+  }, { rootMargin: "0px 0px -70% 0px" });
+  sections.forEach((s) => obs.observe(s));
+
+  /* ---------- svg helpers ---------- */
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs = {}, text) {
+    const n = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+
+  /* ---------- client / server picture ---------- */
+  function drawFlow() {
+    const svg = $("flowSvg"); svg.innerHTML = "";
+    const defs = el("defs");
+    ["acc", "good"].forEach((id) => {
+      const m = el("marker", { id: "arr-" + id, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" });
+      m.append(el("path", { d: "M0,0 L10,5 L0,10 z", fill: css(id === "acc" ? "--accent" : "--good") }));
+      defs.append(m);
+    });
+    svg.append(defs);
+    const box = (x, y, w, h, title, lines, stroke, fill) => {
+      svg.append(el("rect", { x, y, width: w, height: h, rx: 12, fill: css(fill), stroke: css(stroke), "stroke-width": 1.5 }));
+      svg.append(el("text", { x: x + w / 2, y: y + 26, "text-anchor": "middle", fill: css("--text"), "font-size": 16, "font-weight": 700, "font-family": "system-ui, sans-serif" }, title));
+      lines.forEach((t, i) => svg.append(el("text", { x: x + w / 2, y: y + 50 + i * 19, "text-anchor": "middle", fill: css("--muted"), "font-size": 13, "font-family": "system-ui, sans-serif" }, t)));
+    };
+    const label = (x, y, t, colour, size, mono, bold) => svg.append(el("text", { x, y, "text-anchor": "middle", fill: css(colour), "font-size": size, "font-weight": bold ? 700 : 400, "font-family": mono ? "ui-monospace, Menlo, monospace" : "system-ui, sans-serif" }, t));
+    const clientLines = ["browser · curl", "Python (httpx)", "Streamlit app", "another service"];
+    const serverLines = ["uvicorn on :8000", "→ FastAPI app", "→ route function", "→ model.predict()"];
+    const narrow = (svg.parentElement?.clientWidth || 700) < 520;
+    if (narrow) {
+      // stacked layout for phones: client on top, server below, arrows vertical
+      svg.setAttribute("viewBox", "0 0 360 500");
+      box(80, 10, 200, 140, "Client", clientLines, "--border", "--surface-2");
+      box(80, 330, 200, 140, "Server", serverLines, "--accent", "--accent-soft");
+      svg.append(el("line", { x1: 130, y1: 156, x2: 130, y2: 324, stroke: css("--accent"), "stroke-width": 2.5, "marker-end": "url(#arr-acc)" }));
+      svg.append(el("line", { x1: 230, y1: 324, x2: 230, y2: 156, stroke: css("--good"), "stroke-width": 2.5, "marker-end": "url(#arr-good)" }));
+      label(70, 225, "① request", "--accent", 15, false, true);
+      label(70, 248, "POST", "--muted", 13, true);
+      label(70, 266, "/v1/process", "--muted", 13, true);
+      label(295, 225, "② response", "--good", 15, false, true);
+      label(295, 248, "200 OK", "--muted", 13, true);
+      label(295, 266, "+ JSON", "--muted", 13, true);
+      label(180, 494, "The client always speaks first.", "--muted", 13);
+      return;
+    }
+    svg.setAttribute("viewBox", "0 0 700 250");
+    box(10, 40, 200, 160, "Client", clientLines, "--border", "--surface-2");
+    box(490, 40, 200, 160, "Server", serverLines, "--accent", "--accent-soft");
+    svg.append(el("line", { x1: 215, y1: 90, x2: 484, y2: 90, stroke: css("--accent"), "stroke-width": 2.5, "marker-end": "url(#arr-acc)" }));
+    label(350, 72, "① request", "--accent", 14, false, true);
+    label(350, 112, "POST /v1/process + JSON", "--muted", 12, true);
+    svg.append(el("line", { x1: 485, y1: 160, x2: 216, y2: 160, stroke: css("--good"), "stroke-width": 2.5, "marker-end": "url(#arr-good)" }));
+    label(350, 148, "② response", "--good", 14, false, true);
+    label(350, 182, "200 OK + JSON", "--muted", 12, true);
+    label(350, 235, "The client always speaks first; the server only answers.", "--muted", 12);
+  }
+  drawFlow(); redrawers.push(drawFlow);
+  let flowNarrow = null;
+  addEventListener("resize", () => {
+    const n = ($("flowSvg").parentElement?.clientWidth || 700) < 520;
+    if (n !== flowNarrow) { flowNarrow = n; drawFlow(); }
+  });
+
+  /* ---------- URL dissector ---------- */
+  const URL_PRESETS = [
+    "http://localhost:8000/health",
+    "http://127.0.0.1:8000/v1/process?debug=true",
+    "https://api.example.com/v2/predict?id=7#top",
+    "http://0.0.0.0:8501",
+    "http://192.168.1.20:5000/#/experiments",
+  ];
+  const KNOWN_PORTS = { 80: "the HTTP default", 443: "the HTTPS default", 8000: "FastAPI / uvicorn's default", 8501: "Streamlit's default", 5000: "the MLflow UI's default", 8888: "Jupyter's default", 22: "SSH", 5432: "PostgreSQL", 3000: "a common JavaScript dev-server port", 8080: "a common alternative HTTP port" };
+  const DEFAULT_PORTS = { "http:": 80, "https:": 443, "ws:": 80, "wss:": 443, "ftp:": 21 };
+
+  function classifyHost(h) {
+    if (h === "localhost" || h.endsWith(".localhost")) return { kind: "loopback (name)", cls: "good", text: "A name that always means \"this computer\". Your machine answers it itself (usually 127.0.0.1 or ::1) without asking DNS." };
+    if (h.startsWith("[")) {
+      if (h === "[::1]") return { kind: "loopback (IPv6)", cls: "good", text: "The IPv6 loopback address: this computer. The square brackets stop its colons being confused with the port." };
+      if (h === "[::]") return { kind: "unspecified (IPv6)", cls: "warn", text: "The IPv6 version of 0.0.0.0: \"any address\". Used when binding a server, not as a destination." };
+      return { kind: "IPv6 address", cls: "acc", text: "An IPv6 address, written in square brackets inside a URL." };
+    }
+    const m = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(h);
+    if (m) {
+      const [a, b, c, d] = m.slice(1).map(Number);
+      if (a === 0 && b === 0 && c === 0 && d === 0) return { kind: "unspecified", cls: "warn", text: "0.0.0.0 means \"any address\". It's for telling a server to listen on all network interfaces. As a destination it's unreliable: some systems treat it as this machine, Windows and many browsers refuse it. Browse to 127.0.0.1 instead." };
+      if (a === 127) return { kind: "loopback", cls: "good", text: "127.x.x.x is the loopback range: this computer. Traffic never leaves the machine." };
+      if (a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)) return { kind: "private", cls: "acc", text: "A private address: only reachable inside its own local network (home Wi-Fi, office, cloud VPC), not from the internet." };
+      if (a === 169 && b === 254) return { kind: "link-local", cls: "", text: "Self-assigned when no router handed out an address. Usually a sign of a network problem." };
+      return { kind: "public", cls: "bad", text: "A public IPv4 address: reachable across the internet (if a server there allows it)." };
+    }
+    return { kind: "domain name", cls: "", text: "A domain name. Before connecting, your computer asks DNS for the IP address behind it." };
+  }
+
+  function renderUrl() {
+    const raw = $("urlInput").value.trim();
+    const parts = $("urlParts"), info = $("urlInfo");
+    URL_PRESETS.forEach((p, i) => document.querySelectorAll("#urlPresets .btn")[i].setAttribute("aria-pressed", String(p === raw)));
+    let u, note = "";
+    if (!raw || /\s/.test(raw)) {
+      // URLs can't contain spaces (they must be written as %20), so treat this as invalid
+    } else if (!raw.includes("://")) {
+      // "localhost:8501" would otherwise be read as scheme "localhost:"
+      try { u = new URL("http://" + raw); note = "There was no scheme, so this assumes <code>http://</code> (browsers do the same). Code such as httpx needs the scheme written out."; } catch {}
+    } else {
+      try { u = new URL(raw); } catch {}
+    }
+    if (u && u.hostname.includes("%")) u = null;   // e.g. odd characters in the host
+    if (!u) {
+      parts.innerHTML = "";
+      info.innerHTML = `<div class="callout bad"><p><strong>That isn't a valid URL.</strong> Check there are no spaces, the scheme (<code>http://</code> or <code>https://</code>), that the port is a number from 0 to 65535, and that each part of an IPv4 address is between 0 and 255.</p></div>`;
+      return;
+    }
+    const seg = (cls, text, label) => `<div class="seg ${cls}"><span>${esc(text)}</span><small>${label}</small></div>`;
+    const scheme = u.protocol.replace(":", "");
+    const host = classifyHost(u.hostname);
+    const def = DEFAULT_PORTS[u.protocol];
+    const port = u.port ? Number(u.port) : def;
+    let html = seg("c-scheme", scheme, "scheme") + seg("plain", "://", "&nbsp;") + seg("c-host", u.hostname, "host<br>" + esc(host.kind));
+    if (u.port) html += seg("plain", ":", "&nbsp;") + seg("c-port", u.port, "port");
+    html += seg("c-path", u.pathname || "/", "path");
+    if (u.search) html += seg("c-query", u.search, "query string");
+    if (u.hash) html += seg("c-frag", u.hash, "fragment");
+    parts.innerHTML = html;
+
+    const portText = port === undefined ? "No default port is defined for this scheme."
+      : (u.port ? `Port <b>${port}</b> was written explicitly` : `No port written, so the default for ${esc(scheme)} is used: <b>${port}</b>`) + (KNOWN_PORTS[port] ? ` (${KNOWN_PORTS[port]}).` : ".");
+    const schemeText = scheme === "https" ? "HTTPS: HTTP inside an encrypted (TLS) connection. Use it for anything that leaves your machine."
+      : scheme === "http" ? "Plain HTTP: not encrypted. Fine for localhost and development; use https for anything else."
+      : `The ${esc(scheme)} protocol (not HTTP).`;
+    const pathText = u.pathname === "/" ? "<code>/</code>, the root. (If nothing is written after the host, the path is <code>/</code>.)"
+      : `<code>${esc(u.pathname)}</code>. In FastAPI this is matched against the registered routes${/^\/v\d+\//.test(u.pathname) ? `; the <code>${esc(u.pathname.split("/")[1])}</code> prefix is an API version` : ""}.`;
+    let rows = `
+      <div>Scheme</div><div>${schemeText}</div>
+      <div>Host</div><div><code>${esc(u.hostname)}</code> <span class="tag ${host.cls}">${esc(host.kind)}</span><br>${esc(host.text)}</div>
+      <div>Port</div><div>${portText}</div>
+      <div>Path</div><div>${pathText}</div>`;
+    const params = [...u.searchParams.entries()];
+    if (params.length) {
+      rows += `<div>Query</div><div><div class="table-scroll" style="margin:0"><table><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody>${params.map(([k, v]) => `<tr><td><code>${esc(k)}</code></td><td><code>${esc(v)}</code></td></tr>`).join("")}</tbody></table></div><small style="color:var(--muted)">In FastAPI, a function argument with the same name receives each value (converted to its type hint, e.g. <code>"true"</code> → <code>True</code>).</small></div>`;
+    } else {
+      rows += `<div>Query</div><div>None.</div>`;
+    }
+    rows += `<div>Fragment</div><div>${u.hash ? `<code>${esc(u.hash)}</code>: handled by the browser and <b>never sent to the server</b>.${u.hash.startsWith("#/") ? " Single-page apps such as the MLflow UI use it for their own page navigation." : ""}` : "None."}</div>`;
+    const serverSees = `${u.pathname}${u.search}`;
+    info.innerHTML = (note ? `<div class="callout warn"><p>${note}</p></div>` : "") +
+      `<div class="kv">${rows}</div>
+       <div class="callout"><p><strong>In plain English:</strong> connect with ${esc(scheme.toUpperCase())} to ${host.kind.startsWith("domain") ? `the machine DNS gives for <code>${esc(u.hostname)}</code>` : `<code>${esc(u.hostname)}</code> (${esc(host.kind)})`}, knock on door <b>${port ?? "?"}</b>, and ask for <code>${esc(serverSees)}</code>.${u.hash ? " The fragment stays in the browser." : ""}</p></div>`;
+  }
+  $("urlPresets").innerHTML = URL_PRESETS.map((p) => `<button class="btn" type="button" style="font-size:.8rem">${esc(p.replace(/^https?:\/\//, ""))}</button>`).join("");
+  document.querySelectorAll("#urlPresets .btn").forEach((b, i) => b.addEventListener("click", () => { $("urlInput").value = URL_PRESETS[i]; renderUrl(); }));
+  $("urlInput").addEventListener("input", renderUrl);
+  renderUrl();
+
+  /* ---------- status code explorer ---------- */
+  const SC = [
+    [101, "Switching Protocols", "The server agrees to change protocol, e.g. upgrading the connection to a WebSocket for live, two-way messages.", "A client asked to open a WebSocket.", "Nobody: it's not an error.", '@app.websocket("/ws")   # FastAPI answers the upgrade with 101'],
+    [200, "OK", "The request worked and the body contains the result.", "A valid prediction request; a passing health check.", "Nobody: success.", 'return {"churn_probability": 0.9773}   # default status for GET/POST'],
+    [201, "Created", "Something new was created. Often includes a Location header pointing at it.", "POST that creates a record or starts a job with its own ID.", "Nobody: success.", '@app.post("/v1/jobs", status_code=201)'],
+    [202, "Accepted", "Accepted for processing, but not finished yet.", "Queuing a long batch-scoring job; the client checks back later.", "Nobody: success (so far).", '@app.post("/v1/batch", status_code=202)'],
+    [204, "No Content", "Success, with deliberately no body.", "A DELETE, or an update that has nothing to report.", "Nobody: success.", '@app.delete("/v1/jobs/{job_id}", status_code=204)'],
+    [301, "Moved Permanently", "The resource has a new permanent URL (in the Location header).", "An old URL retired in favour of a new one.", "Client: update the bookmark or code.", 'return RedirectResponse("/v2/process", status_code=301)'],
+    [304, "Not Modified", "\"Your cached copy is still fine\", so no body is sent.", "A browser re-requesting an unchanged file with If-None-Match / ETag.", "Nobody: it's a caching optimisation.", "# Usually handled by proxies and static-file servers"],
+    [307, "Temporary Redirect", "Go to the Location URL instead, with the same method and body.", "We observed it: GET /health/ (trailing slash) redirects to /health.", "Client: follow the redirect, or fix the URL.", 'return RedirectResponse("/health")   # 307 is the default'],
+    [400, "Bad Request", "The request is wrong in a way the server refuses to process.", "In our API: valid data that breaks a business rule (annual contract, 3 months' tenure).", "Client: change the request.", 'raise HTTPException(status_code=400, detail="An annual contract needs tenure_months >= 12")'],
+    [401, "Unauthorized", "Not authenticated: no credentials, or wrong ones.", "Missing or invalid X-API-Key header.", "Client: send valid credentials.", 'raise HTTPException(status_code=401, detail="Invalid or missing API key")'],
+    [403, "Forbidden", "Authenticated, but not allowed to do this.", "A read-only key calling /admin/reload-model.", "Client (or an admin granting access).", 'raise HTTPException(status_code=403, detail="Admin key required")'],
+    [404, "Not Found", "Nothing exists at this path (or the ID you asked for doesn't exist).", "Typo (/v1/procss), wrong version (/v2/process), unknown customer ID.", "Client: check the URL and ID.", '# automatic for unknown paths: {"detail":"Not Found"}\nraise HTTPException(status_code=404, detail="Customer not found")'],
+    [405, "Method Not Allowed", "The path exists, but not for this method. The Allow header lists what works.", "GET /v1/process when only POST is defined.", "Client: use the right method.", '# automatic: {"detail":"Method Not Allowed"} + header allow: POST'],
+    [409, "Conflict", "The request clashes with the current state of the server.", "Creating something that already exists; two edits colliding.", "Client: re-read the current state and retry.", 'raise HTTPException(status_code=409, detail="Model name already registered")'],
+    [422, "Unprocessable Entity", "The request was understood, but its content failed validation. FastAPI's automatic response to bad input.", "Missing field, wrong type, value outside ge/le, malformed JSON, missing Content-Type.", "Client: fix the fields listed in detail[].loc.", '# automatic from Pydantic:\ntenure_months: int = Field(ge=0, le=120)'],
+    [429, "Too Many Requests", "Rate limit hit. Often includes Retry-After.", "A script hammering the API in a tight loop.", "Client: slow down, then retry.", 'raise HTTPException(status_code=429, detail="Rate limit exceeded", headers={"Retry-After": "30"})'],
+    [500, "Internal Server Error", "Something went wrong inside the server that it didn't expect.", "A bug; the model raised an exception; an unhandled error.", "Server (the API owner): read the logs and fix it.", 'raise HTTPException(status_code=500, detail="Internal server error")   # never include the traceback'],
+    [502, "Bad Gateway", "A proxy in front of the app got an invalid (or no) response from it.", "The app crashed, or the proxy points at the wrong port.", "Server / operations.", "# produced by nginx / a load balancer, not by FastAPI itself"],
+    [503, "Service Unavailable", "The server is running but can't handle requests right now. May include Retry-After.", "Model not loaded yet; overloaded; maintenance.", "Server; the client can retry later.", 'raise HTTPException(status_code=503, detail="Model not loaded")'],
+    [504, "Gateway Timeout", "A proxy gave up waiting for the app to answer.", "A very slow prediction; the app is stuck.", "Server: speed it up or raise the proxy timeout.", "# produced by the proxy when the app takes too long"],
+  ];
+  const CLASS_NAMES = { 1: "1xx · informational", 2: "2xx · success", 3: "3xx · redirection", 4: "4xx · client error", 5: "5xx · server error" };
+  $("scGroups").innerHTML = [1, 2, 3, 4, 5].map((c) => `<div class="sc-group"><h4>${CLASS_NAMES[c]}</h4><div class="chips">${SC.filter((s) => Math.floor(s[0] / 100) === c).map((s) => `<button class="chip s${c}" type="button" data-code="${s[0]}" aria-pressed="false"><b>${s[0]}</b>${esc(s[1])}</button>`).join("")}</div></div>`).join("");
+  function showCode(code) {
+    const s = SC.find((x) => x[0] === code); if (!s) return;
+    document.querySelectorAll("#scGroups .chip").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.code === code)));
+    const cls = Math.floor(code / 100);
+    const who = cls === 4 ? '<span class="tag warn">client\'s fault</span>' : cls === 5 ? '<span class="tag bad">server\'s fault</span>' : '<span class="tag good">not an error</span>';
+    $("scDetail").innerHTML = `<h4>${code} ${esc(s[1])} ${who}</h4>
+      <div class="kv"><div>Meaning</div><div>${esc(s[2])}</div><div>Typical cause</div><div>${esc(s[3])}</div><div>Who fixes it</div><div>${esc(s[4])}</div></div>
+      <div class="out-label">FastAPI</div><pre><code>${esc(s[5])}</code></pre>`;
+  }
+  document.querySelectorAll("#scGroups .chip").forEach((b) => b.addEventListener("click", () => showCode(+b.dataset.code)));
+  showCode(422);
+
+  /* ---------- mock API console ---------- */
+  // A tiny JSON parser that mimics Python's json module (error messages and positions),
+  // and keeps the difference between 3 (int) and 3.0 (float) like Python does.
+  class PyFloat { constructor(v) { this.v = v; } }
+  function pyParse(s) {
+    let i = 0;
+    const isWs = (c) => c === " " || c === "\t" || c === "\n" || c === "\r";
+    const ws = () => { while (i < s.length && isWs(s[i])) i++; };
+    const fail = (msg, pos) => { const e = new Error(msg); e.pos = pos; e.py = true; throw e; };
+    const ESC = { '"': '"', "\\": "\\", "/": "/", b: "\b", f: "\f", n: "\n", r: "\r", t: "\t" };
+    function str() {
+      const start = i; i++; let out = "";
+      for (;;) {
+        if (i >= s.length) fail("Unterminated string starting at", start);
+        const ch = s[i];
+        if (ch === '"') { i++; return out; }
+        if (ch === "\\") {
+          const e = s[i + 1];
+          if (e === undefined) fail("Unterminated string starting at", start);
+          if (e === "u") {
+            const hex = s.slice(i + 2, i + 6);
+            if (!/^[0-9a-fA-F]{4}$/.test(hex)) fail("Invalid \\uXXXX escape", i + 1);
+            out += String.fromCharCode(parseInt(hex, 16)); i += 6; continue;
+          }
+          if (!(e in ESC)) fail("Invalid \\escape", i);
+          out += ESC[e]; i += 2; continue;
+        }
+        if (ch.charCodeAt(0) < 0x20) fail("Invalid control character at", i);
+        out += ch; i++;
+      }
+    }
+    function value() {
+      const c = s[i];
+      if (c === '"') return str();
+      if (c === "{") return obj();
+      if (c === "[") return arr();
+      if (s.startsWith("null", i)) { i += 4; return null; }
+      if (s.startsWith("true", i)) { i += 4; return true; }
+      if (s.startsWith("false", i)) { i += 5; return false; }
+      const m = /^-?(?:0|[1-9]\d*)(\.\d+)?([eE][-+]?\d+)?/.exec(s.slice(i));
+      if (m) { i += m[0].length; return (m[1] || m[2]) ? new PyFloat(parseFloat(m[0])) : Number(m[0]); }
+      fail("Expecting value", i);
+    }
+    function obj() {
+      i++; const o = Object.create(null); ws();
+      if (s[i] === "}") { i++; return o; }
+      if (s[i] !== '"') fail("Expecting property name enclosed in double quotes", i);
+      for (;;) {
+        const k = str(); ws();
+        if (s[i] !== ":") fail("Expecting ':' delimiter", i);
+        i++; ws();
+        o[k] = value(); ws();
+        if (s[i] === "}") { i++; return o; }
+        if (s[i] !== ",") fail("Expecting ',' delimiter", i);
+        i++; ws();
+        if (s[i] !== '"') fail("Expecting property name enclosed in double quotes", i);
+      }
+    }
+    function arr() {
+      i++; const a = []; ws();
+      if (s[i] === "]") { i++; return a; }
+      for (;;) {
+        a.push(value()); ws();
+        if (s[i] === "]") { i++; return a; }
+        if (s[i] !== ",") fail("Expecting ',' delimiter", i);
+        i++; ws();
+      }
+    }
+    ws(); const v = value(); ws();
+    if (i !== s.length) fail("Extra data", i);
+    return v;
+  }
+  // Python-style float repr: 0.0, 79.5, 1e+20, 1e-05
+  function pyFloatRepr(x) {
+    if (!Number.isFinite(x)) return x > 0 ? "Infinity" : x < 0 ? "-Infinity" : "NaN";
+    const a = Math.abs(x);
+    if (a !== 0 && (a >= 1e16 || a < 1e-4)) return x.toExponential().replace(/e([+-])(\d)$/, "e$10$2");
+    return Number.isInteger(x) ? x.toFixed(1) : String(x);
+  }
+  // Serialise like Python's json.dumps (compact, as FastAPI sends it) or with indent=2 (for display)
+  function pyDumps(v, indent, level = 0) {
+    const pad = (n) => (indent ? "\n" + " ".repeat(indent * n) : "");
+    const sep = indent ? ", " : ",", colon = indent ? ": " : ":";
+    if (v === null || v === undefined) return "null";
+    if (v instanceof PyFloat) return pyFloatRepr(v.v);
+    if (typeof v === "boolean") return v ? "true" : "false";
+    if (typeof v === "number") return Number.isInteger(v) ? String(v) : pyFloatRepr(v);
+    if (typeof v === "string") return JSON.stringify(v);
+    if (Array.isArray(v)) {
+      if (!v.length) return "[]";
+      return "[" + v.map((x) => pad(level + 1) + pyDumps(x, indent, level + 1)).join(indent ? "," : sep) + pad(level) + "]";
+    }
+    const keys = Object.keys(v);
+    if (!keys.length) return "{}";
+    return "{" + keys.map((k) => pad(level + 1) + JSON.stringify(k) + colon + pyDumps(v[k], indent, level + 1)).join(indent ? "," : sep) + pad(level) + "}";
+  }
+  const num = (x) => (x instanceof PyFloat ? x.v : x);
+
+  // Validators that mirror Pydantic v2 (lax mode) as observed
+  function vInt(name, x, ge, le) {
+    let n;
+    if (typeof x === "boolean") n = x ? 1 : 0;
+    else if (typeof x === "number") n = x;
+    else if (x instanceof PyFloat) {
+      if (!Number.isInteger(x.v)) return { type: "int_from_float", msg: "Input should be a valid integer, got a number with a fractional part" };
+      n = x.v;
+    } else if (typeof x === "string") {
+      const t = x.trim();
+      if (!/^[+-]?\d+(_\d+)*(\.0*)?$/.test(t)) return { type: "int_parsing", msg: "Input should be a valid integer, unable to parse string as an integer" };
+      n = parseInt(t.replace(/_/g, ""), 10);
+    } else return { type: "int_type", msg: "Input should be a valid integer" };
+    if (n < ge) return { type: "greater_than_equal", msg: `Input should be greater than or equal to ${ge}`, ctx: { ge } };
+    if (n > le) return { type: "less_than_equal", msg: `Input should be less than or equal to ${le}`, ctx: { le } };
+    return { value: n };
+  }
+  function vFloat(name, x, gt, le) {
+    let n;
+    if (typeof x === "boolean") n = x ? 1 : 0;
+    else if (typeof x === "number") n = x;
+    else if (x instanceof PyFloat) n = x.v;
+    else if (typeof x === "string") {
+      const t = x.trim();
+      if (/^[+-]?(inf|infinity)$/i.test(t)) n = t.startsWith("-") ? -Infinity : Infinity;
+      else if (/^[+-]?(\d+(_\d+)*(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(t)) n = parseFloat(t.replace(/_/g, ""));
+      else return { type: "float_parsing", msg: "Input should be a valid number, unable to parse string as a number" };
+    } else return { type: "float_type", msg: "Input should be a valid number" };
+    if (!(n > gt)) return { type: "greater_than", msg: `Input should be greater than ${gt}`, ctx: { gt: new PyFloat(gt) } };
+    if (n > le) return { type: "less_than_equal", msg: `Input should be less than or equal to ${le}`, ctx: { le: new PyFloat(le) } };
+    return { value: n };
+  }
+  function validate(body) {
+    const errors = [], out = {};
+    const add = (field, r, input) => {
+      if ("value" in r) { out[field] = r.value; return; }
+      const e = { type: r.type, loc: ["body", field], msg: r.msg, input };
+      if (r.ctx) e.ctx = r.ctx;
+      errors.push(e);
+    };
+    const fields = [
+      ["tenure_months", (x) => vInt("tenure_months", x, 0, 120)],
+      ["monthly_charges", (x) => vFloat("monthly_charges", x, 0, 1000)],
+      ["support_calls", (x) => vInt("support_calls", x, 0, 50)],
+    ];
+    for (const [f, fn] of fields) {
+      if (!(f in body)) errors.push({ type: "missing", loc: ["body", f], msg: "Field required", input: body });
+      else add(f, fn(body[f]), body[f]);
+    }
+    if (!("contract" in body)) out.contract = "monthly";
+    else if (body.contract === "monthly" || body.contract === "annual") out.contract = body.contract;
+    else errors.push({ type: "literal_error", loc: ["body", "contract"], msg: "Input should be 'monthly' or 'annual'", input: body.contract, ctx: { expected: "'monthly' or 'annual'" } });
+    return { errors, out };
+  }
+  // Real coefficients of the toy model in section 11 (StandardScaler + LogisticRegression)
+  const MEAN = [35.44, 69.98802047253453, 4.356], SCALE = [20.559922178841042, 29.17951611248122, 2.909512673971376];
+  const COEF = [-0.727249612909749, -0.21682941452813517, 4.31482928812117], B0 = 0.24865019054212395;
+  function predict(o) {
+    const x = [o.tenure_months, o.monthly_charges, o.support_calls];
+    const z = B0 + x.reduce((acc, v, k) => acc + COEF[k] * (v - MEAN[k]) / SCALE[k], 0);
+    return 1 / (1 + Math.exp(-z));
+  }
+
+  const ROUTES = { "/health": ["GET"], "/v1/process": ["POST"] };
+  const REASONS = { 200: "OK", 307: "Temporary Redirect", 400: "Bad Request", 404: "Not Found", 405: "Method Not Allowed", 422: "Unprocessable Entity", 500: "Internal Server Error", 503: "Service Unavailable" };
+  const P = (o) => JSON.stringify(o, null, 2);
+  const BODY_PRESETS = [
+    ["Valid", P({ tenure_months: 3, monthly_charges: 79.5, support_calls: 6, contract: "monthly" })],
+    ["Missing field", P({ tenure_months: 3, monthly_charges: 79.5 })],
+    ["Wrong type", P({ tenure_months: "three", monthly_charges: 79.5, support_calls: 6 })],
+    ["Out of range", P({ tenure_months: 3, monthly_charges: -5, support_calls: 99 })],
+    ["Breaks business rule", P({ tenure_months: 3, monthly_charges: 79.5, support_calls: 6, contract: "annual" })],
+    ["Malformed JSON", '{\n  "tenure_months": 3,\n  "monthly_charges": 79.5\n  "support_calls": 6\n}'],
+    ["Triggers model error", P({ tenure_months: 40, monthly_charges: 55, support_calls: 1 })],
+    ["Loyal customer", P({ tenure_months: 60, monthly_charges: 45.0, support_calls: 0, contract: "annual" })],
+  ];
+  $("cPresets").innerHTML = BODY_PRESETS.map(([n], i) => `<button class="btn" type="button" data-i="${i}" style="font-size:.82rem">${esc(n)}</button>`).join("");
+  document.querySelectorAll("#cPresets .btn").forEach((b) => b.addEventListener("click", () => {
+    const i = +b.dataset.i;
+    $("cBody").value = BODY_PRESETS[i][1];
+    $("cMethod").value = "POST"; $("cPath").value = "/v1/process";
+    $("cBug").checked = BODY_PRESETS[i][0] === "Triggers model error";
+    $("cNoModel").checked = false; $("cCT").checked = true;
+    document.querySelectorAll("#cPresets .btn").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    send();
+  }));
+  $("cBody").value = BODY_PRESETS[0][1];
+
+  function shellQuote(s) { return "'" + s.replace(/'/g, "'\\''") + "'"; }
+  function curlFor(method, path, raw, ct) {
+    const url = "http://127.0.0.1:8000" + path;
+    if (method === "GET") return `curl -i ${url}`;
+    let c = `curl -i -X ${method} ${url}`;
+    if (ct) c += ` \\\n  -H "Content-Type: application/json"`;
+    if (raw.trim()) c += ` \\\n  -d ${shellQuote(raw.replace(/\s*\n\s*/g, " ").trim())}`;
+    return c;
+  }
+
+  function simulate(method, path, raw, opts) {
+    const steps = [];
+    const T = (label, state, note) => steps.push({ label, state, note });
+    const res = (code, body, extra = {}, explain = "") => ({ code, body, headers: extra, explain, steps });
+    const allowed = ROUTES[path];
+    if (!allowed) {
+      T(`Route ${path} exists?`, "fail", "no route registered with this path");
+      return res(404, { detail: "Not Found" }, {}, `<strong>404 Not Found</strong>: no route matches <code>${esc(path)}</code>. ${path === "/v1/procss" ? "It's a typo for <code>/v1/process</code>." : path.startsWith("/v2") ? "The app only defines version 1 (<code>/v1/…</code>); there is no v2 yet." : ""} FastAPI decides this before looking at the method or body. <em>Client's fault: fix the URL.</em>`);
+    }
+    T(`Route ${path} exists?`, "ok");
+    if (!allowed.includes(method)) {
+      T(`Method ${method} allowed?`, "fail", `only ${allowed.join(", ")}`);
+      return res(405, { detail: "Method Not Allowed" }, { allow: allowed.join(", ") }, `<strong>405 Method Not Allowed</strong>: <code>${esc(path)}</code> exists, but only for <code>${allowed.join(", ")}</code>. The <code>allow</code> header tells the client which method to use. The body was never read. <em>Client's fault.</em>`);
+    }
+    T(`Method ${method} allowed?`, "ok");
+
+    if (path === "/health") {
+      if (opts.noModel) {
+        T("Model loaded?", "fail", "startup failed");
+        return res(503, { status: "unavailable", model_loaded: false, model_version: null }, {}, "<strong>503 Service Unavailable</strong>: the server is up, but the model failed to load at startup. Returning 503 (not 200) tells load balancers and monitoring not to send traffic here. The body still explains the situation to humans. <em>Server's problem.</em>");
+      }
+      T("Model loaded?", "ok");
+      return res(200, { status: "ok", model_loaded: true, model_version: "1" }, {}, "<strong>200 OK</strong>: the service is alive and the model is loaded. GET requests have no body, so anything in the text box was ignored.");
+    }
+
+    // POST /v1/process: read and parse the body
+    let body;
+    if (!raw.length) {
+      T("Body is valid JSON?", "fail", "no body sent");
+      return res(422, { detail: [{ type: "missing", loc: ["body"], msg: "Field required", input: null }] }, {}, "<strong>422</strong>: the endpoint needs a JSON body and none was sent, so the whole body is reported as missing (<code>\"loc\": [\"body\"]</code>). <em>Client's fault.</em>");
+    }
+    if (!opts.ct) {
+      T("Body is valid JSON?", "fail", "no JSON Content-Type, so it was read as text");
+      return res(422, { detail: [{ type: "model_attributes_type", loc: ["body"], msg: "Input should be a valid dictionary or object to extract fields from", input: raw }] }, {}, "<strong>422</strong>: without <code>Content-Type: application/json</code>, FastAPI doesn't parse the body as JSON. It receives one long string instead of an object, so validation fails. This is exactly what happens with <code>curl -d '...'</code> when you forget <code>-H \"Content-Type: application/json\"</code>. <em>Client's fault.</em>");
+    }
+    try { body = pyParse(raw); }
+    catch (e) {
+      if (!e.py) throw e;
+      T("Body is valid JSON?", "fail", `${e.message} (character ${e.pos})`);
+      return res(422, { detail: [{ type: "json_invalid", loc: ["body", e.pos], msg: "JSON decode error", input: {}, ctx: { error: e.message } }] }, {}, `<strong>422</strong>: the body isn't valid JSON. Python's JSON parser stopped at character <b>${e.pos}</b> (counting from 0) with "${esc(e.message)}", and that position is reported in <code>loc</code>. Common causes: a missing comma, a trailing comma, single quotes instead of double quotes, or an unclosed brace. Your function never ran. <em>Client's fault.</em>`);
+    }
+    T("Body is valid JSON?", "ok");
+    if (body === null) {
+      T("Fields pass validation?", "fail", "body is null");
+      return res(422, { detail: [{ type: "missing", loc: ["body"], msg: "Field required", input: null }] }, {}, "<strong>422</strong>: a JSON <code>null</code> body counts as no body at all. <em>Client's fault.</em>");
+    }
+    if (typeof body !== "object" || Array.isArray(body)) {
+      T("Fields pass validation?", "fail", "body is not a JSON object");
+      return res(422, { detail: [{ type: "model_attributes_type", loc: ["body"], msg: "Input should be a valid dictionary or object to extract fields from", input: body }] }, {}, "<strong>422</strong>: the JSON is valid, but it's not an object (<code>{...}</code>). The request model needs named fields. <em>Client's fault.</em>");
+    }
+    const { errors, out } = validate(body);
+    if (errors.length) {
+      T("Fields pass validation?", "fail", `${errors.length} error${errors.length > 1 ? "s" : ""}`);
+      const list = errors.map((e) => `<li><code>${esc(e.loc.slice(1).join("."))}</code>: ${esc(e.msg)} <span class="tag">${esc(e.type)}</span></li>`).join("");
+      return res(422, { detail: errors }, {}, `<strong>422 Unprocessable Entity</strong>: the JSON parsed fine, but Pydantic rejected it against <code>ChurnRequest</code>. FastAPI lists <em>every</em> problem at once, so the client can fix them all in one go:<ul style="margin:6px 0 0">${list}</ul>Your function never ran${opts.noModel ? ", which is why the unloaded model wasn't noticed: validation happens first" : ""}. <em>Client's fault.</em>`);
+    }
+    T("Fields pass validation?", "ok");
+    if (opts.noModel) {
+      T("Model loaded?", "fail", "state['model'] is None");
+      return res(503, { detail: "Model not loaded" }, {}, "<strong>503 Service Unavailable</strong>: the request was perfectly valid, but the model isn't loaded, so the function raised <code>HTTPException(status_code=503)</code>. The client did nothing wrong and can retry later. <em>Server's problem.</em>");
+    }
+    T("Model loaded?", "ok");
+    if (out.contract === "annual" && out.tenure_months < 12) {
+      T("Business rules OK?", "fail", "annual contract with tenure < 12");
+      return res(400, { detail: "An annual contract needs tenure_months >= 12" }, {}, "<strong>400 Bad Request</strong>: every field has the right type and range, so validation passed (no 422). But our own code checks a business rule that types can't express, and raised <code>HTTPException(status_code=400, ...)</code> with a clear message. <em>Client's fault: the data doesn't make sense.</em>");
+    }
+    T("Business rules OK?", "ok");
+    if (opts.bug) {
+      T("Prediction ran?", "fail", "model.predict_proba raised an exception");
+      return res(500, { detail: "Internal server error" }, {}, "<strong>500 Internal Server Error</strong>: the request was fine, but <code>model.predict_proba</code> raised an exception. The <code>try/except</code> logged the full traceback on the server and returned a generic message, so no internal details leaked. <em>Server's fault: the API owner must read the logs.</em>");
+    }
+    const p = predict(out);
+    T("Prediction ran?", "ok");
+    return res(200, { churn_probability: new PyFloat(Math.round(p * 1e4) / 1e4), will_churn: p >= 0.5, model_version: "1" }, {}, `<strong>200 OK</strong>: every check passed. The model gives a churn probability of <b>${(p * 100).toFixed(1)}%</b>, so <code>will_churn</code> is <code>${p >= 0.5}</code> at the 0.5 threshold. The response also states the model version, so this prediction can be traced back to its MLflow run.`);
+  }
+
+  function send() {
+    const method = $("cMethod").value, path = $("cPath").value, raw = $("cBody").value;
+    const opts = { ct: $("cCT").checked, noModel: $("cNoModel").checked, bug: $("cBug").checked };
+    const r = simulate(method, path, method === "GET" ? "" : raw, opts);
+    const compact = pyDumps(r.body, 0);
+    const len = new TextEncoder().encode(compact).length;
+    const headers = Object.assign({}, r.headers, { "content-length": String(len), "content-type": "application/json" });
+    const cls = Math.floor(r.code / 100);
+    const st = $("cStatus");
+    st.className = "status-line s" + cls;
+    st.textContent = `${r.code} ${REASONS[r.code] || ""}`;
+    $("cHeaders").textContent = `HTTP/1.1 ${r.code} ${REASONS[r.code] || ""}\n` + Object.entries(headers).map(([k, v]) => `${k}: ${v}`).join("\n");
+    $("cResBody").textContent = pyDumps(r.body, 2);
+    $("cCurl").textContent = curlFor(method, path, raw, opts.ct);
+    const icon = { ok: "✓", fail: "✗", skip: "·" };
+    const all = path === "/health" ? ["Route", "Method", "Model loaded?"] : ["Route", "Method", "Body is valid JSON?", "Fields pass validation?", "Model loaded?", "Business rules OK?", "Prediction ran?"];
+    const done = r.steps.length;
+    const rows = r.steps.map((s) => `<div class="${s.state}"><span>${icon[s.state]}</span><span>${esc(s.label)}${s.note ? ` <small>(${esc(s.note)})</small>` : ""}</span></div>`);
+    all.slice(done).forEach((label) => rows.push(`<div class="skip"><span>${icon.skip}</span><span>${esc(label)} <small>(not reached)</small></span></div>`));
+    $("cTrace").innerHTML = rows.join("");
+    const box = $("cExplain");
+    box.className = "callout" + (cls === 2 ? " good" : cls === 4 ? " warn" : cls === 5 ? " bad" : "");
+    box.innerHTML = `<p>${r.explain}</p>`;
+  }
+  $("cSend").addEventListener("click", send);
+  ["cMethod", "cPath"].forEach((id) => $(id).addEventListener("change", () => { $("cCurl").textContent = curlFor($("cMethod").value, $("cPath").value, $("cBody").value, $("cCT").checked); }));
+  send();
+
+  /* ---------- quiz ---------- */
+  const QUIZ = [
+    { q: "In http://127.0.0.1:8000/v1/process?debug=true, which part is the path (route)?", o: ["127.0.0.1", "8000", "/v1/process", "debug=true"], a: 2, w: "127.0.0.1 is the host, 8000 the port, /v1/process the path, and debug=true a query parameter." },
+    { q: "You run uvicorn with --host 127.0.0.1 inside a Docker container. From your laptop the API is unreachable. Why?", o: ["Port 8000 is reserved", "127.0.0.1 inside the container means the container itself, so it only accepts connections from inside it. Bind to 0.0.0.0", "Docker blocks HTTP", "You must use https"], a: 1, w: "Traffic arrives on the container's network interface, not its loopback. --host 0.0.0.0 listens on all interfaces." },
+    { q: "Which of these is a private IPv4 address?", o: ["8.8.8.8", "172.32.0.1", "192.168.1.20", "11.0.0.1"], a: 2, w: "Private ranges are 10.x, 172.16–31.x and 192.168.x. 172.32.0.1 is just outside the 172 range." },
+    { q: "A URL starts with https:// and has no port written. Which port is used?", o: ["80", "443", "8000", "8080"], a: 1, w: "443 is the default for HTTPS; 80 is the default for plain HTTP." },
+    { q: "uvicorn fails with \"address already in use\" on port 8000. What should you do?", o: ["Reinstall FastAPI", "Use another port, or find the process with lsof -i :8000 (netstat -ano on Windows) and stop it", "Change 127.0.0.1 to 0.0.0.0", "Restart the router"], a: 1, w: "Another program (often your own earlier server) is already listening on that port." },
+    { q: "A client sends GET /v1/process, but the endpoint is defined with @app.post. What does FastAPI return?", o: ["404 Not Found", "405 Method Not Allowed", "422 Unprocessable Entity", "500 Internal Server Error"], a: 1, w: "The path exists, but not for GET. FastAPI returns 405 with an allow: POST header." },
+    { q: "A request body is missing the required field support_calls. What does FastAPI return by default?", o: ["400", "404", "422", "500"], a: 2, w: "Pydantic validation fails before your function runs, and FastAPI returns 422 with \"loc\": [\"body\", \"support_calls\"]." },
+    { q: "All fields are valid, but an annual contract with 3 months' tenure makes no business sense. Which code should your code raise?", o: ["200", "400", "422", "503"], a: 1, w: "422 is for validation failures FastAPI detects automatically; a business-rule violation is a 400 you raise with HTTPException." },
+    { q: "The model failed to load at startup. What should GET /health return?", o: ["200 with model_loaded false", "404", "503 Service Unavailable", "422"], a: 2, w: "Load balancers and monitoring read the status code. 503 says \"running but not able to serve\"; the body can still explain why." },
+    { q: "Where should the MLflow champion model be loaded?", o: ["Inside the /v1/process function, on every request", "Once at startup in a lifespan handler (and reloaded only when the alias moves)", "In the Streamlit app", "In the client's browser"], a: 1, w: "Loading is slow; do it once and reuse the object. Reload via a restart, an admin endpoint or polling when @champion changes." },
+  ];
+  let answered = 0, correct = 0;
+  function renderQuiz() {
+    answered = 0; correct = 0;
+    $("quizScore").textContent = `0 / ${QUIZ.length} answered`;
+    $("quizBox").innerHTML = QUIZ.map((it, qi) => `<div class="q" data-q="${qi}"><div class="prompt">${qi + 1}. ${esc(it.q)}</div><div class="opts">${it.o.map((o, oi) => `<button class="opt" type="button" data-o="${oi}">${esc(o)}</button>`).join("")}</div><div class="why">${esc(it.w)}</div></div>`).join("");
+  }
+  $("quizBox").addEventListener("click", (e) => {
+    const b = e.target.closest(".opt"); if (!b || b.disabled) return;
+    const qEl = b.closest(".q"), it = QUIZ[+qEl.dataset.q];
+    qEl.querySelectorAll(".opt").forEach((o) => { o.disabled = true; if (+o.dataset.o === it.a) o.classList.add("right"); });
+    if (+b.dataset.o !== it.a) b.classList.add("wrong"); else correct++;
+    qEl.classList.add("answered"); answered++;
+    $("quizScore").textContent = answered === QUIZ.length ? `Score: ${correct} / ${QUIZ.length}` : `${correct} correct · ${answered} / ${QUIZ.length} answered`;
+  });
+  $("quizReset").addEventListener("click", renderQuiz);
+  renderQuiz();
+})();
+</script>
+</body>
+</html>

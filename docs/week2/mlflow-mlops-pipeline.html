@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MLflow &amp; the MLOps Pipeline</title>
+<meta name="description" content="Week 2 reference: tagging and comparing MLflow runs, the model registry, champion vs challenger, and the MLOps pipeline from training to monitoring, drift detection and retraining.">
+<style>
+  :root {
+    --bg: #f7f6f2; --surface: #ffffff; --surface-2: #f0eee8; --text: #1d1d1b; --muted: #5f5d57;
+    --border: #dcd9d0; --accent: #2f5bd3; --accent-soft: #e3eafc;
+    --pos: #c2410c; --pos-soft: #fde8dc; --neg: #2f5bd3; --neg-soft: #e3eafc;
+    --good: #1f7a4d; --good-soft: #ddf2e6; --bad: #b3261e; --bad-soft: #fbe3e1; --warn: #8a5a00; --warn-soft: #fbf0d9;
+    --code-bg: #f3f1ec; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05); --radius: 14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+      --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+      --pos: #ff9a62; --pos-soft: #3d2618; --neg: #8aa8ff; --neg-soft: #1f2a47;
+      --good: #6fd3a0; --good-soft: #173326; --bad: #ff8a80; --bad-soft: #3d1f1d; --warn: #f0c56b; --warn-soft: #3a2f17;
+      --code-bg: #232321; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141413; --surface: #1e1e1c; --surface-2: #272724; --text: #ecebe6; --muted: #a8a69e;
+    --border: #3a3935; --accent: #8aa8ff; --accent-soft: #1f2a47;
+    --pos: #ff9a62; --pos-soft: #3d2618; --neg: #8aa8ff; --neg-soft: #1f2a47;
+    --good: #6fd3a0; --good-soft: #173326; --bad: #ff8a80; --bad-soft: #3d1f1d; --warn: #f0c56b; --warn-soft: #3a2f17;
+    --code-bg: #232321; --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .layout { display: grid; grid-template-columns: 1fr; max-width: 1240px; margin: 0 auto; }
+  @media (min-width: 1000px) { .layout { grid-template-columns: 250px minmax(0, 1fr); gap: 32px; padding: 0 24px; } }
+  aside.toc { display: none; }
+  @media (min-width: 1000px) {
+    aside.toc { display: block; position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; padding: 28px 0 28px; }
+  }
+  aside.toc .toc-title { font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px 10px; }
+  aside.toc a { display: block; color: var(--muted); text-decoration: none; font-size: .9rem; padding: 4px 10px; border-left: 2px solid transparent; border-radius: 0 6px 6px 0; }
+  aside.toc a:hover { color: var(--text); background: var(--surface-2); }
+  aside.toc a.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+  aside.toc a.sub { padding-left: 22px; font-size: .84rem; }
+  details.mobile-toc { margin: 16px 0 0; }
+  @media (min-width: 1000px) { details.mobile-toc { display: none; } }
+  details.mobile-toc summary { cursor: pointer; font-weight: 600; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  details.mobile-toc nav { display: grid; gap: 2px; padding: 8px 4px; }
+  details.mobile-toc a { color: var(--text); text-decoration: none; padding: 4px 10px; font-size: .92rem; }
+  main { min-width: 0; padding: 28px 16px 96px; max-width: 880px; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.7rem); line-height: 1.12; margin: 4px 0 12px; letter-spacing: -0.02em; }
+  h2 { font-size: 1.6rem; margin: 0 0 8px; letter-spacing: -0.01em; line-height: 1.25; }
+  h3 { font-size: 1.15rem; margin: 26px 0 8px; }
+  h4 { font-size: 1rem; margin: 18px 0 6px; }
+  p { margin: 0 0 12px; }
+  ul, ol { margin: 0 0 12px; padding-left: 22px; }
+  li { margin: 3px 0; }
+  a { color: var(--accent); }
+  .eyebrow { color: var(--muted); font-size: .82rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; }
+  .lede { color: var(--muted); font-size: 1.12rem; max-width: 64ch; }
+  section { margin-top: 56px; }
+  .num { color: var(--accent); margin-right: 6px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin: 16px 0; }
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 16px 0; }
+  .callout.good { border-color: var(--good); background: var(--good-soft); }
+  .callout.bad { border-color: var(--bad); background: var(--bad-soft); }
+  .callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+  .callout > :last-child { margin-bottom: 0; }
+  .intuition { font-size: 1.05rem; border-left: 4px solid var(--good); background: var(--good-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 12px 0 16px; }
+  .intuition strong:first-child { color: var(--good); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 5px; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: .85rem; line-height: 1.55; margin: 12px 0 16px; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .table-scroll { overflow-x: auto; margin: 12px 0 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  th { font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); }
+  td code { white-space: nowrap; }
+  .grid-2 { display: grid; gap: 14px; grid-template-columns: 1fr; }
+  @media (min-width: 720px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+  .grid-2 .card { margin: 0; }
+  .pill { display: inline-block; font-size: .74rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+  .pill.up { background: var(--bad-soft); color: var(--bad); }
+  .pill.down { background: var(--good-soft); color: var(--good); }
+  .pill.neutral { background: var(--surface-2); color: var(--muted); }
+  .proscons { display: grid; gap: 12px; grid-template-columns: 1fr; margin: 12px 0; }
+  @media (min-width: 640px) { .proscons { grid-template-columns: 1fr 1fr; } }
+  .proscons > div { border-radius: 10px; padding: 12px 14px; }
+  .proscons .pros { background: var(--good-soft); }
+  .proscons .cons { background: var(--bad-soft); }
+  .proscons h4 { margin: 0 0 6px; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+  .proscons .pros h4 { color: var(--good); } .proscons .cons h4 { color: var(--bad); }
+  .proscons ul { margin: 0; }
+  .theme-toggle { position: fixed; top: 12px; right: 12px; z-index: 5; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  /* widgets */
+  .widget { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; margin: 18px 0; }
+  .widget-title { font-weight: 700; margin-bottom: 4px; }
+  .widget-sub { color: var(--muted); font-size: .9rem; margin-bottom: 12px; }
+  .controls { display: grid; gap: 10px 18px; grid-template-columns: 1fr; margin-bottom: 12px; }
+  @media (min-width: 640px) { .controls { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }
+  .controls label { display: grid; gap: 2px; font-size: .86rem; color: var(--muted); }
+  .controls label span b { color: var(--text); }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .widget svg { width: 100%; height: auto; display: block; }
+  .svg-text { fill: var(--muted); font-size: 11px; font-family: system-ui, sans-serif; }
+  .svg-axis { stroke: var(--border); stroke-width: 1; }
+  .metrics-row { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); margin-top: 12px; }
+  .metric { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+  .metric .k { font-size: .74rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+  .metric .v { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .metric.hl { outline: 2px solid var(--bad); }
+  .sim-grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .sim-grid { grid-template-columns: 1.4fr 1fr; } }
+  .verdict { font-weight: 700; padding: 8px 12px; border-radius: 10px; margin-top: 10px; }
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 6px 12px; border-radius: 9px; cursor: pointer; font: inherit; font-size: .9rem; }
+  .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .diagram { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 14px 0; font-size: .85rem; }
+  .diagram .box { border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px; padding: 6px 10px; text-align: center; }
+  .diagram .arrow { color: var(--muted); }
+  .quiz .q { margin-bottom: 16px; }
+  .quiz .prompt { font-weight: 600; margin-bottom: 6px; }
+  .quiz .opts { display: grid; gap: 6px; }
+  .quiz .opt { text-align: left; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); padding: 8px 12px; border-radius: 9px; cursor: pointer; font: inherit; }
+  .quiz .opt:disabled { cursor: default; }
+  .quiz .opt.right { border-color: var(--good); background: var(--good-soft); color: var(--good); font-weight: 600; }
+  .quiz .opt.wrong { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
+  .quiz .why { display: none; color: var(--muted); font-size: .88rem; margin-top: 4px; }
+  .quiz .q.answered .why { display: block; }
+  footer { margin-top: 64px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 16px; }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+
+  /* page-specific additions (same tokens, same look) */
+  select, input[type="text"], input[type="search"] { font: inherit; font-size: .9rem; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 6px 10px; width: 100%; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); font-weight: 600; }
+  .runs-table td, .runs-table th { white-space: nowrap; }
+  .runs-table td.r, .runs-table th.r { text-align: right; font-variant-numeric: tabular-nums; }
+  .runs-table tr.best td { background: var(--good-soft); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .82rem; color: var(--muted); margin-top: 8px; }
+  .legend span.sw { display: inline-block; width: 18px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+  .filter-msg { font-size: .85rem; color: var(--muted); margin: 4px 0 8px; }
+  .filter-msg.err { color: var(--bad); }
+  .event-log { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; max-height: 340px; overflow-y: auto; }
+  .event-log li { background: var(--surface-2); border-radius: 9px; padding: 8px 10px; font-size: .88rem; margin: 0; }
+  .event-log li code { display: block; white-space: pre-wrap; word-break: break-word; margin-top: 4px; }
+  .event-log li.promote { border-left: 4px solid var(--good); }
+  .event-log li.reject { border-left: 4px solid var(--bad); }
+  .event-log li.retrain { border-left: 4px solid var(--warn); }
+  .alias { display: inline-block; font-size: .74rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; margin-right: 4px; }
+  .alias.champ { background: var(--good-soft); color: var(--good); border: 1px solid var(--good); }
+  .alias.chall { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn); }
+  .alias.prev { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+  .preset-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .preset-row .btn { font-size: .8rem; padding: 4px 9px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .bar-cell { display: flex; align-items: center; gap: 6px; }
+  .bar-cell span.b { display: inline-block; height: 10px; border-radius: 3px; background: var(--pos); min-width: 1px; }
+  .steps { counter-reset: step; list-style: none; padding-left: 0; }
+  .steps > li { counter-increment: step; position: relative; padding-left: 38px; margin: 10px 0; }
+  .steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; display: grid; place-items: center; font-size: .85rem; }
+</style>
+<style>
+  main div, main section, main details { min-width: 0; }
+  :not(pre) > code { overflow-wrap: anywhere; }
+  @media (max-width: 999px) { main { padding-top: 56px; } }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">◐ Theme</button>
+<div class="layout">
+  <aside class="toc" aria-label="Contents">
+    <p class="toc-title">Contents</p>
+    <a href="#recap">1 · Recap: the MLflow vocabulary</a>
+    <a href="#tagging">2 · Tagging experiments &amp; runs</a>
+    <a href="#compare">3 · Comparing runs</a>
+    <a class="sub" href="#filter-playground">Filter playground</a>
+    <a class="sub" href="#compare-ui">Comparing in the UI</a>
+    <a href="#fair">4 · What makes a fair comparison</a>
+    <a href="#registry">5 · The model registry</a>
+    <a href="#champion">6 · Champion vs challenger</a>
+    <a href="#lifecycle">7 · The MLOps lifecycle</a>
+    <a class="sub" href="#scripts">From notebook to scripts</a>
+    <a class="sub" href="#automation">Automation &amp; scheduling</a>
+    <a href="#monitoring">8 · Monitoring</a>
+    <a href="#drift">9 · Drift</a>
+    <a class="sub" href="#psi">PSI</a>
+    <a class="sub" href="#stat-tests">KS &amp; chi-square tests</a>
+    <a href="#retraining">10 · Retraining strategies</a>
+    <a class="sub" href="#loop-sim">MLOps loop simulator</a>
+    <a href="#example">11 · Worked example</a>
+    <a href="#cheatsheet">12 · Cheat sheet</a>
+    <a href="#quiz">13 · Quiz</a>
+  </aside>
+
+<main>
+  <header>
+    <div class="eyebrow">Week 2 · MLflow, MLOps &amp; FastAPI</div>
+    <h1>MLflow in practice and the MLOps pipeline</h1>
+    <p class="lede">You have already trained, logged, tagged and compared models in MLflow. This page turns that into a repeatable system: consistent tags so runs are easy to find, a registry with a champion and a challenger, a fair promotion rule, and a pipeline that watches the live model, notices when the world has changed (drift), retrains and only swaps models when the new one has genuinely earned it.</p>
+    <details class="mobile-toc">
+      <summary>Contents</summary>
+      <nav>
+        <a href="#recap">1 · Recap: the MLflow vocabulary</a><a href="#tagging">2 · Tagging experiments &amp; runs</a><a href="#compare">3 · Comparing runs</a>
+        <a href="#fair">4 · What makes a fair comparison</a><a href="#registry">5 · The model registry</a><a href="#champion">6 · Champion vs challenger</a>
+        <a href="#lifecycle">7 · The MLOps lifecycle</a><a href="#monitoring">8 · Monitoring</a><a href="#drift">9 · Drift</a>
+        <a href="#retraining">10 · Retraining strategies</a><a href="#example">11 · Worked example</a><a href="#cheatsheet">12 · Cheat sheet</a><a href="#quiz">13 · Quiz</a>
+      </nav>
+    </details>
+  </header>
+
+  <!-- ============ 1. RECAP ============ -->
+  <section id="recap">
+    <h2><span class="num">1</span>Recap: the MLflow vocabulary</h2>
+    <p class="intuition"><strong>Intuition.</strong> MLflow is a lab notebook that fills itself in. Every training attempt is written down with its settings, its scores and its outputs, so you can find it, compare it and reuse it later.</p>
+    <p>This page builds on the Week 2 introduction. If any word below is new, read <a href="mlflow-experiment-tracking.html">MLflow &amp; experiment tracking</a> first: it covers installing MLflow, manual logging, autolog, logging figures and the basics of the registry.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Term</th><th>What it is</th><th>Example on this course</th><th>How you log it</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Experiment</strong></td><td>A folder of runs that answer one question</td><td><code>churn-week3</code></td><td><code>mlflow.set_experiment("churn-week3")</code></td></tr>
+        <tr><td><strong>Run</strong></td><td>One training attempt, with an ID, a name, a start and an end</td><td><code>rf-depth6</code></td><td><code>with mlflow.start_run(run_name=...):</code></td></tr>
+        <tr><td><strong>Parameter</strong></td><td>A setting you chose <em>before</em> training. Stored as text</td><td><code>max_depth = 6</code></td><td><code>mlflow.log_param</code> / <code>log_params</code></td></tr>
+        <tr><td><strong>Metric</strong></td><td>A number measured during or after training. Can have one value per step (epoch)</td><td><code>test_f1 = 0.85</code></td><td><code>mlflow.log_metric(..., step=epoch)</code></td></tr>
+        <tr><td><strong>Artifact</strong></td><td>Any file saved with the run: a model, a plot, a CSV</td><td><code>confusion_matrix.png</code></td><td><code>mlflow.log_artifact</code>, <code>log_figure</code></td></tr>
+        <tr><td><strong>Model</strong></td><td>A special artifact that MLflow knows how to load again</td><td>The fitted random forest</td><td><code>mlflow.sklearn.log_model(model, name="model")</code></td></tr>
+        <tr><td><strong>Tag</strong></td><td>A free-text label (key = value) on a run or experiment, used to organise and filter. Can be changed after the run</td><td><code>model_family = nn</code></td><td><code>mlflow.set_tag</code> / <code>set_tags</code></td></tr>
+        <tr><td><strong>Tracking store</strong></td><td>Where all of this is kept</td><td>A local SQLite file, <code>mlflow.db</code></td><td><code>mlflow.set_tracking_uri("sqlite:///mlflow.db")</code></td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout"><p><strong>Where your runs live.</strong> In MLflow 3 the default local store is a SQLite database called <code>mlflow.db</code> in the folder you run Python from. Every example on this page sets it explicitly with <code>mlflow.set_tracking_uri("sqlite:///mlflow.db")</code>, so the code, the UI and the registry all point at the same file. The examples were tested with MLflow 3.17.1.</p></div>
+  </section>
+
+  <!-- ============ 2. TAGGING ============ -->
+  <section id="tagging">
+    <h2><span class="num">2</span>Tagging experiments and runs</h2>
+    <p class="intuition"><strong>Intuition.</strong> Tags are sticky labels. Parameters and metrics describe <em>what the model did</em>; tags describe <em>what the run is</em>: which family, which dataset, who ran it, and what role it plays.</p>
+
+    <h3>Three levels of tags</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Level</th><th>Set with</th><th>Use it for</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Experiment tags</strong></td><td><code>mlflow.set_experiment_tags({...})</code></td><td>Facts about the whole experiment: project, team, a description</td></tr>
+        <tr><td><strong>Run tags</strong></td><td><code>mlflow.start_run(tags={...})</code>, <code>mlflow.set_tag(k, v)</code>, <code>mlflow.set_tags({...})</code></td><td>Facts about one run: model family, algorithm, dataset version, author</td></tr>
+        <tr><td><strong>Model version tags</strong></td><td><code>MlflowClient().set_model_version_tag(...)</code></td><td>Facts about a registered version (see <a href="#registry">section 5</a>)</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>The description tag</h3>
+    <p>MLflow treats one tag specially: <code>mlflow.note.content</code>. Whatever text you put there is shown as the <strong>description</strong> of the run (or of the experiment, if you set it as an experiment tag) in the UI. It accepts Markdown. Use it to say, in one or two sentences, why the run exists.</p>
+
+    <h3>System tags: the ones MLflow adds for you</h3>
+    <p>Tags whose names start with <code>mlflow.</code> are <strong>system tags</strong>. MLflow fills most of them in automatically. You can filter on them like any other tag.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>System tag</th><th>Contains</th></tr></thead>
+      <tbody>
+        <tr><td><code>mlflow.runName</code></td><td>The run name you passed to <code>start_run</code> (or a random one such as <code>bright-owl-42</code>)</td></tr>
+        <tr><td><code>mlflow.user</code></td><td>Your operating-system user name</td></tr>
+        <tr><td><code>mlflow.source.name</code></td><td>The script or notebook that started the run</td></tr>
+        <tr><td><code>mlflow.source.type</code></td><td>Where it ran: <code>LOCAL</code>, <code>NOTEBOOK</code>, <code>JOB</code>…</td></tr>
+        <tr><td><code>mlflow.source.git.commit</code></td><td>The Git commit of your code, added automatically when the script is inside a Git repository</td></tr>
+        <tr><td><code>mlflow.note.content</code></td><td>The description (you set this one yourself)</td></tr>
+        <tr><td><code>mlflow.parentRunId</code></td><td>Set on child runs when you use nested runs</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>A tagging convention for the course</h3>
+    <p>Tags only help if everyone uses the <strong>same keys and the same values</strong>. "NN", "nn" and "neural" are three different values to a filter. Agree a small set of keys as a team and write them down.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Tag key</th><th>Allowed values</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><code>model_family</code></td><td><code>ml</code> · <code>nn</code></td><td>Compare classical models with neural networks, or find the best of each</td></tr>
+        <tr><td><code>algorithm</code></td><td><code>logistic_regression</code> · <code>random_forest</code> · <code>keras_dnn</code> · <code>mlp</code></td><td>Group runs of the same algorithm across different settings</td></tr>
+        <tr><td><code>stage</code></td><td><code>baseline</code> · <code>experiment</code></td><td>Separate the simple "bar to beat" from the attempts to beat it</td></tr>
+        <tr><td><code>dataset_version</code></td><td><code>churn-v1</code>, <code>churn-v2</code>, or a date such as <code>2026-06</code></td><td>Only compare runs trained on the same data; trace a model back to its data</td></tr>
+        <tr><td><code>author</code></td><td>Your first name</td><td>Who to ask about a run (more readable than <code>mlflow.user</code>)</td></tr>
+        <tr><td><code>git_commit</code></td><td>Short commit hash</td><td>Reproduce the exact code (MLflow adds <code>mlflow.source.git.commit</code> automatically when it can)</td></tr>
+        <tr><td><code>candidate</code></td><td><code>champion</code> · <code>challenger</code></td><td>Mark which runs are in contention for deployment</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn"><p><strong>Tags are not aliases.</strong> A <code>candidate = champion</code> run tag is a note for humans. The thing that actually decides which model is served is the registry <strong>alias</strong> <code>@champion</code> (section 5). Keep them in step, but trust the alias.</p></div>
+
+    <h3>Tagging in code</h3>
+    <p>The examples on this page use a synthetic customer-churn dataset (made-up customers, a 0/1 "churned" target). Save this helper as <code>common.py</code> next to your scripts; the <code>drift</code> argument is used later to create "the world has changed" data.</p>
+<pre><code># common.py
+import numpy as np
+import pandas as pd
+
+def make_churn_data(n=4000, seed=0, drift=0.0):
+    """Synthetic customer-churn data. drift=0 is the 'old' world; drift=1 is a fully changed world."""
+    rng = np.random.default_rng(seed)
+    df = pd.DataFrame({
+        "tenure_months": rng.integers(1, 72, n).astype(float),
+        "monthly_charges": rng.normal(60 + 25 * drift, 15, n).round(2),
+        "support_calls": rng.poisson(1.5 + 1.5 * drift, n).astype(float),
+        "age": rng.normal(45, 12, n).round(),
+        "contract": rng.choice([0.0, 1.0, 2.0], n,            # 0 monthly, 1 one-year, 2 two-year
+                               p=[0.5 + 0.2 * drift, 0.3 - 0.1 * drift, 0.2 - 0.1 * drift]),
+    })
+    # Concept drift: what drives churn changes as drift grows
+    logit = 2 * (-0.3 - 0.5 * drift
+             + (-0.05 + 0.06 * drift) * (df.tenure_months - 36)   # loyal customers start leaving
+             + 0.03 * (df.monthly_charges - 60 - 25 * drift)
+             + (0.6 - 0.6 * drift) * (df.support_calls - 1.5 - 1.5 * drift)
+             + 1.0 * (df.contract == 0))
+    df["churn"] = (rng.random(n) &lt; 1 / (1 + np.exp(-logit))).astype(int)
+    return df</code></pre>
+<pre><code># tagging.py
+import mlflow
+from mlflow import MlflowClient
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from common import make_churn_data
+
+mlflow.set_tracking_uri("sqlite:///mlflow.db")
+mlflow.set_experiment("churn-week3")
+
+# Experiment-level tags: describe the whole experiment
+mlflow.set_experiment_tags({
+    "project": "customer-churn",
+    "team": "cohort-oct-2026",
+    "mlflow.note.content": "Week 2: compare ML and NN models on churn data v2.",
+})
+
+df = make_churn_data()
+X, y = df.drop(columns="churn"), df["churn"]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, stratify=y, random_state=42)
+
+with mlflow.start_run(run_name="logreg-baseline",
+                      tags={"model_family": "ml", "algorithm": "logistic_regression"}) as run:
+    mlflow.set_tags({
+        "stage": "baseline",
+        "dataset_version": "churn-v2",
+        "author": "samuel",
+        "git_commit": "a1b2c3d",
+        "mlflow.note.content": "Plain logistic regression, default C. The bar to beat.",
+    })
+    model = LogisticRegression(max_iter=1000).fit(X_train, y_train)
+    mlflow.log_param("C", 1.0)
+    mlflow.log_metric("test_accuracy", accuracy_score(y_test, model.predict(X_test)))
+
+# Tag a run after it has finished
+client = MlflowClient()
+client.set_tag(run.info.run_id, "candidate", "champion")
+
+tags = client.get_run(run.info.run_id).data.tags
+for k in sorted(tags):
+    print(f"{k:28} {tags[k]}")</code></pre>
+    <p>Output (your <code>mlflow.user</code> will be your own login name):</p>
+<pre><code>algorithm                    logistic_regression
+author                       samuel
+candidate                    champion
+dataset_version              churn-v2
+git_commit                   a1b2c3d
+mlflow.note.content          Plain logistic regression, default C. The bar to beat.
+mlflow.runName               logreg-baseline
+mlflow.source.name           tagging.py
+mlflow.source.type           LOCAL
+mlflow.user                  samuel
+model_family                 ml
+stage                        baseline</code></pre>
+    <h4>Fixing tags after the fact</h4>
+    <p>Forgot a tag, or used "NN" instead of "nn"? <code>MlflowClient().set_tag(run_id, key, value)</code> works on finished runs, so you can fix old runs in a loop. <code>client.delete_tag(run_id, key)</code> removes one. Metrics and parameters, by contrast, should be treated as a permanent record of what happened.</p>
+<pre><code>runs = mlflow.search_runs(experiment_names=["churn-week3"], filter_string="tags.model_family = 'NN'")
+for run_id in runs["run_id"]:
+    MlflowClient().set_tag(run_id, "model_family", "nn")</code></pre>
+  </section>
+
+  <!-- ============ 3. COMPARING ============ -->
+  <section id="compare">
+    <h2><span class="num">3</span>Comparing runs</h2>
+    <p class="intuition"><strong>Intuition.</strong> <code>mlflow.search_runs</code> is a database query that returns a pandas DataFrame. Filter with tags, sort by a metric, and you have a leaderboard you can rebuild with one command after every new run.</p>
+
+    <h3>Logging a set of runs to compare</h3>
+    <p>This script logs seven runs into the same experiment: two logistic regressions, two random forests and two small neural networks (scikit-learn's <code>MLPClassifier</code>, trained one epoch at a time so we can log a curve, just like a Keras model). Every run gets the same tags, the same split and the same metrics.</p>
+<pre><code># compare.py
+import time
+import numpy as np
+import mlflow
+from mlflow import MlflowClient
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, recall_score, f1_score
+from common import make_churn_data
+
+mlflow.set_tracking_uri("sqlite:///mlflow.db")
+mlflow.set_experiment("churn-week3")
+
+df = make_churn_data()
+X, y = df.drop(columns="churn"), df["churn"]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, stratify=y, random_state=42)
+
+def log_scores(model):
+    pred = model.predict(X_test)
+    mlflow.log_metrics({
+        "train_accuracy": accuracy_score(y_train, model.predict(X_train)),
+        "test_accuracy": accuracy_score(y_test, pred),
+        "test_recall": recall_score(y_test, pred),
+        "test_f1": f1_score(y_test, pred),
+    })
+
+COMMON = {"dataset_version": "churn-v2", "author": "samuel", "stage": "experiment"}
+
+for C in [0.1, 1.0]:
+    with mlflow.start_run(run_name=f"logreg-C{C}", tags={**COMMON, "model_family": "ml", "algorithm": "logistic_regression"}):
+        model = make_pipeline(StandardScaler(), LogisticRegression(C=C, max_iter=1000))
+        t0 = time.perf_counter(); model.fit(X_train, y_train)
+        mlflow.log_params({"C": C})
+        mlflow.log_metric("train_seconds", time.perf_counter() - t0)
+        log_scores(model)
+
+for depth in [6, None]:
+    with mlflow.start_run(run_name=f"rf-depth{depth}", tags={**COMMON, "model_family": "ml", "algorithm": "random_forest"}):
+        model = RandomForestClassifier(n_estimators=200, max_depth=depth, random_state=42, n_jobs=-1)
+        t0 = time.perf_counter(); model.fit(X_train, y_train)
+        mlflow.log_params({"n_estimators": 200, "max_depth": depth})
+        mlflow.log_metric("train_seconds", time.perf_counter() - t0)
+        log_scores(model)
+        mlflow.sklearn.log_model(model, name="model",
+                                 skops_trusted_types=["sklearn.tree._tree.Tree"])
+
+# Small neural networks trained epoch by epoch so we can log a curve
+for width in [16, 64]:
+    with mlflow.start_run(run_name=f"mlp-{width}", tags={**COMMON, "model_family": "nn", "algorithm": "mlp"}):
+        scaler = StandardScaler().fit(X_train)
+        Xtr, Xte = scaler.transform(X_train), scaler.transform(X_test)
+        net = MLPClassifier(hidden_layer_sizes=(width,), learning_rate_init=0.01, random_state=42)
+        mlflow.log_params({"hidden_units": width, "epochs": 15})
+        t0 = time.perf_counter()
+        for epoch in range(15):
+            net.partial_fit(Xtr, y_train, classes=[0, 1])
+            mlflow.log_metric("val_accuracy", accuracy_score(y_test, net.predict(Xte)), step=epoch)
+        mlflow.log_metric("train_seconds", time.perf_counter() - t0)
+        model = make_pipeline(scaler, net)
+        log_scores(model)
+print("logged", len(mlflow.search_runs(experiment_names=["churn-week3"])), "runs")</code></pre>
+    <div class="callout warn"><p><strong>Gotcha: "references untrusted types".</strong> In MLflow 3.17, <code>mlflow.sklearn.log_model</code> saves scikit-learn models in the safer <em>skops</em> format, which refuses to save object types it hasn't been told are safe. For any tree-based model (decision tree, random forest, extra trees, gradient boosting) you get:</p>
+<pre><code>MlflowException: The saved sklearn model references untrusted types. If you are sure loading these
+types is safe, set the 'skops_trusted_types' parameter when calling 'log_model' or 'save_model' to the
+list of trusted types. Root error: Untrusted types found in the file: ['sklearn.tree._tree.Tree'].</code></pre>
+    <p>The fix is the one used above: pass <code>skops_trusted_types=["sklearn.tree._tree.Tree"]</code>. If the error names other types, add those to the list too (only for models you trained yourself).</p></div>
+
+    <h3>Filter syntax</h3>
+    <p>A <code>filter_string</code> is a small SQL-like condition. Each condition has three parts: <strong>what</strong> (with a prefix), a <strong>comparison</strong>, and a <strong>value</strong>.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Prefix</th><th>Value type</th><th>Comparisons allowed</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><code>metrics.</code></td><td>Number, <strong>no quotes</strong></td><td><code>=</code> <code>!=</code> <code>&gt;</code> <code>&gt;=</code> <code>&lt;</code> <code>&lt;=</code></td><td><code>metrics.test_f1 &gt;= 0.84</code></td></tr>
+        <tr><td><code>params.</code></td><td>Text, <strong>in quotes</strong></td><td><code>=</code> <code>!=</code> <code>LIKE</code> <code>ILIKE</code></td><td><code>params.C = '0.1'</code></td></tr>
+        <tr><td><code>tags.</code></td><td>Text, <strong>in quotes</strong></td><td><code>=</code> <code>!=</code> <code>LIKE</code> <code>ILIKE</code></td><td><code>tags.model_family = 'nn'</code></td></tr>
+        <tr><td><code>attributes.</code></td><td>Run fields: <code>status</code>, <code>run_name</code>, <code>start_time</code>…</td><td>Depends on the field</td><td><code>attributes.status = 'FINISHED'</code></td></tr>
+      </tbody>
+    </table></div>
+    <ul>
+      <li><strong>Combine</strong> conditions with <code>and</code> (or <code>AND</code>). There is <strong>no <code>or</code></strong>: run two searches and <code>pd.concat</code> them.</li>
+      <li><code>LIKE</code> is a pattern match: <code>%</code> means "anything", <code>_</code> means "one character". <code>ILIKE</code> is the same but ignores upper/lower case. Example: <code>tags.mlflow.runName LIKE 'rf-%'</code>.</li>
+      <li>Parameters are stored as text, so <code>params.max_depth = 'None'</code> works but <code>params.max_depth &gt; 5</code> does not. If you need to compare a setting numerically, also log it as a metric.</li>
+      <li>A run that doesn't have the key (say, no <code>test_recall</code> metric) simply doesn't match.</li>
+    </ul>
+    <p>These are the real error messages from MLflow 3.17.1 for the commonest mistakes:</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>You wrote</th><th>MLflow says</th></tr></thead>
+      <tbody>
+        <tr><td><code>tags.model_family = ml</code></td><td>Parameter value is either not quoted or unidentified quote types used for string value ml. Use either single or double quotes.</td></tr>
+        <tr><td><code>metrics.test_f1 &gt; '0.6'</code></td><td>Expected numeric value type for metric. Found '0.6'</td></tr>
+        <tr><td><code>tags.model_family = 'ml' or tags.model_family = 'nn'</code></td><td>Invalid clause(s) in filter string: 'or'</td></tr>
+        <tr><td><code>tags.stage IN ('baseline', 'experiment')</code></td><td>Expected a quoted string value for tag (e.g. 'my-value'). Got value ('baseline', 'experiment')</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Searching, sorting and building a comparison table</h3>
+<pre><code># search.py
+import mlflow
+from mlflow import MlflowClient
+mlflow.set_tracking_uri("sqlite:///mlflow.db")
+
+runs = mlflow.search_runs(
+    experiment_names=["churn-week3"],
+    filter_string="tags.model_family = 'ml' and metrics.test_accuracy &gt; 0.7",
+    order_by=["metrics.test_accuracy DESC"],
+)
+print(len(runs), "matching runs")
+
+cols = ["tags.mlflow.runName", "tags.algorithm", "metrics.train_accuracy",
+        "metrics.test_accuracy", "metrics.test_recall", "metrics.train_seconds"]
+table = runs[cols].rename(columns=lambda c: c.split(".")[-1])
+table["gap"] = table["train_accuracy"] - table["test_accuracy"]
+print(table.round(3).to_string(index=False))</code></pre>
+<pre><code>5 matching runs
+        runName           algorithm  train_accuracy  test_accuracy  test_recall  train_seconds   gap
+    logreg-C0.1 logistic_regression           0.834          0.832        0.852          0.009 0.002
+    logreg-C1.0 logistic_regression           0.834          0.831        0.850          0.004 0.003
+logreg-baseline logistic_regression             NaN          0.831          NaN            NaN   NaN
+      rf-depth6       random_forest           0.861          0.826        0.857          0.129 0.035
+   rf-depthNone       random_forest           1.000          0.821        0.843          0.115 0.179</code></pre>
+    <p>Read the table, not just the top row. The unlimited-depth forest scores 100% on training data and has the biggest <strong>train–test gap</strong> (0.179): it is overfitting. The baseline run from <code>tagging.py</code> has <code>NaN</code> (missing) for the metrics it never logged, which is why <strong>every run should log the same metrics</strong>. Your <code>train_seconds</code> will differ.</p>
+    <p><code>order_by</code> takes a list, so you can sort by several columns: <code>order_by=["tags.model_family ASC", "metrics.test_f1 DESC"]</code>.</p>
+
+    <h4>Best run per model family</h4>
+    <p>A common question is "what is the best classical model and the best neural network?". Sort, then keep the first row of each group with pandas:</p>
+<pre><code># Best run per model family
+all_runs = mlflow.search_runs(experiment_names=["churn-week3"],
+                              filter_string="tags.stage = 'experiment'")
+best = (all_runs.sort_values("metrics.test_f1", ascending=False)
+                .groupby("tags.model_family").head(1))
+print(best[["tags.model_family", "tags.mlflow.runName", "metrics.test_f1"]].round(3).to_string(index=False))</code></pre>
+<pre><code>tags.model_family tags.mlflow.runName  metrics.test_f1
+               nn              mlp-64            0.852
+               ml         logreg-C0.1            0.847</code></pre>
+
+    <h4>When nothing matches</h4>
+<pre><code># A filter that matches nothing returns an EMPTY DataFrame with NO metrics/params/tags columns
+empty = mlflow.search_runs(experiment_names=["churn-week3"],
+                           filter_string="tags.algorithm = 'xgboost'")
+print(len(empty), list(empty.columns))
+if len(empty) == 0:
+    print("No runs matched - check the filter")</code></pre>
+<pre><code>0 ['run_id', 'experiment_id', 'status', 'artifact_uri', 'start_time', 'end_time']
+No runs matched - check the filter</code></pre>
+    <div class="callout bad"><p><strong>Always check <code>len(df)</code> before indexing.</strong> An empty result has none of the <code>metrics.*</code>, <code>params.*</code> or <code>tags.*</code> columns, so <code>empty["metrics.test_f1"]</code> raises a <code>KeyError</code>, and <code>empty.iloc[0]</code> raises an <code>IndexError</code>. The usual cause is a typo in a tag value or the wrong experiment name.</p></div>
+
+    <h4>Metric history: the whole epoch curve</h4>
+    <p>A metric column in <code>search_runs</code> holds only the <strong>last</strong> value logged. For the full curve, ask the client for the history:</p>
+<pre><code># Per-epoch curve of the best neural network
+nn = mlflow.search_runs(experiment_names=["churn-week3"],
+                        filter_string="tags.model_family = 'nn'",
+                        order_by=["metrics.test_f1 DESC"], max_results=1)
+history = MlflowClient().get_metric_history(nn.loc[0, "run_id"], "val_accuracy")
+for m in history[:3]:
+    print(m.step, round(m.value, 3))
+best_epoch = max(history, key=lambda m: m.value)
+print("best epoch:", best_epoch.step, round(best_epoch.value, 3))</code></pre>
+<pre><code>0 0.832
+1 0.833
+2 0.829
+best epoch: 13 0.838</code></pre>
+    <p>Each item has <code>.step</code>, <code>.value</code> and <code>.timestamp</code>. Turn it into a DataFrame (<code>pd.DataFrame([(m.step, m.value) for m in history])</code>) to plot several runs' curves on one chart.</p>
+
+    <h3 id="filter-playground">Try it: filter playground</h3>
+    <div class="widget" id="fpWidget">
+      <div class="widget-title">Filter playground</div>
+      <div class="widget-sub"><strong>Example data</strong>: ten made-up runs, not from a real tracking server. Type a <code>filter_string</code> (this playground understands <code>tags.x = 'y'</code>, <code>params.x = 'y'</code>, <code>!=</code>, <code>LIKE</code>, <code>metrics.x &gt; n</code> with any of <code>= != &gt; &gt;= &lt; &lt;=</code>, joined by <code>and</code>). Click a preset to start.</div>
+      <label for="fpInput" class="filter-msg" style="display:block;margin:0 0 4px">filter_string</label>
+      <input type="text" id="fpInput" spellcheck="false" autocomplete="off" value="tags.model_family = 'nn' and metrics.test_f1 > 0.84">
+      <div class="preset-row" id="fpPresets"></div>
+      <div class="controls" style="margin-top:6px">
+        <label><span>order_by</span>
+          <select id="fpOrder">
+            <option value="test_f1 DESC" selected>metrics.test_f1 DESC</option>
+            <option value="test_accuracy DESC">metrics.test_accuracy DESC</option>
+            <option value="test_recall DESC">metrics.test_recall DESC</option>
+            <option value="train_seconds ASC">metrics.train_seconds ASC</option>
+          </select>
+        </label>
+      </div>
+      <p class="filter-msg" id="fpMsg" role="status"></p>
+      <div class="table-scroll"><table class="runs-table">
+        <thead><tr><th>Run name</th><th>model_family</th><th>algorithm</th><th>dataset_version</th><th>candidate</th><th class="r">test_accuracy</th><th class="r">test_f1</th><th class="r">test_recall</th><th class="r">train_seconds</th></tr></thead>
+        <tbody id="fpRows"></tbody>
+      </table></div>
+      <div style="font-size:.85rem;color:var(--muted);margin-bottom:4px">The equivalent Python:</div>
+<pre style="margin-bottom:0"><code id="fpCode"></code></pre>
+    </div>
+
+    <h3 id="compare-ui">Comparing in the UI</h3>
+    <p>Start the UI from the folder that contains <code>mlflow.db</code>:</p>
+<pre><code>uv run mlflow ui --backend-store-uri sqlite:///mlflow.db
+# then open http://127.0.0.1:5000  (add --port 5001 if 5000 is busy)</code></pre>
+    <ol class="steps">
+      <li><strong>Pick the experiment</strong> in the left-hand list. Type a filter string into the search box above the runs table: it uses exactly the same syntax as <code>search_runs</code>.</li>
+      <li><strong>Choose columns</strong>: add the tags and metrics you care about (<code>model_family</code>, <code>test_f1</code>, <code>train_seconds</code>) so the table becomes your leaderboard. Click a column header to sort.</li>
+      <li><strong>Tick two or more runs and click "Compare".</strong> The compare page shows parameters and metrics side by side, with differences highlighted.</li>
+      <li><strong>Parallel coordinates plot</strong>: each run is a line crossing vertical axes, one per parameter and one for a metric. It shows at a glance which settings lead to the good scores (for example, all the best lines pass through low <code>max_depth</code>).</li>
+      <li><strong>Scatter and contour plots</strong> show one parameter against a metric; <strong>metric charts</strong> overlay per-epoch curves (<code>val_accuracy</code> by step) for the selected runs.</li>
+      <li>The <strong>chart view</strong> of the experiment page draws bar and line charts for many runs at once, which is handy for presentations.</li>
+    </ol>
+  </section>
+
+  <!-- ============ 4. FAIR COMPARISON ============ -->
+  <section id="fair">
+    <h2><span class="num">4</span>What makes a fair comparison</h2>
+    <p class="intuition"><strong>Intuition.</strong> A leaderboard is only meaningful if every model sat the same exam, under the same rules, and the difference between them is bigger than luck.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Requirement</th><th>Why</th><th>How</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Same split</strong></td><td>A model tested on easier rows looks better without being better</td><td>Fix <code>random_state</code> in <code>train_test_split</code>, or save the test row IDs; tag runs with <code>dataset_version</code></td></tr>
+        <tr><td><strong>Same metrics, same definitions</strong></td><td>"F1" with a 0.5 threshold and "F1" with a tuned threshold are different numbers</td><td>One shared <code>log_scores()</code> function used by every run</td></tr>
+        <tr><td><strong>Same preprocessing rules</strong></td><td>Scaling fitted on all data leaks test information into one model but not another</td><td>Put preprocessing inside a pipeline fitted on training rows only</td></tr>
+        <tr><td><strong>Look at the train–test gap</strong></td><td>A big gap means overfitting, so the test score is less trustworthy on new data</td><td>Log <code>train_*</code> and <code>test_*</code> metrics; compute the gap in your table</td></tr>
+        <tr><td><strong>Training time and prediction speed</strong></td><td>A model that is 0.2 points better but 50× slower may not be worth it</td><td>Log <code>train_seconds</code>; time <code>predict</code> on 1,000 rows</td></tr>
+        <tr><td><strong>Model size</strong></td><td>Big models cost more to store, load and serve</td><td>Log the saved file size, or the number of parameters for a network</td></tr>
+        <tr><td><strong>Noise on small test sets</strong></td><td>Accuracy on a few hundred rows jumps around by several points from luck alone</td><td>Use cross-validation, several seeds, or a promotion margin</td></tr>
+      </tbody>
+    </table></div>
+    <h3>How big is "luck"?</h3>
+    <p>For accuracy <code>p</code> measured on <code>n</code> test rows, the <strong>standard error</strong> (the typical size of the random wobble) is about <code>√(p(1 − p) / n)</code>. Roughly 95% of the time, the true accuracy lies within <strong>±2 standard errors</strong>.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Test rows (n)</th><th>Accuracy 0.80, ± about</th><th>So a difference of…</th></tr></thead>
+      <tbody>
+        <tr><td>200</td><td>±5.5 points</td><td>3 points between two models could easily be luck</td></tr>
+        <tr><td>1,000</td><td>±2.5 points</td><td>1 point is still within the noise</td></tr>
+        <tr><td>10,000</td><td>±0.8 points</td><td>1 point starts to be believable</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout"><p>That is why the promotion rule in <a href="#champion">section 6</a> asks the challenger to win by a <strong>margin</strong>, not just by any amount. When two models score within the noise, prefer the simpler, faster, cheaper one.</p></div>
+  </section>
+
+  <!-- ============ 5. REGISTRY ============ -->
+  <section id="registry">
+    <h2><span class="num">5</span>The model registry</h2>
+    <p class="intuition"><strong>Intuition.</strong> Runs are the lab notebook; the registry is the shelf of finished products. Each product has numbered versions, and movable labels (aliases) say which version is in use right now.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Term</th><th>Meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Registered model</strong></td><td>A named entry on the shelf</td><td><code>churn-classifier</code></td></tr>
+        <tr><td><strong>Version</strong></td><td>A numbered, frozen copy of a logged model, linked to the run that produced it. Numbers only go up and are never reused</td><td>Version 1, 2, 3…</td></tr>
+        <tr><td><strong>Alias</strong></td><td>A named pointer to exactly one version. Moving it is instant; loading code doesn't change</td><td><code>@champion</code> → version 2</td></tr>
+        <tr><td><strong>Version tag</strong></td><td>A key = value note on one version</td><td><code>validation_status = approved</code>, <code>dataset_version = 2026-06</code></td></tr>
+        <tr><td><strong>Description</strong></td><td>Free text on a version or on the registered model</td><td>"RF depth 6, trained on churn-v2"</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Why aliases replaced stages</h3>
+    <p>Older MLflow had fixed <strong>stages</strong>: each version was in exactly one of None, Staging, Production or Archived, moved with <code>transition_model_version_stage</code>. Stages are now <strong>deprecated</strong>. Aliases do the same job better:</p>
+    <ul>
+      <li><strong>You choose the names</strong>: <code>champion</code>, <code>challenger</code>, <code>previous_champion</code>, <code>shadow</code>, <code>eu-production</code>…</li>
+      <li><strong>A version can carry several aliases</strong>, and each alias points at exactly one version, so there is never any doubt about which model "production" means.</li>
+      <li><strong>Moving an alias is one call</strong>, and every program that loads <code>models:/churn-classifier@champion</code> picks up the new version next time it loads.</li>
+      <li>Workflow states such as "approved" go in <strong>version tags</strong> instead of stages.</li>
+    </ul>
+
+    <h3>Register, tag, alias, load and roll back</h3>
+<pre><code># registry.py  (run compare.py first: it logs the random-forest models)
+import mlflow
+from mlflow import MlflowClient
+mlflow.set_tracking_uri("sqlite:///mlflow.db")
+NAME = "churn-classifier"
+client = MlflowClient()
+
+# Find the run of the best random forest (it has a logged model)
+rf = mlflow.search_runs(experiment_names=["churn-week3"],
+                        filter_string="tags.algorithm = 'random_forest'",
+                        order_by=["metrics.test_f1 DESC"], max_results=1)
+run_id = rf.loc[0, "run_id"]
+
+mv = mlflow.register_model(f"runs:/{run_id}/model", NAME)
+print("registered", mv.name, "version", mv.version, "source", mv.source)
+
+# Version tags and a description
+client.set_model_version_tag(NAME, mv.version, "validation_status", "approved")
+client.update_model_version(NAME, mv.version, description="RF depth 6, trained on churn-v2")
+client.set_registered_model_alias(NAME, "champion", mv.version)
+
+champ = client.get_model_version_by_alias(NAME, "champion")
+print("champion is version", champ.version, champ.tags)
+
+model = mlflow.pyfunc.load_model(f"models:/{NAME}@champion")
+from common import make_churn_data
+X = make_churn_data(5, seed=9).drop(columns="churn")
+print(model.predict(X))
+
+# Register a second version from the other RF run, then roll back
+rf2 = mlflow.search_runs(experiment_names=["churn-week3"],
+                         filter_string="tags.mlflow.runName = 'rf-depthNone'")
+mv2 = mlflow.register_model(f"runs:/{rf2.loc[0, 'run_id']}/model", NAME)
+client.set_registered_model_alias(NAME, "champion", mv2.version)
+client.set_registered_model_alias(NAME, "previous_champion", mv.version)
+print("champion now", client.get_model_version_by_alias(NAME, "champion").version)
+# Roll back: move the alias back
+client.set_registered_model_alias(NAME, "champion", mv.version)
+print("after rollback", client.get_model_version_by_alias(NAME, "champion").version)
+print(client.get_registered_model(NAME).aliases)</code></pre>
+    <p>Output (the IDs will differ):</p>
+<pre><code>WARNING mlflow.tracking._model_registry.fluent: Run with id 5c585a15... has no artifacts at artifact
+path 'model', registering model based on models:/m-a1118af7... instead
+registered churn-classifier version 1 source models:/m-7187cc35f4824a2ba201823007c4be95
+champion is version 1 {'validation_status': 'approved'}
+[0 0 0 1 1]
+champion now 2
+after rollback 1
+{'champion': 1, 'previous_champion': 1}</code></pre>
+    <div class="callout"><p><strong>About that warning.</strong> In MLflow 3, <code>log_model</code> creates a <strong>logged model</strong> with its own ID (<code>models:/m-…</code>) rather than a folder inside the run. <code>runs:/&lt;run_id&gt;/model</code> still works: MLflow looks up the model logged by that run and registers it, with a warning. To avoid the lookup, keep the return value of <code>log_model</code> and register <code>model_info.model_uri</code> directly, as the <a href="#example">worked example</a> does:</p>
+<pre style="margin-bottom:0"><code>info = mlflow.sklearn.log_model(model, name="model", skops_trusted_types=["sklearn.tree._tree.Tree"])
+mv = mlflow.register_model(info.model_uri, "churn-classifier")</code></pre></div>
+    <h3>Useful registry calls</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Task</th><th>Call</th></tr></thead>
+      <tbody>
+        <tr><td>Register a logged model</td><td><code>mlflow.register_model(model_uri, name)</code></td></tr>
+        <tr><td>Register while logging</td><td><code>log_model(..., registered_model_name=name)</code></td></tr>
+        <tr><td>Point an alias at a version</td><td><code>client.set_registered_model_alias(name, alias, version)</code></td></tr>
+        <tr><td>Which version has this alias?</td><td><code>client.get_model_version_by_alias(name, alias)</code></td></tr>
+        <tr><td>All aliases of a model</td><td><code>client.get_registered_model(name).aliases</code> (a dict alias → version)</td></tr>
+        <tr><td>Remove an alias</td><td><code>client.delete_registered_model_alias(name, alias)</code></td></tr>
+        <tr><td>Tag a version</td><td><code>client.set_model_version_tag(name, version, key, value)</code></td></tr>
+        <tr><td>List versions</td><td><code>client.search_model_versions(f"name = '{name}'")</code></td></tr>
+        <tr><td>Load by alias / by number</td><td><code>mlflow.pyfunc.load_model("models:/churn-classifier@champion")</code> / <code>".../3"</code></td></tr>
+        <tr><td>Load the native object (e.g. for <code>predict_proba</code>)</td><td><code>mlflow.sklearn.load_model("models:/churn-classifier@champion")</code></td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn"><p><strong>Two small traps.</strong> (1) <code>mv.version</code> comes back as a number in MLflow 3 but as text in some older code, so compare with <code>int(mv.version) == 1</code>, not <code>mv.version == "1"</code>. (2) The pyfunc wrapper only has <code>predict</code>, which returns class labels for a scikit-learn classifier. If you need probabilities (for ROC-AUC or your own threshold), load with the native flavour.</p></div>
+    <p><strong>Rolling back</strong> is just moving the <code>champion</code> alias to an older version. That only works if the old version still exists, so <strong>never delete the previous champion</strong>; give it a <code>previous_champion</code> alias so you don't have to look up its number in an emergency. To serve whichever version is the champion behind a web API, see <a href="fastapi-serving.html">Serving models with FastAPI</a>.</p>
+  </section>
+
+  <!-- ============ 6. CHAMPION VS CHALLENGER ============ -->
+  <section id="champion">
+    <h2><span class="num">6</span>Champion vs challenger</h2>
+    <p class="intuition"><strong>Intuition.</strong> The champion holds the title until a challenger beats it in a fair fight, on the same ground, by a clear margin, without breaking any rules. A draw goes to the champion.</p>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0;color:var(--good)">Champion</h4><p style="margin:0">The model currently serving predictions. In the registry it is the version with the <code>@champion</code> alias.</p></div>
+      <div class="card"><h4 style="margin-top:0;color:var(--warn)">Challenger</h4><p style="margin:0">A newly trained candidate (new data, new features, new algorithm). It gets the <code>@challenger</code> alias while it is being evaluated.</p></div>
+    </div>
+
+    <h3>The promotion rule</h3>
+    <p>Write the rule down <strong>before</strong> you see the results, so nobody is tempted to move the goalposts. A good rule has four parts:</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Part</th><th>Example</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Same holdout data</strong></td><td>Both models scored on the same recent rows that neither trained on</td><td>Otherwise you compare exams, not students</td></tr>
+        <tr><td><strong>Primary metric beats the champion by a margin</strong></td><td>ROC-AUC (challenger) ≥ ROC-AUC (champion) + 0.01</td><td>Small differences are noise (<a href="#fair">section 4</a>); swapping models has a cost</td></tr>
+        <tr><td><strong>No regression on guard-rail metrics</strong></td><td>Recall (or F1) must not drop by more than 0.02</td><td>A model can win on one number while getting worse at the thing the business cares about most</td></tr>
+        <tr><td><strong>Operational limits</strong></td><td>Prediction time ≤ 50 ms per 1,000 rows; model file ≤ 200 MB</td><td>A model that is too slow or too big can't be served</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Step by step</h3>
+    <div class="diagram">
+      <div class="box">1. Train challenger<br><small>log run, register version</small></div><span class="arrow">→</span>
+      <div class="box">2. Alias <code>@challenger</code></div><span class="arrow">→</span>
+      <div class="box">3. Score both<br><small>same holdout</small></div><span class="arrow">→</span>
+      <div class="box">4. Apply the rule<br><small>margin + guard-rails</small></div><span class="arrow">→</span>
+      <div class="box">5a. Promote: move <code>@champion</code><br><small>old one → <code>@previous_champion</code></small></div>
+      <div class="box">5b. Reject: keep champion<br><small>log why</small></div>
+    </div>
+<pre><code>MARGIN, MAX_F1_DROP, MAX_MS = 0.01, 0.02, 50.0
+champ_m = evaluate(load("champion"), X_holdout, y_holdout)       # same rows ...
+chall_m = evaluate(load("challenger"), X_holdout, y_holdout)     # ... for both
+checks = {
+    "beats_by_margin": chall_m["roc_auc"] &gt;= champ_m["roc_auc"] + MARGIN,
+    "f1_not_worse": chall_m["f1"] &gt;= champ_m["f1"] - MAX_F1_DROP,
+    "fast_enough": chall_m["ms_per_1k_rows"] &lt;= MAX_MS,
+}
+if all(checks.values()):
+    client.set_registered_model_alias(NAME, "previous_champion", old_version)   # keep for rollback
+    client.set_registered_model_alias(NAME, "champion", new_version)
+    client.delete_registered_model_alias(NAME, "challenger")</code></pre>
+    <p>This is an excerpt: <code>evaluate</code>, <code>load</code> and the variables are defined in the complete, tested script in the <a href="#example">worked example</a>. Log the decision itself as a run (both sets of metrics, and a <code>decision</code> tag) so there is an audit trail of every promotion and rejection.</p>
+
+    <h3>Beyond an offline holdout: shadow and A/B testing</h3>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0">Shadow deployment</h4><p style="margin:0">The challenger receives a copy of real live requests and makes predictions, but <strong>its answers are only logged, never used</strong>. Safe, and it tests speed and behaviour on real traffic. Once labels arrive you can score it.</p></div>
+      <div class="card"><h4 style="margin-top:0">A/B test (canary)</h4><p style="margin:0">A small share of real traffic (say 5–10%) is <strong>actually served</strong> by the challenger, and the business outcome (retention, revenue, complaints) is compared between the two groups. More realistic, but real customers are exposed to the new model.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ 7. LIFECYCLE ============ -->
+  <section id="lifecycle">
+    <h2><span class="num">7</span>The MLOps lifecycle and pipeline</h2>
+    <p class="intuition"><strong>Intuition.</strong> <strong>MLOps</strong> (machine learning operations) is DevOps for models: the habits and automation that take a model from a notebook to a service that keeps working. A model in production is never "done"; it is a loop.</p>
+    <div class="diagram">
+      <div class="box">1. Ingest &amp; validate data</div><span class="arrow">→</span>
+      <div class="box">2. Prepare features</div><span class="arrow">→</span>
+      <div class="box">3. Train</div><span class="arrow">→</span>
+      <div class="box">4. Evaluate</div><span class="arrow">→</span>
+      <div class="box">5. Register</div><span class="arrow">→</span>
+      <div class="box">6. Promote</div><span class="arrow">→</span>
+      <div class="box">7. Deploy / serve</div><span class="arrow">→</span>
+      <div class="box">8. Monitor</div><span class="arrow">→</span>
+      <div class="box">9. Retrain <small>(back to 1)</small></div>
+    </div>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Stage</th><th>What happens</th><th>Output</th><th>On this course</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Data ingestion &amp; validation</strong></td><td>Load the latest data; check the schema (columns, types), missing values, value ranges, row counts. Stop the pipeline if the data is broken</td><td>A clean, versioned dataset</td><td>pandas checks; a <code>dataset_version</code> tag</td></tr>
+        <tr><td><strong>Feature preparation</strong></td><td>Encoding, scaling, derived features, inside a pipeline so training and serving do exactly the same thing</td><td>A fitted preprocessing pipeline</td><td>scikit-learn <code>Pipeline</code></td></tr>
+        <tr><td><strong>Training</strong></td><td>Fit the model with a fixed configuration and seed</td><td>An MLflow run with params, metrics and the model</td><td><code>train.py</code></td></tr>
+        <tr><td><strong>Evaluation</strong></td><td>Score on a holdout; compare with the champion</td><td>Metrics on the same rows for both models</td><td><code>evaluate.py</code></td></tr>
+        <tr><td><strong>Registration</strong></td><td>Add the model as a new registry version, tagged with its data version</td><td>Version N with alias <code>@challenger</code></td><td><code>mlflow.register_model</code></td></tr>
+        <tr><td><strong>Promotion</strong></td><td>Apply the rule; move aliases</td><td><code>@champion</code> moved, or a logged rejection</td><td><code>promote.py</code></td></tr>
+        <tr><td><strong>Deployment</strong></td><td>Serve the champion behind an API</td><td>A running service</td><td><a href="fastapi-serving.html">FastAPI</a> loading <code>models:/…@champion</code></td></tr>
+        <tr><td><strong>Monitoring</strong></td><td>Watch service health, input data, predictions and (later) real performance</td><td>Dashboards and alerts</td><td><a href="#monitoring">Section 8</a></td></tr>
+        <tr><td><strong>Retraining</strong></td><td>On a schedule or when an alert fires, go round the loop again</td><td>A new challenger</td><td><a href="#retraining">Section 10</a></td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="scripts">From notebook to scripts</h3>
+    <p>Notebooks are great for exploring, but a pipeline needs code that runs top to bottom, with no hidden state, from a terminal or a scheduler. Split the notebook into small scripts, each doing one job, and put every setting that might change into one <strong>config file</strong> instead of hard-coding it.</p>
+<pre><code>churn-project/
+├── config.json        # every setting in one place
+├── common.py          # shared helpers (data loading)
+├── train.py           # train + log + register a new version
+├── evaluate.py        # score champion and challenger on the same holdout
+├── promote.py         # apply the promotion rule, move aliases
+└── mlflow.db          # tracking store (do not commit it to Git)</code></pre>
+<pre><code>{
+  "tracking_uri": "sqlite:///mlflow.db",
+  "experiment": "churn-pipeline",
+  "model_name": "churn-classifier",
+  "features": ["tenure_months", "monthly_charges", "support_calls", "age", "contract"],
+  "params": {"n_estimators": 200, "max_depth": 6, "random_state": 42},
+  "promotion": {"primary_metric": "roc_auc", "margin": 0.01, "max_f1_drop": 0.02}
+}</code></pre>
+<pre><code>"""train.py - train a challenger and register it. Usage: python train.py --config config.json --drift 0.8"""
+import argparse, json
+import mlflow
+from mlflow import MlflowClient
+from sklearn.ensemble import RandomForestClassifier
+from common import make_churn_data
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", default="config.json")
+    parser.add_argument("--drift", type=float, default=0.0)    # stands in for "which data window"
+    args = parser.parse_args()
+    cfg = json.load(open(args.config))
+
+    mlflow.set_tracking_uri(cfg["tracking_uri"])
+    mlflow.set_experiment(cfg["experiment"])
+    df = make_churn_data(4000, seed=2, drift=args.drift)
+    X, y = df[cfg["features"]], df["churn"]
+
+    with mlflow.start_run(run_name="train", tags={"pipeline_step": "train", "drift": str(args.drift)}):
+        model = RandomForestClassifier(**cfg["params"]).fit(X, y)
+        mlflow.log_params(cfg["params"])
+        info = mlflow.sklearn.log_model(model, name="model",
+                                        skops_trusted_types=["sklearn.tree._tree.Tree"])
+    mv = mlflow.register_model(info.model_uri, cfg["model_name"])
+    client = MlflowClient()
+    # first model ever? it becomes the champion; otherwise it is the challenger
+    alias = "champion" if int(mv.version) == 1 else "challenger"
+    client.set_registered_model_alias(cfg["model_name"], alias, mv.version)
+    print(f"registered version {mv.version} as {alias}")
+
+if __name__ == "__main__":
+    main()</code></pre>
+<pre><code>"""evaluate.py - score champion and challenger on the same holdout, write results to JSON."""
+import argparse, json
+import mlflow
+from sklearn.metrics import roc_auc_score, f1_score
+from common import make_churn_data
+
+def score(uri, X, y):
+    proba = mlflow.sklearn.load_model(uri).predict_proba(X)[:, 1]
+    return {"roc_auc": roc_auc_score(y, proba), "f1": f1_score(y, (proba &gt;= 0.5).astype(int))}
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", default="config.json")
+    parser.add_argument("--drift", type=float, default=0.0)
+    args = parser.parse_args()
+    cfg = json.load(open(args.config))
+    mlflow.set_tracking_uri(cfg["tracking_uri"])
+
+    holdout = make_churn_data(1500, seed=99, drift=args.drift)   # fresh rows neither model saw
+    X, y = holdout[cfg["features"]], holdout["churn"]
+    name = cfg["model_name"]
+    results = {alias: score(f"models:/{name}@{alias}", X, y) for alias in ["champion", "challenger"]}
+    json.dump(results, open("eval_results.json", "w"), indent=2)
+    print(json.dumps(results, indent=2))
+
+if __name__ == "__main__":
+    main()</code></pre>
+<pre><code>"""promote.py - apply the promotion rule and move the aliases."""
+import argparse, json
+import mlflow
+from mlflow import MlflowClient
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", default="config.json")
+    args = parser.parse_args()
+    cfg = json.load(open(args.config))
+    rule = cfg["promotion"]
+    mlflow.set_tracking_uri(cfg["tracking_uri"])
+    client, name = MlflowClient(), cfg["model_name"]
+
+    res = json.load(open("eval_results.json"))
+    champ, chall = res["champion"], res["challenger"]
+    m = rule["primary_metric"]
+    promote = (chall[m] &gt;= champ[m] + rule["margin"]
+               and chall["f1"] &gt;= champ["f1"] - rule["max_f1_drop"])
+
+    old = client.get_model_version_by_alias(name, "champion").version
+    new = client.get_model_version_by_alias(name, "challenger").version
+    if promote:
+        client.set_registered_model_alias(name, "previous_champion", old)
+        client.set_registered_model_alias(name, "champion", new)
+        print(f"promoted v{new} (was v{old})")
+    else:
+        print(f"kept v{old}; v{new} did not win")
+    client.delete_registered_model_alias(name, "challenger")
+
+if __name__ == "__main__":
+    main()</code></pre>
+    <p>Run the pipeline from the terminal, one step after another. The first <code>train.py</code> creates the champion on old data; the second trains a challenger on drifted data:</p>
+<pre><code>uv run python train.py --drift 0        # registered version 1 as champion
+uv run python train.py --drift 0.8      # registered version 2 as challenger
+uv run python evaluate.py --drift 0.8
+uv run python promote.py</code></pre>
+<pre><code>{
+  "champion": {
+    "roc_auc": 0.6388098405674405,
+    "f1": 0.6694003075345977
+  },
+  "challenger": {
+    "roc_auc": 0.7967039221405654,
+    "f1": 0.7236580516898609
+  }
+}
+promoted v2 (was v1)</code></pre>
+    <div class="callout good"><p><strong>Why scripts?</strong> Each step can be run, tested and re-run on its own; a failure stops the chain at a clear point; the same command works on your laptop, in CI and on a server; and changing a setting is an edit to <code>config.json</code> (tracked in Git) instead of a hunt through notebook cells. Steps talk to each other through MLflow (aliases) and small files (<code>eval_results.json</code>), not through variables in memory.</p></div>
+
+    <h3 id="automation">Automation and scheduling</h3>
+    <p>Once the steps are scripts, something has to run them. Three common levels, from simplest to most capable:</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Tool</th><th>What it does</th><th>Good for</th></tr></thead>
+      <tbody>
+        <tr><td><strong>cron</strong> (Linux/macOS scheduler)</td><td>Runs a command at fixed times</td><td>"Retrain every Monday at 02:00" on one machine</td></tr>
+        <tr><td><strong>CI/CD</strong> (GitHub Actions, GitLab CI)</td><td>Runs jobs on a schedule or when code is pushed; CI = continuous integration (test every change), CD = continuous delivery/deployment</td><td>Running tests and the training pipeline whenever <code>main</code> changes</td></tr>
+        <tr><td><strong>Orchestrators</strong> (Airflow, Prefect, Dagster)</td><td>Run multi-step workflows as a graph, with retries, dependencies, logs and a web UI</td><td>Production pipelines with many steps and data sources</td></tr>
+      </tbody>
+    </table></div>
+<pre><code># crontab line: every Monday at 02:00, run the pipeline and stop at the first failing step
+0 2 * * 1  cd /srv/churn-project &amp;&amp; uv run python train.py --drift 0.8 &amp;&amp; uv run python evaluate.py --drift 0.8 &amp;&amp; uv run python promote.py</code></pre>
+<pre><code># .github/workflows/retrain.yml  (a sketch of the shape, not a full deployment)
+on:
+  schedule: [{cron: "0 2 * * 1"}]   # weekly
+  workflow_dispatch: {}              # plus a manual "Run workflow" button
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv run python train.py &amp;&amp; uv run python evaluate.py &amp;&amp; uv run python promote.py</code></pre>
+    <p>In a real team the tracking store would be a shared MLflow server (not a local <code>mlflow.db</code>), so the scheduled job, the API and every trainee see the same registry.</p>
+  </section>
+
+  <!-- ============ 8. MONITORING ============ -->
+  <section id="monitoring">
+    <h2><span class="num">8</span>Monitoring</h2>
+    <p class="intuition"><strong>Intuition.</strong> A deployed model can fail loudly (the API is down) or silently (it answers quickly, with confidence, and is wrong). Monitoring watches for both.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Layer</th><th>What to watch</th><th>Example alert</th><th>Available</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Service health</strong></td><td>Uptime; latency (median and 95th/99th percentile response time); error rate, especially HTTP 5xx (server errors); requests per minute</td><td>p95 latency &gt; 300 ms, or 5xx &gt; 1% for 5 minutes</td><td>Immediately</td></tr>
+        <tr><td><strong>Data quality</strong></td><td>Missing values, unexpected categories, values out of range, wrong types, schema changes</td><td><code>monthly_charges</code> missing in &gt; 5% of requests</td><td>Immediately</td></tr>
+        <tr><td><strong>Input (data) drift</strong></td><td>Feature distributions compared with the training data (PSI, KS)</td><td>PSI &gt; 0.25 on any important feature</td><td>Immediately (needs a batch of requests)</td></tr>
+        <tr><td><strong>Prediction drift</strong></td><td>The distribution of the model's outputs: mean score, share predicted positive</td><td>Share flagged as "will churn" jumps from 30% to 55%</td><td>Immediately</td></tr>
+        <tr><td><strong>Model performance</strong></td><td>Accuracy, F1, ROC-AUC, recall against the real outcomes</td><td>Weekly ROC-AUC &lt; 0.80</td><td><strong>Only when labels arrive</strong>, often weeks later</td></tr>
+        <tr><td><strong>Business outcome</strong></td><td>The thing the model is meant to improve: retention, fraud losses</td><td>Churn among flagged customers stops falling</td><td>Slowest</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn"><p><strong>The label delay problem.</strong> You find out whether a "will churn" prediction was right only when the customer leaves, or doesn't, perhaps a month later. Until then, data drift and prediction drift are your <strong>early warning signals</strong>: they don't prove the model is wrong, but they tell you the model is now working on data it wasn't trained for.</p></div>
+    <p>The <a href="fastapi-serving.html">FastAPI service</a> is where service metrics come from: log each request's latency, status code, inputs and prediction. A scheduled job then summarises each window (a day or a week) and logs the numbers. MLflow is a convenient place to keep them: one monitoring run, with the window number as the metric <code>step</code>, gives you a chart per metric in the UI.</p>
+<pre><code># monitor.py  (run the worked example first: it creates the registry entries used here)
+import mlflow
+from sklearn.metrics import accuracy_score
+from common import make_churn_data
+from drift import psi
+
+mlflow.set_tracking_uri("sqlite:///mlflow.db")
+mlflow.set_experiment("churn-monitoring")
+FEATURES = ["tenure_months", "monthly_charges", "support_calls", "age", "contract"]
+
+reference = make_churn_data(4000, seed=1, drift=0.0)          # what the champion was trained on
+champion = mlflow.sklearn.load_model("models:/churn-classifier@previous_champion")  # v1 here
+ref_pred = champion.predict_proba(reference[FEATURES])[:, 1]
+
+with mlflow.start_run(run_name="weekly-monitoring"):
+    for week in range(1, 7):
+        batch = make_churn_data(800, seed=100 + week, drift=0.15 * (week - 1))
+        proba = champion.predict_proba(batch[FEATURES])[:, 1]
+        metrics = {
+            "psi_monthly_charges": psi(reference["monthly_charges"], batch["monthly_charges"]),
+            "psi_prediction": psi(ref_pred, proba),                     # prediction drift
+            "mean_prediction": float(proba.mean()),
+            "accuracy": accuracy_score(batch["churn"], proba &gt;= 0.5),   # once labels arrive
+        }
+        mlflow.log_metrics(metrics, step=week)
+        print(week, {k: round(v, 3) for k, v in metrics.items()})</code></pre>
+<pre><code>1 {'psi_monthly_charges': 0.028, 'psi_prediction': 0.016, 'mean_prediction': 0.548, 'accuracy': 0.828}
+2 {'psi_monthly_charges': 0.041, 'psi_prediction': 0.042, 'mean_prediction': 0.582, 'accuracy': 0.8}
+3 {'psi_monthly_charges': 0.32, 'psi_prediction': 0.154, 'mean_prediction': 0.64, 'accuracy': 0.741}
+4 {'psi_monthly_charges': 0.492, 'psi_prediction': 0.196, 'mean_prediction': 0.662, 'accuracy': 0.672}
+5 {'psi_monthly_charges': 1.027, 'psi_prediction': 0.407, 'mean_prediction': 0.706, 'accuracy': 0.651}
+6 {'psi_monthly_charges': 1.404, 'psi_prediction': 0.494, 'mean_prediction': 0.733, 'accuracy': 0.581}</code></pre>
+    <p>The input PSI crosses 0.25 in week 3, while accuracy is still a respectable 0.74. Watching drift gave a warning before the performance collapse, and before any labels were needed. (<code>psi</code> is defined in <code>drift.py</code> in the next section.)</p>
+  </section>
+
+  <!-- ============ 9. DRIFT ============ -->
+  <section id="drift">
+    <h2><span class="num">9</span>Drift</h2>
+    <p class="intuition"><strong>Intuition.</strong> A model is a snapshot of the world at training time. <strong>Drift</strong> is the world moving on: different customers arrive (data drift), or the same kind of customer now behaves differently (concept drift).</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Type</th><th>What changes</th><th>In symbols</th><th>Churn example</th><th>Detect with</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Data drift</strong> (covariate shift)</td><td>The distribution of the inputs</td><td>P(X) changes, P(y | X) the same</td><td>A price rise: monthly charges are now £85 on average instead of £60</td><td>PSI, KS, chi-square on features; no labels needed</td></tr>
+        <tr><td><strong>Concept drift</strong> (model drift)</td><td>The relationship between inputs and target</td><td>P(y | X) changes</td><td>A competitor targets loyal customers: long tenure no longer protects against churn</td><td>Performance on labelled recent data; sometimes prediction drift</td></tr>
+        <tr><td><strong>Prediction drift</strong></td><td>The distribution of the model's outputs</td><td>P(ŷ) changes</td><td>The model flags 55% as churners instead of 30%</td><td>PSI or KS on the scores</td></tr>
+        <tr><td><strong>Label drift</strong> (prior shift)</td><td>How common each class is</td><td>P(y) changes</td><td>Overall churn rises from 20% to 35%</td><td>Compare class shares once labels arrive</td></tr>
+      </tbody>
+    </table></div>
+    <svg viewBox="0 0 640 230" role="img" aria-label="Data drift compared with concept drift" style="width:100%;max-width:640px;display:block;margin:12px auto">
+      <g font-family="system-ui,sans-serif" font-size="12">
+        <text x="160" y="18" text-anchor="middle" fill="var(--text)" font-weight="700">Data drift: the points move</text>
+        <text x="480" y="18" text-anchor="middle" fill="var(--text)" font-weight="700">Concept drift: the rule moves</text>
+        <rect x="10" y="28" width="300" height="180" rx="10" fill="var(--surface-2)" stroke="var(--border)"></rect>
+        <rect x="330" y="28" width="300" height="180" rx="10" fill="var(--surface-2)" stroke="var(--border)"></rect>
+        <line x1="160" y1="40" x2="160" y2="196" stroke="var(--text)" stroke-width="2"></line>
+        <text x="166" y="52" fill="var(--muted)" font-size="11">boundary</text>
+        <g fill="var(--neg)" opacity=".45"><circle cx="60" cy="80" r="6"></circle><circle cx="90" cy="120" r="6"></circle><circle cx="70" cy="160" r="6"></circle><circle cx="120" cy="100" r="6"></circle><circle cx="200" cy="90" r="6"></circle><circle cx="230" cy="150" r="6"></circle></g>
+        <g fill="var(--pos)"><circle cx="190" cy="120" r="6"></circle><circle cx="230" cy="80" r="6"></circle><circle cx="260" cy="130" r="6"></circle><circle cx="280" cy="170" r="6"></circle><circle cx="250" cy="100" r="6"></circle><circle cx="210" cy="170" r="6"></circle></g>
+        <text x="20" y="202" fill="var(--muted)" font-size="11">faded = training data · solid = new data, shifted right</text>
+        <line x1="420" y1="196" x2="540" y2="40" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6 5"></line>
+        <line x1="380" y1="118" x2="620" y2="118" stroke="var(--text)" stroke-width="2"></line>
+        <g fill="var(--neg)"><circle cx="380" cy="160" r="6"></circle><circle cx="430" cy="140" r="6"></circle><circle cx="470" cy="180" r="6"></circle><circle cx="540" cy="150" r="6"></circle><circle cx="590" cy="170" r="6"></circle></g>
+        <g fill="var(--pos)"><circle cx="390" cy="70" r="6"></circle><circle cx="440" cy="90" r="6"></circle><circle cx="510" cy="60" r="6"></circle><circle cx="560" cy="85" r="6"></circle><circle cx="600" cy="60" r="6"></circle></g>
+        <text x="548" y="52" fill="var(--muted)" font-size="11">old rule</text>
+        <text x="560" y="112" fill="var(--muted)" font-size="11">new rule</text>
+        <text x="340" y="202" fill="var(--muted)" font-size="11">same kind of inputs, different correct answers</text>
+      </g>
+    </svg>
+    <h3>How drift shows up over time</h3>
+    <ul>
+      <li><strong>Sudden</strong>: a new law, a price change, a new app version. Performance drops overnight.</li>
+      <li><strong>Gradual</strong>: customer habits slowly change; the model decays a little each week.</li>
+      <li><strong>Seasonal / recurring</strong>: December looks different from June every year. Not really drift if the training data covers whole years; a reason to compare like with like (this December against last December).</li>
+    </ul>
+    <div class="callout warn"><p><strong>Data drift doesn't always hurt, and concept drift can't be seen without labels.</strong> If customers shift into a region where the model is still right, performance holds. And in the worked example below, the inputs <code>tenure_months</code> and <code>age</code> show no drift at all, yet the meaning of tenure has changed completely. Only labelled recent data reveals that. Monitor both inputs and performance.</p></div>
+
+    <h3>The detection recipe</h3>
+    <ol>
+      <li>Keep a <strong>reference window</strong>: usually the training data (or a sample of it, saved as an artifact with the model).</li>
+      <li>Collect a <strong>current window</strong>: the last day, week or N requests seen by the live model.</li>
+      <li>For each feature (and for the predictions), <strong>compare the two distributions</strong> with PSI and a statistical test.</li>
+      <li>When labels arrive, compute the real metrics on the current window and compare them with the evaluation metrics at training time.</li>
+      <li>Alert when a threshold is crossed; investigate; retrain if needed.</li>
+    </ol>
+
+    <h3 id="psi">Population stability index (PSI)</h3>
+    <p>PSI measures <strong>how far a distribution has moved</strong> in one number. Cut the feature into bins using the reference data (often 10 bins with equal counts), work out what percentage of rows fall in each bin in both windows, and add up:</p>
+    <p style="text-align:center;font-size:1.05rem"><code>PSI = Σ over bins (cur% − ref%) × ln(cur% / ref%)</code></p>
+    <p>Each term is never negative: if a bin's share grows, both factors are positive; if it shrinks, both are negative. So PSI is 0 when the distributions match and grows as they diverge. Percentages are written as fractions (10% = 0.10). An empty bin would mean dividing by zero or taking <code>ln(0)</code>, so code replaces zeros with a tiny number such as 0.0001.</p>
+    <div class="table-scroll" style="max-width:520px"><table>
+      <thead><tr><th>PSI</th><th>Rule-of-thumb verdict</th><th>Typical action</th></tr></thead>
+      <tbody>
+        <tr><td>&lt; 0.1</td><td><span class="pill down">stable</span></td><td>Nothing</td></tr>
+        <tr><td>0.1 – 0.25</td><td><span class="pill neutral" style="background:var(--warn-soft);color:var(--warn)">moderate shift</span></td><td>Investigate; watch closely</td></tr>
+        <tr><td>&gt; 0.25</td><td><span class="pill up">significant shift</span></td><td>Alert; check performance; consider retraining</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout">
+      <p><strong>Worked example</strong> with 6 bins:</p>
+      <div class="table-scroll" style="margin-bottom:6px"><table>
+        <thead><tr><th>Bin</th><th>ref%</th><th>cur%</th><th>cur − ref</th><th>ln(cur / ref)</th><th>Contribution</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>0.10</td><td>0.05</td><td>−0.05</td><td>−0.6931</td><td>0.0347</td></tr>
+          <tr><td>2</td><td>0.20</td><td>0.15</td><td>−0.05</td><td>−0.2877</td><td>0.0144</td></tr>
+          <tr><td>3</td><td>0.30</td><td>0.25</td><td>−0.05</td><td>−0.1823</td><td>0.0091</td></tr>
+          <tr><td>4</td><td>0.20</td><td>0.25</td><td>+0.05</td><td>0.2231</td><td>0.0112</td></tr>
+          <tr><td>5</td><td>0.15</td><td>0.20</td><td>+0.05</td><td>0.2877</td><td>0.0144</td></tr>
+          <tr><td>6</td><td>0.05</td><td>0.10</td><td>+0.05</td><td>0.6931</td><td>0.0347</td></tr>
+        </tbody>
+      </table></div>
+      <p>Total PSI = <strong>0.118</strong>: a moderate shift. Notice that the same 5-point change counts far more in the small bins (1 and 6) than in the big middle bin: PSI is sensitive to changes in the tails.</p>
+    </div>
+
+    <div class="widget" id="psiWidget">
+      <div class="widget-title">Try it: PSI calculator</div>
+      <div class="widget-sub">The reference is a bell-shaped feature cut into 6 bins. Shift and stretch the current window and watch each bin's contribution. With a finite sample size, notice that PSI is not exactly zero even with no shift: that is sampling noise.</div>
+      <div class="controls">
+        <label><span>Shift of the mean: <b id="psiShiftV">0.50</b> SD</span><input type="range" id="psiShift" min="-1.5" max="1.5" step="0.05" value="0.5"></label>
+        <label><span>Spread (× reference): <b id="psiSpreadV">1.00</b></span><input type="range" id="psiSpread" min="0.5" max="2" step="0.05" value="1"></label>
+        <label><span>Rows per window</span>
+          <select id="psiN"><option value="0" selected>exact (very large sample)</option><option value="200">200</option><option value="1000">1,000</option><option value="5000">5,000</option></select>
+        </label>
+      </div>
+      <div class="sim-grid">
+        <div><svg id="psiSvg" viewBox="0 0 420 230" role="img" aria-label="Reference and current histograms"></svg>
+          <div class="legend"><span><span class="sw" style="background:var(--neg)"></span>reference</span><span><span class="sw" style="background:var(--pos)"></span>current</span></div></div>
+        <div class="table-scroll" style="margin-top:0"><table class="runs-table">
+          <thead><tr><th>Bin</th><th class="r">ref%</th><th class="r">cur%</th><th>Contribution</th></tr></thead>
+          <tbody id="psiRows"></tbody>
+        </table></div>
+      </div>
+      <div class="verdict" id="psiVerdict"></div>
+    </div>
+
+    <h3 id="stat-tests">Statistical tests: KS and chi-square</h3>
+    <div class="grid-2">
+      <div class="card"><h4 style="margin-top:0">Kolmogorov–Smirnov (KS) test: numeric features</h4><p style="margin:0">Compares two samples' cumulative distributions and finds the <strong>biggest vertical gap</strong> between them (the KS statistic, 0 to 1). The <strong>p-value</strong> answers "if nothing had changed, how likely is a gap this big?". A small p-value (say &lt; 0.05) means the difference is unlikely to be chance. <code>scipy.stats.ks_2samp(ref, cur)</code>.</p></div>
+      <div class="card"><h4 style="margin-top:0">Chi-square test: categorical features</h4><p style="margin:0">Counts each category in both windows and checks whether the <strong>proportions differ</strong> more than chance would allow. Build a table of counts (window × category) and pass it to <code>scipy.stats.chi2_contingency</code>, which returns the statistic and a p-value.</p></div>
+    </div>
+    <div class="callout warn"><p><strong>p-values shout when the sample is big.</strong> With thousands of rows, a test will flag a difference far too small to matter. In the example below, <code>contract</code> has a chi-square p-value of essentially 0 but a PSI of only 0.0998. Use the test to ask "is it real?" and PSI (or the KS statistic) to ask "is it big?". Alert on size, not on the p-value alone.</p></div>
+<pre><code># drift.py
+import numpy as np
+import pandas as pd
+from scipy.stats import ks_2samp, chi2_contingency
+
+def psi(reference, current, bins=10, eps=1e-4):
+    """Population stability index of one numeric feature."""
+    edges = np.unique(np.quantile(reference, np.linspace(0, 1, bins + 1)))
+    edges[0], edges[-1] = -np.inf, np.inf            # catch values outside the old range
+    ref_pct = np.histogram(reference, edges)[0] / len(reference)
+    cur_pct = np.histogram(current, edges)[0] / len(current)
+    ref_pct, cur_pct = np.clip(ref_pct, eps, None), np.clip(cur_pct, eps, None)  # avoid log(0)
+    return float(np.sum((cur_pct - ref_pct) * np.log(cur_pct / ref_pct)))
+
+def psi_label(value):
+    return "stable" if value &lt; 0.1 else "moderate" if value &lt; 0.25 else "significant"
+
+def drift_report(ref_df, cur_df, numeric, categorical):
+    rows = []
+    for col in numeric:
+        p = psi(ref_df[col], cur_df[col])
+        ks = ks_2samp(ref_df[col], cur_df[col])
+        rows.append({"feature": col, "psi": p, "psi_level": psi_label(p),
+                     "test": "KS", "p_value": ks.pvalue})
+    for col in categorical:
+        counts = pd.crosstab(np.r_[np.zeros(len(ref_df)), np.ones(len(cur_df))],
+                             np.r_[ref_df[col], cur_df[col]])
+        chi2, p_value, dof, _ = chi2_contingency(counts)
+        p = psi(ref_df[col], cur_df[col])
+        rows.append({"feature": col, "psi": p, "psi_level": psi_label(p),
+                     "test": "chi-square", "p_value": p_value})
+    return pd.DataFrame(rows)</code></pre>
+    <p>Notes on the code: bin edges come from the <strong>reference</strong> quantiles, so each reference bin holds about 10% of rows; <code>np.unique</code> merges duplicate edges, which happen for features with few distinct values (such as <code>contract</code>, where each value then gets its own bin); the outer edges are widened to ±infinity so new extreme values are still counted.</p>
+    <h3>Drift tools</h3>
+    <p>You can build monitoring yourself with the functions above. Dedicated libraries add ready-made reports, dashboards and many more tests: <strong>Evidently</strong> (open source, HTML drift reports), <strong>NannyML</strong> (open source, can <em>estimate</em> performance before labels arrive) and <strong>WhyLabs</strong> (hosted monitoring platform). They are worth knowing by name; on this course, PSI plus KS and chi-square is enough.</p>
+  </section>
+
+  <!-- ============ 10. RETRAINING ============ -->
+  <section id="retraining">
+    <h2><span class="num">10</span>Retraining strategies</h2>
+    <p class="intuition"><strong>Intuition.</strong> Retraining answers three questions: <em>when</em> do we retrain, <em>on which data</em>, and <em>how</em> do we decide the new model is allowed to replace the old one. The answer to the third is always "as a challenger".</p>
+
+    <h3>When: scheduled or triggered</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Strategy</th><th>How it works</th><th>Strengths</th><th>Weaknesses</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Scheduled</strong></td><td>Retrain every week / month, whatever happens</td><td>Simple, predictable; catches slow drift</td><td>Wastes compute when nothing changed; too slow for sudden drift</td></tr>
+        <tr><td><strong>Triggered by drift</strong></td><td>Retrain when PSI (or a test) crosses a threshold</td><td>Reacts early, before labels arrive</td><td>Data drift doesn't always hurt, so some retrains are unnecessary</td></tr>
+        <tr><td><strong>Triggered by performance</strong></td><td>Retrain when a real metric drops below a threshold</td><td>Responds to actual harm, including concept drift</td><td>Late: you need labels, so the damage is already done</td></tr>
+        <tr><td><strong>Hybrid</strong> (common in practice)</td><td>A schedule plus triggers, with a cooldown so one problem doesn't start ten retrains</td><td>Balanced</td><td>More to configure</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>On which data</h3>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Window</th><th>What it means</th><th>When to use it</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Sliding window</strong></td><td>Only the most recent N weeks or months</td><td>The world has changed and old data now teaches the wrong lesson (concept drift)</td></tr>
+        <tr><td><strong>Expanding window</strong> (all data)</td><td>Everything collected so far</td><td>The world is stable and more data simply helps; rare events need every example</td></tr>
+        <tr><td><strong>Weighted</strong></td><td>All data, with recent rows weighted more (<code>sample_weight</code> in <code>fit</code>)</td><td>A compromise between the two</td></tr>
+      </tbody>
+    </table></div>
+    <p>Whatever the window, the <strong>holdout used to compare champion and challenger must come from the most recent period</strong> and must not be used for training: that is the data the model will face next.</p>
+
+    <h3>How: never blind replacement</h3>
+    <div class="callout bad"><p><strong>Never let a freshly trained model overwrite the champion automatically.</strong> New data can be broken (a bug upstream, a missing column filled with zeros), and a model trained on it can be worse than the one in production. Every retrain produces a <strong>challenger</strong> that must pass the same promotion rule as in <a href="#champion">section 6</a>. A rejected challenger is a useful signal too: maybe the drift isn't learnable from the data you have, and a human needs to look.</p></div>
+    <h3>Have a rollback plan</h3>
+    <ul>
+      <li>Keep the previous champion registered, with the <code>previous_champion</code> alias.</li>
+      <li>Make rollback one command: <code>client.set_registered_model_alias(NAME, "champion", previous_version)</code>, then reload the model in the API (restart it, or call a reload endpoint).</li>
+      <li>Decide <strong>in advance</strong> what triggers a rollback: error rate, latency, a business metric, a complaint.</li>
+      <li>Log every promotion and rollback as an MLflow run with tags (<code>decision</code>, versions, reason), so you can always answer "which model was live on 3 March, and why?".</li>
+    </ul>
+
+    <h3 id="loop-sim">Try it: the MLOps loop simulator</h3>
+    <div class="widget" id="loopWidget">
+      <div class="widget-title">MLOps loop simulator</div>
+      <div class="widget-sub">Each week a new batch of data arrives (simulated with a fixed random seed). The world drifts at the speed you choose. The pipeline measures PSI against the champion's training data and the champion's live accuracy; when a trigger fires it trains a challenger, scores both on the same recent holdout and applies the margin rule. A triggered retrain is followed by a 2-week cooldown.</div>
+      <div class="controls">
+        <label><span>Drift speed: <b id="lpDriftV">medium</b></span><input type="range" id="lpDrift" min="0" max="4" step="1" value="2"></label>
+        <label><span>PSI trigger: <b id="lpPsiV">0.25</b></span><input type="range" id="lpPsi" min="0.1" max="0.5" step="0.05" value="0.25"></label>
+        <label><span>Accuracy trigger: <b id="lpAccV">0.78</b></span><input type="range" id="lpAcc" min="0.6" max="0.86" step="0.01" value="0.78"></label>
+        <label><span>Promotion margin: <b id="lpMarginV">0.010</b></span><input type="range" id="lpMargin" min="0" max="0.04" step="0.005" value="0.01"></label>
+        <label><span>Retraining strategy</span>
+          <select id="lpStrategy">
+            <option value="trigger" selected>Triggered (PSI or accuracy)</option>
+            <option value="schedule">Scheduled (every 8 weeks)</option>
+            <option value="none">Never retrain</option>
+          </select>
+        </label>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" type="button" id="lpStep">Next week ▸</button>
+        <button class="btn" type="button" id="lpPlay">Play to week 30</button>
+        <button class="btn" type="button" id="lpReset">Reset</button>
+      </div>
+      <svg id="lpSvg" viewBox="0 0 640 320" role="img" aria-label="Champion accuracy and PSI over time"></svg>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--accent)"></span>champion live accuracy</span>
+        <span><span class="sw" style="background:var(--pos)"></span>PSI</span>
+        <span>▲ retrain</span><span style="color:var(--good)">● promoted</span><span style="color:var(--bad)">✕ rejected</span>
+      </div>
+      <div class="metrics-row" id="lpMetrics"></div>
+      <div class="verdict" id="lpVerdict"></div>
+      <h4>Pipeline event log <small style="color:var(--muted);font-weight:400">(newest first)</small></h4>
+      <ol class="event-log" id="lpLog"></ol>
+    </div>
+    <p>Things to try: set the strategy to "Never retrain" and watch accuracy decay. Compare "Scheduled" with "Triggered" at a slow and a fast drift speed. Raise the margin to 0.04 and see challengers rejected even when they are a little better. Lower the PSI trigger to 0.1 and count the extra retrains.</p>
+  </section>
+
+  <!-- ============ 11. WORKED EXAMPLE ============ -->
+  <section id="example">
+    <h2><span class="num">11</span>Worked example: drift, retrain, challenge, promote</h2>
+    <p class="intuition"><strong>Intuition.</strong> The whole loop in one script: a champion trained on last year's customers meets this year's customers, the pipeline notices, trains a challenger on recent data, and promotes it only because it wins fairly.</p>
+    <p>Put <code>common.py</code> (section 2) and <code>drift.py</code> (section 9) in the same folder, then run <code>uv run python pipeline.py</code>. Start from an empty folder (or delete <code>mlflow.db</code>) so the version numbers match the output below.</p>
+<pre><code># pipeline.py
+import time
+import mlflow
+from mlflow import MlflowClient
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score, recall_score, roc_auc_score
+from common import make_churn_data
+from drift import drift_report
+
+mlflow.set_tracking_uri("sqlite:///mlflow.db")
+mlflow.set_experiment("churn-pipeline")
+client = MlflowClient()
+NAME = "churn-classifier"
+FEATURES = ["tenure_months", "monthly_charges", "support_calls", "age", "contract"]
+
+def evaluate(model, X, y):
+    """Score one model on one dataset. Same function for champion and challenger."""
+    t0 = time.perf_counter()
+    proba = model.predict_proba(X)[:, 1]
+    ms_per_1k = (time.perf_counter() - t0) / len(X) * 1_000_000
+    pred = (proba &gt;= 0.5).astype(int)
+    return {"roc_auc": roc_auc_score(y, proba), "accuracy": accuracy_score(y, pred),
+            "f1": f1_score(y, pred), "recall": recall_score(y, pred), "ms_per_1k_rows": ms_per_1k}
+
+def train_and_register(X, y, run_name, tags):
+    with mlflow.start_run(run_name=run_name, tags=tags):
+        params = {"n_estimators": 200, "max_depth": 6, "random_state": 42}
+        model = RandomForestClassifier(**params, n_jobs=-1).fit(X, y)
+        mlflow.log_params(params)
+        mlflow.log_metric("train_rows", len(X))
+        info = mlflow.sklearn.log_model(model, name="model", input_example=X.iloc[:5],
+                                        skops_trusted_types=["sklearn.tree._tree.Tree"])
+    mv = mlflow.register_model(info.model_uri, NAME)
+    client.set_model_version_tag(NAME, mv.version, "dataset_version", tags["dataset_version"])
+    return mv
+
+def load(alias):
+    # the sklearn flavour gives back the real model, so predict_proba is available
+    return mlflow.sklearn.load_model(f"models:/{NAME}@{alias}")
+
+def show(label, metrics):
+    print(label, {k: round(v, 3) for k, v in metrics.items() if k != "ms_per_1k_rows"})</code></pre>
+    <h4>Step 1: the champion, trained on old data</h4>
+<pre><code># ---- Step 1: champion v1, trained on the "old" data --------------------------
+old = make_churn_data(6000, seed=1, drift=0.0)
+old_train, old_holdout = train_test_split(old, test_size=0.25, stratify=old.churn, random_state=42)
+v1 = train_and_register(old_train[FEATURES], old_train.churn, "train-v1",
+                        {"dataset_version": "2026-01", "candidate": "champion"})
+client.set_registered_model_alias(NAME, "champion", v1.version)
+show("v1 on old holdout:   ", evaluate(load("champion"), old_holdout[FEATURES], old_holdout.churn))</code></pre>
+    <h4>Step 2: new data arrives; check it for data drift</h4>
+<pre><code># ---- Step 2: new data arrives; check it for data drift ----------------------
+new = make_churn_data(4000, seed=2, drift=0.8)
+report = drift_report(old_train, new, numeric=FEATURES[:4], categorical=["contract"])
+print(report.round(4).to_string(index=False))
+drifted = report.loc[report.psi &gt;= 0.25, "feature"].tolist()
+print("drifted features:", drifted)</code></pre>
+    <h4>Step 3: labels arrive; measure the champion on recent data</h4>
+<pre><code># ---- Step 3: labels arrive; measure the champion on recent data -------------
+recent_train, recent_holdout = train_test_split(new, test_size=0.3, stratify=new.churn, random_state=42)
+live = evaluate(load("champion"), recent_holdout[FEATURES], recent_holdout.churn)
+show("v1 on recent holdout:", live)</code></pre>
+    <h4>Steps 4–5: retrain a challenger and run the contest</h4>
+<pre><code># ---- Step 4: retrain a challenger if drift or a performance drop ------------
+if drifted or live["roc_auc"] &lt; 0.80:
+    v2 = train_and_register(recent_train[FEATURES], recent_train.churn, "train-v2",
+                            {"dataset_version": "2026-06", "candidate": "challenger",
+                             "trigger": "drift" if drifted else "performance"})
+    client.set_registered_model_alias(NAME, "challenger", v2.version)
+
+    # ---- Step 5: same holdout, same metrics, a margin and guard-rails -------
+    champ_m = evaluate(load("champion"), recent_holdout[FEATURES], recent_holdout.churn)
+    chall_m = evaluate(load("challenger"), recent_holdout[FEATURES], recent_holdout.churn)
+    MARGIN, MAX_F1_DROP, MAX_MS = 0.01, 0.02, 50.0
+    checks = {
+        "beats_by_margin": chall_m["roc_auc"] &gt;= champ_m["roc_auc"] + MARGIN,
+        "f1_not_worse": chall_m["f1"] &gt;= champ_m["f1"] - MAX_F1_DROP,
+        "fast_enough": chall_m["ms_per_1k_rows"] &lt;= MAX_MS,
+    }
+    promote = all(checks.values())
+
+    with mlflow.start_run(run_name="champion-vs-challenger"):
+        mlflow.log_metrics({f"champion_{k}": v for k, v in champ_m.items()})
+        mlflow.log_metrics({f"challenger_{k}": v for k, v in chall_m.items()})
+        mlflow.set_tags({"champion_version": v1.version, "challenger_version": v2.version,
+                         "decision": "promote" if promote else "reject"})
+    show("champion:  ", champ_m)
+    show("challenger:", chall_m)
+    print("checks:", checks, "-&gt; promote" if promote else "-&gt; keep champion")
+
+    if promote:
+        client.set_registered_model_alias(NAME, "previous_champion", v1.version)
+        client.set_registered_model_alias(NAME, "champion", v2.version)
+        client.delete_registered_model_alias(NAME, "challenger")
+        client.set_model_version_tag(NAME, v2.version, "promoted_from", f"v{v1.version}")</code></pre>
+    <h4>Step 6: the registry afterwards</h4>
+<pre><code># ---- Step 6: the registry afterwards -----------------------------------------
+print("aliases:", client.get_registered_model(NAME).aliases)
+for v in client.search_model_versions(f"name = '{NAME}'", order_by=["version_number ASC"]):
+    print(f"version {v.version}  tags={v.tags}")</code></pre>
+    <h4>The output</h4>
+    <p>MLflow also prints INFO lines ("Created version '1'…") and a harmless <code>UserWarning</code> hint about integer columns in the inferred schema; they are left out here.</p>
+<pre><code>v1 on old holdout:    {'roc_auc': 0.913, 'accuracy': 0.835, 'f1': 0.849, 'recall': 0.865}
+        feature    psi   psi_level       test  p_value
+  tenure_months 0.0040      stable         KS   0.7310
+monthly_charges 1.7459 significant         KS   0.0000
+  support_calls 0.6049 significant         KS   0.0000
+            age 0.0013      stable         KS   0.8454
+       contract 0.0998      stable chi-square   0.0000
+drifted features: ['monthly_charges', 'support_calls']
+v1 on recent holdout: {'roc_auc': 0.638, 'accuracy': 0.568, 'f1': 0.67, 'recall': 0.877}
+champion:   {'roc_auc': 0.638, 'accuracy': 0.568, 'f1': 0.67, 'recall': 0.877}
+challenger: {'roc_auc': 0.798, 'accuracy': 0.724, 'f1': 0.728, 'recall': 0.737}
+checks: {'beats_by_margin': True, 'f1_not_worse': True, 'fast_enough': True} -&gt; promote
+aliases: {'champion': 2, 'previous_champion': 1}
+version 1  tags={'dataset_version': '2026-01'}
+version 2  tags={'dataset_version': '2026-06', 'promoted_from': 'v1'}</code></pre>
+    <h3>Reading the result</h3>
+    <ul>
+      <li><strong>Data drift was detected</strong> on <code>monthly_charges</code> (PSI 1.75) and <code>support_calls</code> (0.60), with no labels needed. <code>tenure_months</code> and <code>age</code> are stable.</li>
+      <li><strong>The champion collapsed</strong> on recent data: ROC-AUC fell from 0.913 to 0.638, accuracy from 0.835 to 0.568. Part of that is <strong>concept drift</strong> on tenure, which no input check could have seen.</li>
+      <li><strong>The challenger won fairly</strong>: same recent holdout, ROC-AUC 0.798 vs 0.638 (far above the 0.01 margin), and F1 did not drop, so it was promoted. Version 1 keeps the <code>previous_champion</code> alias for rollback.</li>
+      <li><strong>Why F1 and not recall as the guard-rail here?</strong> The drifted champion predicts "churn" for most customers, so its recall (0.877) is inflated by sheer volume of alarms, with poor precision. A recall guard-rail would have blocked a much better model. Choose guard-rails that match the business cost, and look at the whole picture before trusting any single number.</li>
+      <li>Even the new champion (0.798) is below the old champion's best (0.913): the new world is harder to predict from these features. That's a finding to report, not something retraining can fix.</li>
+    </ul>
+    <p>Next: serve <code>models:/churn-classifier@champion</code> behind an API in <a href="fastapi-serving.html">Serving models with FastAPI</a>. Because the API loads by alias, the promotion above needs no code change in the service, only a reload.</p>
+  </section>
+
+  <!-- ============ 12. CHEAT SHEET ============ -->
+  <section id="cheatsheet">
+    <h2><span class="num">12</span>Cheat sheet</h2>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Task</th><th>Code</th></tr></thead>
+      <tbody>
+        <tr><td>Point at the local store</td><td><code>mlflow.set_tracking_uri("sqlite:///mlflow.db")</code></td></tr>
+        <tr><td>Open the UI</td><td><code>uv run mlflow ui --backend-store-uri sqlite:///mlflow.db</code> → port 5000</td></tr>
+        <tr><td>Experiment tags / description</td><td><code>mlflow.set_experiment_tags({"project": "churn", "mlflow.note.content": "…"})</code></td></tr>
+        <tr><td>Run tags</td><td><code>mlflow.start_run(tags={...})</code> · <code>mlflow.set_tags({...})</code></td></tr>
+        <tr><td>Run description</td><td><code>mlflow.set_tag("mlflow.note.content", "…")</code></td></tr>
+        <tr><td>Tag a finished run</td><td><code>MlflowClient().set_tag(run_id, "candidate", "challenger")</code></td></tr>
+        <tr><td>Search and sort</td><td><code>mlflow.search_runs(experiment_names=[...], filter_string="tags.model_family = 'nn' and metrics.test_f1 &gt; 0.8", order_by=["metrics.test_f1 DESC"])</code></td></tr>
+        <tr><td>Guard against no results</td><td><code>if len(runs) == 0: ...</code></td></tr>
+        <tr><td>Best per family</td><td><code>runs.sort_values("metrics.test_f1", ascending=False).groupby("tags.model_family").head(1)</code></td></tr>
+        <tr><td>Epoch curve</td><td><code>MlflowClient().get_metric_history(run_id, "val_accuracy")</code></td></tr>
+        <tr><td>Log a tree model (3.17)</td><td><code>mlflow.sklearn.log_model(m, name="model", skops_trusted_types=["sklearn.tree._tree.Tree"])</code></td></tr>
+        <tr><td>Register</td><td><code>mlflow.register_model(info.model_uri, NAME)</code> (or <code>f"runs:/{run_id}/model"</code>)</td></tr>
+        <tr><td>Set / move an alias</td><td><code>client.set_registered_model_alias(NAME, "champion", version)</code></td></tr>
+        <tr><td>Which version is champion?</td><td><code>client.get_model_version_by_alias(NAME, "champion").version</code></td></tr>
+        <tr><td>Load the champion</td><td><code>mlflow.pyfunc.load_model(f"models:/{NAME}@champion")</code></td></tr>
+        <tr><td>Roll back</td><td><code>client.set_registered_model_alias(NAME, "champion", previous_version)</code></td></tr>
+        <tr><td>PSI</td><td><code>Σ (cur% − ref%) · ln(cur% / ref%)</code>; &lt;0.1 stable · 0.1–0.25 moderate · &gt;0.25 significant</td></tr>
+        <tr><td>KS test (numeric)</td><td><code>scipy.stats.ks_2samp(ref, cur).pvalue</code></td></tr>
+        <tr><td>Chi-square (categorical)</td><td><code>scipy.stats.chi2_contingency(pd.crosstab(window, category))</code></td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout good"><p><strong>The loop in one sentence:</strong> tag every run consistently → compare on the same split with the same metrics → register the winner and alias it <code>@champion</code> → serve by alias → monitor health, inputs, predictions and (when labels come) performance → when drift or decay crosses a threshold, train a challenger on recent data → promote only if it beats the champion on the same recent holdout by a margin without breaking guard-rails → keep the old version for rollback.</p></div>
+  </section>
+
+  <!-- ============ 13. QUIZ ============ -->
+  <section id="quiz">
+    <h2><span class="num">13</span>Quiz</h2>
+    <div class="card quiz" id="quizBox"></div>
+    <p><strong id="quizScore"></strong> <button class="btn" type="button" id="quizReset">Try again</button></p>
+  </section>
+
+  <footer>Data Science &amp; Agentic AI Programme · Week 2 · <a href="../index.html">All course docs</a></footer>
+</main>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : "–");
+
+  /* ---------- theme ---------- */
+  const root = document.documentElement;
+  try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch {}
+  const redrawers = [];
+  $("themeToggle").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+    redrawers.forEach((f) => f());
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => redrawers.forEach((f) => f()));
+
+  /* ---------- table of contents highlight ---------- */
+  const tocLinks = [...document.querySelectorAll("aside.toc a")];
+  const sections = tocLinks.map((a) => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        tocLinks.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id));
+      }
+    });
+  }, { rootMargin: "0px 0px -70% 0px" });
+  sections.forEach((s) => obs.observe(s));
+
+  /* ---------- svg helpers ---------- */
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs = {}, text) {
+    const n = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+  function mulberry32(a) { return function () { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const gaussFrom = (rand) => () => { let u = 0, v = 0; while (!u) u = rand(); while (!v) v = rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+
+  /* =====================================================================
+     (a) Filter playground
+     ===================================================================== */
+  // Example data only: ten made-up runs.
+  const RUNS = [
+    { name: "logreg-baseline", tags: { model_family: "ml", algorithm: "logistic_regression", stage: "baseline", dataset_version: "churn-v1", author: "amira", candidate: "" }, params: { C: "1.0" }, metrics: { train_accuracy: 0.829, test_accuracy: 0.826, test_f1: 0.838, test_recall: 0.842, train_seconds: 0.01 } },
+    { name: "logreg-C0.1", tags: { model_family: "ml", algorithm: "logistic_regression", stage: "experiment", dataset_version: "churn-v2", author: "amira", candidate: "" }, params: { C: "0.1" }, metrics: { train_accuracy: 0.834, test_accuracy: 0.832, test_f1: 0.847, test_recall: 0.852, train_seconds: 0.01 } },
+    { name: "rf-depth6", tags: { model_family: "ml", algorithm: "random_forest", stage: "experiment", dataset_version: "churn-v2", author: "ben", candidate: "champion" }, params: { n_estimators: "200", max_depth: "6" }, metrics: { train_accuracy: 0.861, test_accuracy: 0.826, test_f1: 0.844, test_recall: 0.857, train_seconds: 0.13 } },
+    { name: "rf-depthNone", tags: { model_family: "ml", algorithm: "random_forest", stage: "experiment", dataset_version: "churn-v2", author: "ben", candidate: "" }, params: { n_estimators: "200", max_depth: "None" }, metrics: { train_accuracy: 1.0, test_accuracy: 0.821, test_f1: 0.836, test_recall: 0.843, train_seconds: 0.12 } },
+    { name: "rf-depth10-v1", tags: { model_family: "ml", algorithm: "random_forest", stage: "experiment", dataset_version: "churn-v1", author: "chen", candidate: "" }, params: { n_estimators: "300", max_depth: "10" }, metrics: { train_accuracy: 0.93, test_accuracy: 0.818, test_f1: 0.829, test_recall: 0.821, train_seconds: 0.31 } },
+    { name: "mlp-16", tags: { model_family: "nn", algorithm: "mlp", stage: "experiment", dataset_version: "churn-v2", author: "chen", candidate: "" }, params: { hidden_units: "16", epochs: "15" }, metrics: { train_accuracy: 0.84, test_accuracy: 0.829, test_f1: 0.845, test_recall: 0.861, train_seconds: 0.42 } },
+    { name: "mlp-64", tags: { model_family: "nn", algorithm: "mlp", stage: "experiment", dataset_version: "churn-v2", author: "chen", candidate: "" }, params: { hidden_units: "64", epochs: "15" }, metrics: { train_accuracy: 0.846, test_accuracy: 0.836, test_f1: 0.852, test_recall: 0.866, train_seconds: 0.55 } },
+    { name: "keras-2x64-dropout", tags: { model_family: "nn", algorithm: "keras_dnn", stage: "experiment", dataset_version: "churn-v2", author: "dana", candidate: "challenger" }, params: { hidden_units: "64", dropout: "0.3", epochs: "30", learning_rate: "0.001" }, metrics: { train_accuracy: 0.848, test_accuracy: 0.838, test_f1: 0.855, test_recall: 0.871, train_seconds: 6.8 } },
+    { name: "keras-3x128", tags: { model_family: "nn", algorithm: "keras_dnn", stage: "experiment", dataset_version: "churn-v2", author: "dana", candidate: "" }, params: { hidden_units: "128", dropout: "0.0", epochs: "30", learning_rate: "0.001" }, metrics: { train_accuracy: 0.902, test_accuracy: 0.824, test_f1: 0.839, test_recall: 0.85, train_seconds: 11.2 } },
+    { name: "keras-2x64-v1", tags: { model_family: "nn", algorithm: "keras_dnn", stage: "baseline", dataset_version: "churn-v1", author: "dana", candidate: "" }, params: { hidden_units: "64", dropout: "0.3", epochs: "20", learning_rate: "0.01" }, metrics: { train_accuracy: 0.839, test_accuracy: 0.822, test_f1: 0.833, test_recall: 0.83, train_seconds: 4.9 } },
+  ];
+  const PRESETS = [
+    "tags.model_family = 'nn' and metrics.test_f1 > 0.84",
+    "tags.dataset_version = 'churn-v2' and tags.algorithm = 'random_forest'",
+    "params.max_depth = 'None'",
+    "tags.mlflow.runName LIKE 'keras-%'",
+    "metrics.train_seconds < 1 and metrics.test_recall >= 0.85",
+    "tags.candidate != ''",
+    "tags.model_family = nn",
+    "metrics.test_f1 > '0.8'",
+    "tags.model_family = 'ml' or tags.model_family = 'nn'",
+  ];
+  $("fpPresets").innerHTML = PRESETS.map((p, i) => `<button class="btn" type="button" data-i="${i}">${esc(p)}</button>`).join("");
+  $("fpPresets").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-i]"); if (!b) return;
+    $("fpInput").value = PRESETS[+b.dataset.i]; runFilter();
+  });
+
+  // Replace quoted strings with placeholders so we can split on "and" safely.
+  function maskQuotes(s) {
+    const lits = [];
+    let unclosed = false;
+    const masked = s.replace(/'[^']*'|"[^"]*"|'[^']*$|"[^"]*$/g, (m) => {
+      if (m.length < 2 || m[m.length - 1] !== m[0]) unclosed = true;
+      lits.push(m); return `\u0000${lits.length - 1}\u0000`;
+    });
+    return { masked, lits, unclosed };
+  }
+  const unmask = (s, lits) => s.replace(/\u0000(\d+)\u0000/g, (_, i) => lits[+i]);
+
+  function parseFilter(raw) {
+    const s = raw.trim();
+    if (!s) return { clauses: [] };
+    const { masked, lits, unclosed } = maskQuotes(s);
+    if (unclosed) throw new Error("A quote is not closed. Wrap text values in matching single quotes, e.g. 'nn'.");
+    if (/(^|\s)or(\s|$)/i.test(masked)) throw new Error("Invalid clause(s) in filter string: 'or'. MLflow has no OR: run two searches and combine the DataFrames with pd.concat.");
+    if (/\sIN\s*\(/i.test(masked)) throw new Error("IN (...) isn't supported for tags, params or metrics. Use one condition per value, in separate searches.");
+    const parts = masked.split(/\s+and\s+/i);
+    return {
+      clauses: parts.map((p) => {
+        const part = unmask(p.trim(), lits);
+        if (!part) throw new Error("Empty condition: check for a stray 'and' at the start or end.");
+        const m = part.match(/^([A-Za-z_]+)\.([A-Za-z0-9_.\-]+)\s*(!=|>=|<=|=|>|<|\s(?:I?LIKE)\s)\s*(.*)$/i);
+        if (!m) {
+          if (!/^(tags|params|metrics|attributes|tag|param|metric|attribute)\./i.test(part)) throw new Error(`"${part}": every condition must start with tags., params. or metrics. (for example tags.model_family = 'nn').`);
+          throw new Error(`"${part}": expected <key> <comparison> <value>, for example metrics.test_f1 > 0.8.`);
+        }
+        let [, prefix, key, op, value] = m;
+        op = op.trim().toUpperCase();
+        prefix = prefix.toLowerCase().replace(/s?$/, "s");
+        if (!["tags", "params", "metrics"].includes(prefix)) throw new Error(`"${prefix}." isn't supported in this playground. Use tags., params. or metrics.`);
+        value = value.trim();
+        if (!value) throw new Error(`"${part}": the value is missing.`);
+        const quoted = /^(['"]).*\1$/.test(value);
+        if (prefix === "metrics") {
+          if (quoted) throw new Error(`Expected numeric value type for metric. Found ${value}. Metrics are numbers: drop the quotes.`);
+          if (op === "LIKE" || op === "ILIKE") throw new Error(`LIKE works on text (tags, params), not on metrics.`);
+          if (!/^-?\d+(\.\d+)?([eE]-?\d+)?$/.test(value)) throw new Error(`"${value}" is not a number. Metrics compare with numbers, e.g. metrics.test_f1 > 0.8.`);
+          return { prefix, key, op, value: +value };
+        }
+        if (!quoted) throw new Error(`Parameter value is either not quoted or unidentified quote types used for string value ${value}. Use either single or double quotes: ${prefix}.${key} ${op} '${value}'.`);
+        if ([">", "<", ">=", "<="].includes(op)) throw new Error(`${prefix} are stored as text, so only =, !=, LIKE and ILIKE work. To compare numbers, log the value as a metric too.`);
+        return { prefix, key, op, value: value.slice(1, -1) };
+      }),
+    };
+  }
+
+  function lookup(run, prefix, key) {
+    if (prefix === "tags") {
+      if (key === "mlflow.runName") return run.name;
+      if (key === "mlflow.user") return run.tags.author;
+      const v = run.tags[key];
+      return v === undefined || v === "" ? undefined : v;   // empty = tag not set
+    }
+    return run[prefix][key];
+  }
+  function likeToRegex(pat, ci) {
+    const re = pat.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*").replace(/_/g, ".");
+    return new RegExp("^" + re + "$", ci ? "i" : "");
+  }
+  function matches(run, c) {
+    const v = lookup(run, c.prefix, c.key);
+    if (v === undefined) return false;   // like MLflow: a run without the key never matches
+    switch (c.op) {
+      case "=": return v === c.value;
+      case "!=": return v !== c.value;
+      case ">": return v > c.value;
+      case ">=": return v >= c.value;
+      case "<": return v < c.value;
+      case "<=": return v <= c.value;
+      case "LIKE": return likeToRegex(c.value, false).test(String(v));
+      case "ILIKE": return likeToRegex(c.value, true).test(String(v));
+    }
+    return false;
+  }
+  function knownKeys(prefix) {
+    const s = new Set();
+    RUNS.forEach((r) => Object.keys(r[prefix]).forEach((k) => s.add(k)));
+    if (prefix === "tags") { s.add("mlflow.runName"); s.add("mlflow.user"); }
+    return s;
+  }
+
+  function runFilter() {
+    const raw = $("fpInput").value;
+    const [orderKey, dir] = $("fpOrder").value.split(" ");
+    const msg = $("fpMsg");
+    const pyFilter = raw.trim().includes('"') ? "'" + raw.trim().replace(/'/g, "\\'") + "'" : '"' + raw.trim() + '"';
+    $("fpCode").textContent = `runs = mlflow.search_runs(\n    experiment_names=["churn-week3"],\n    filter_string=${pyFilter},\n    order_by=["metrics.${orderKey} ${dir}"],\n)\nif len(runs) == 0:\n    print("No runs matched")`;
+    let parsed;
+    try { parsed = parseFilter(raw); }
+    catch (err) {
+      msg.className = "filter-msg err"; msg.textContent = "✕ " + err.message;
+      $("fpRows").innerHTML = `<tr><td colspan="9" style="color:var(--muted)">MLflow would raise an MlflowException here.</td></tr>`;
+      return;
+    }
+    const unknown = parsed.clauses.filter((c) => !knownKeys(c.prefix).has(c.key)).map((c) => `${c.prefix}.${c.key}`);
+    let rows = RUNS.filter((r) => parsed.clauses.every((c) => matches(r, c)));
+    rows.sort((a, b) => (dir === "DESC" ? b.metrics[orderKey] - a.metrics[orderKey] : a.metrics[orderKey] - b.metrics[orderKey]));
+    msg.className = "filter-msg";
+    msg.textContent = `✓ Valid filter · ${rows.length} of ${RUNS.length} runs match` + (unknown.length ? ` · note: no run has ${unknown.join(", ")}, so that condition matches nothing (MLflow doesn't raise an error for unknown keys).` : "") + (rows.length === 0 ? " · empty result: check len(runs) before indexing." : "");
+    $("fpRows").innerHTML = rows.length ? rows.map((r, i) => `<tr class="${i === 0 ? "best" : ""}"><td>${esc(r.name)}</td><td>${r.tags.model_family}</td><td>${r.tags.algorithm}</td><td>${r.tags.dataset_version}</td><td>${r.tags.candidate || "–"}</td>${["test_accuracy", "test_f1", "test_recall"].map((k) => `<td class="r">${r.metrics[k].toFixed(3)}</td>`).join("")}<td class="r">${r.metrics.train_seconds.toFixed(2)}</td></tr>`).join("")
+      : `<tr><td colspan="9" style="color:var(--muted)">No runs matched (an empty DataFrame with no metrics/params/tags columns).</td></tr>`;
+  }
+  $("fpInput").addEventListener("input", runFilter);
+  $("fpOrder").addEventListener("change", runFilter);
+  runFilter();
+
+  /* =====================================================================
+     (c) PSI calculator
+     ===================================================================== */
+  const EDGES = [-Infinity, -1.5, -0.75, 0, 0.75, 1.5, Infinity];
+  const BIN_LABELS = ["< −1.5", "−1.5 to −0.75", "−0.75 to 0", "0 to 0.75", "0.75 to 1.5", "> 1.5"];
+  function erf(x) { // Abramowitz–Stegun 7.1.26
+    const s = Math.sign(x); x = Math.abs(x);
+    const t = 1 / (1 + 0.3275911 * x);
+    const y = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+    return s * y;
+  }
+  const ncdf = (x, mu, sd) => (x === Infinity ? 1 : x === -Infinity ? 0 : 0.5 * (1 + erf((x - mu) / (sd * Math.SQRT2))));
+  const exactBins = (mu, sd) => EDGES.slice(0, -1).map((lo, i) => ncdf(EDGES[i + 1], mu, sd) - ncdf(lo, mu, sd));
+  function sampleBins(mu, sd, n, seed) {
+    const g = gaussFrom(mulberry32(seed)); const c = new Array(6).fill(0);
+    for (let i = 0; i < n; i++) { const x = mu + sd * g(); let b = 0; while (b < 5 && x >= EDGES[b + 1]) b++; c[b]++; }
+    return c.map((v) => v / n);
+  }
+  const verdictOf = (p) => (p < 0.1 ? ["stable", "--good"] : p < 0.25 ? ["moderate shift", "--warn"] : ["significant shift", "--bad"]);
+  function drawPsi() {
+    const shift = +$("psiShift").value, spread = +$("psiSpread").value, n = +$("psiN").value;
+    $("psiShiftV").textContent = (shift >= 0 ? "+" : "") + shift.toFixed(2); $("psiSpreadV").textContent = spread.toFixed(2);
+    const ref = n ? sampleBins(0, 1, n, 101) : exactBins(0, 1);
+    const cur = n ? sampleBins(shift, spread, n, 202) : exactBins(shift, spread);
+    const EPS = 1e-4;
+    const contrib = ref.map((r, i) => { const a = Math.max(r, EPS), b = Math.max(cur[i], EPS); return (b - a) * Math.log(b / a); });
+    const total = contrib.reduce((a, b) => a + b, 0);
+    // chart
+    const svg = $("psiSvg"); svg.innerHTML = "";
+    const L = 34, R = 410, T = 12, B = 190;
+    const maxP = Math.max(0.45, ...ref, ...cur);
+    const gw = (R - L) / 6, bw = gw * 0.36;
+    svg.append(el("line", { x1: L, y1: B, x2: R, y2: B, class: "svg-axis" }), el("line", { x1: L, y1: T, x2: L, y2: B, class: "svg-axis" }));
+    [0, 0.2, 0.4].forEach((v) => { if (v <= maxP) svg.append(el("text", { x: L - 6, y: B - (v / maxP) * (B - T) + 4, class: "svg-text", "text-anchor": "end" }, Math.round(v * 100) + "%")); });
+    ref.forEach((r, i) => {
+      const x = L + i * gw + gw * 0.12;
+      const hr = (r / maxP) * (B - T), hc = (cur[i] / maxP) * (B - T);
+      svg.append(el("rect", { x, y: B - hr, width: bw, height: hr, fill: css("--neg"), opacity: 0.75, rx: 2 }));
+      svg.append(el("rect", { x: x + bw + 2, y: B - hc, width: bw, height: hc, fill: css("--pos"), opacity: 0.85, rx: 2 }));
+      svg.append(el("text", { x: L + i * gw + gw / 2, y: B + 15, class: "svg-text", "text-anchor": "middle" }, "bin " + (i + 1)));
+    });
+    svg.append(el("text", { x: (L + R) / 2, y: 222, class: "svg-text", "text-anchor": "middle" }, "feature value (in reference standard deviations), 6 bins"));
+    // table
+    const maxC = Math.max(...contrib, 0.0001);
+    $("psiRows").innerHTML = ref.map((r, i) => `<tr><td title="${BIN_LABELS[i]}">${i + 1}</td><td class="r">${(r * 100).toFixed(1)}</td><td class="r">${(cur[i] * 100).toFixed(1)}</td><td><div class="bar-cell"><span class="b" style="width:${Math.max(1, (contrib[i] / maxC) * 60).toFixed(0)}px"></span>${contrib[i].toFixed(4)}</div></td></tr>`).join("")
+      + `<tr><td colspan="3"><strong>Total PSI</strong></td><td><strong>${total.toFixed(3)}</strong></td></tr>`;
+    const [label, tok] = verdictOf(total);
+    const v = $("psiVerdict");
+    v.style.background = css(tok + "-soft"); v.style.color = css(tok);
+    v.textContent = `PSI = ${total.toFixed(3)} → ${label}.` + (n && Math.abs(shift) < 0.05 && Math.abs(spread - 1) < 0.05 ? ` The distributions are identical, yet PSI isn't 0: with ${n} rows per window, sampling noise alone produces this much.` : spread !== 1 && Math.abs(shift) < 0.05 ? " The mean hasn't moved, but a change in spread still shows up, mostly in the outer bins." : "");
+  }
+  ["psiShift", "psiSpread"].forEach((id) => $(id).addEventListener("input", drawPsi));
+  $("psiN").addEventListener("change", drawPsi);
+  drawPsi(); redrawers.push(drawPsi);
+
+  /* =====================================================================
+     (b) MLOps loop simulator
+     ===================================================================== */
+  const MAX_WEEKS = 30;
+  const DRIFT_LABELS = ["none", "slow", "medium", "fast", "very fast"];
+  const DRIFT_RATE = [0, 0.04, 0.08, 0.13, 0.2];
+  const COOLDOWN = 2;
+  let week = 0, playTimer = null;
+
+  function simulate(W) {
+    const rate = DRIFT_RATE[+$("lpDrift").value];
+    const psiThr = +$("lpPsi").value, accThr = +$("lpAcc").value, margin = +$("lpMargin").value;
+    const strategy = $("lpStrategy").value;
+    const rand = mulberry32(2026);
+    const noise = () => rand() - 0.5;
+    let world = 0, nextVersion = 2, lastRetrain = -99;
+    let champ = { v: 1, w0: 0, skill: 0.86 };
+    const hist = [], events = [{ week: 0, cls: "", text: "Week 0 · v1 trained on the starting data, registered and made champion.", code: `mv = mlflow.register_model(info.model_uri, "churn-classifier")   # version 1\nclient.set_registered_model_alias("churn-classifier", "champion", 1)` }];
+    let retrains = 0, promotions = 0;
+    for (let t = 1; t <= W; t++) {
+      world += rate * (0.6 + 0.8 * rand());
+      const delta = world - champ.w0;
+      const psi = Math.max(0, 1.4 * delta * delta + 0.012 + 0.012 * noise());
+      // accuracy decays slowly at first (small shifts rarely hurt), then fast
+      const acc = champ.skill - 0.3 * (1 - Math.exp(-0.8 * delta * delta)) + 0.016 * noise();
+      let trig = null;
+      if (strategy === "trigger" && t - lastRetrain > COOLDOWN) {
+        if (psi > psiThr) trig = `PSI ${psi.toFixed(2)} > ${psiThr.toFixed(2)}`;
+        else if (acc < accThr) trig = `accuracy ${acc.toFixed(3)} < ${accThr.toFixed(2)}`;
+      } else if (strategy === "schedule" && t % 8 === 0) trig = "scheduled (every 8 weeks)";
+      const h = { t, acc, psi, champV: champ.v, event: null };
+      if (trig) {
+        retrains++; lastRetrain = t;
+        const v = nextVersion++;
+        const challSkill = 0.84 + 0.04 * rand();             // trained on the recent window
+        const challAcc = challSkill + 0.016 * noise();        // scored on the same recent holdout
+        const champAcc = acc;
+        events.push({ week: t, cls: "retrain", text: `Week ${t} · trigger: ${trig}. Trained challenger v${v} on the recent window and registered it.`, code: `mv = mlflow.register_model(info.model_uri, "churn-classifier")   # version ${v}\nclient.set_registered_model_alias("churn-classifier", "challenger", ${v})` });
+        if (challAcc >= champAcc + margin) {
+          promotions++;
+          events.push({ week: t, cls: "promote", text: `Week ${t} · PROMOTED v${v}: holdout accuracy ${challAcc.toFixed(3)} vs champion v${champ.v} ${champAcc.toFixed(3)} (needed ≥ ${(champAcc + margin).toFixed(3)}).`, code: `client.set_registered_model_alias("churn-classifier", "previous_champion", ${champ.v})\nclient.set_registered_model_alias("churn-classifier", "champion", ${v})\nclient.delete_registered_model_alias("churn-classifier", "challenger")` });
+          champ = { v, w0: world, skill: challSkill };
+          h.event = "promote";
+        } else {
+          events.push({ week: t, cls: "reject", text: `Week ${t} · REJECTED v${v}: holdout accuracy ${challAcc.toFixed(3)} vs champion v${champ.v} ${champAcc.toFixed(3)}; it needed ≥ ${(champAcc + margin).toFixed(3)}. Champion kept.`, code: `client.delete_registered_model_alias("churn-classifier", "challenger")\nclient.set_model_version_tag("churn-classifier", "${v}", "decision", "rejected")` });
+          h.event = "reject";
+        }
+      }
+      hist.push(h);
+    }
+    return { hist, events, retrains, promotions, champ, accThr, psiThr, strategy, nextVersion };
+  }
+
+  function drawLoop() {
+    $("lpDriftV").textContent = DRIFT_LABELS[+$("lpDrift").value];
+    $("lpPsiV").textContent = (+$("lpPsi").value).toFixed(2);
+    $("lpAccV").textContent = (+$("lpAcc").value).toFixed(2);
+    $("lpMarginV").textContent = (+$("lpMargin").value).toFixed(3);
+    const S = simulate(week);
+    const svg = $("lpSvg"); svg.innerHTML = "";
+    const VW = svg.clientWidth && svg.clientWidth < 520 ? 400 : 640;   // narrower drawing on phones keeps labels readable
+    svg.setAttribute("viewBox", `0 0 ${VW} 320`);
+    const L = 46, R = VW - 14, T1 = 14, B1 = 170, T2 = 200, B2 = 286;
+    const X = (t) => L + (t / MAX_WEEKS) * (R - L);
+    const A0 = 0.5, A1 = 0.92, Y1 = (a) => B1 - ((Math.min(A1, Math.max(A0, a)) - A0) / (A1 - A0)) * (B1 - T1);
+    const PMAX = 0.8, Y2 = (p) => B2 - (Math.min(PMAX, p) / PMAX) * (B2 - T2);
+    // axes
+    svg.append(el("line", { x1: L, y1: B1, x2: R, y2: B1, class: "svg-axis" }), el("line", { x1: L, y1: T1, x2: L, y2: B1, class: "svg-axis" }));
+    svg.append(el("line", { x1: L, y1: B2, x2: R, y2: B2, class: "svg-axis" }), el("line", { x1: L, y1: T2, x2: L, y2: B2, class: "svg-axis" }));
+    [0.5, 0.6, 0.7, 0.8, 0.9].forEach((a) => svg.append(el("text", { x: L - 6, y: Y1(a) + 4, class: "svg-text", "text-anchor": "end" }, a.toFixed(1))));
+    [0, 0.4, 0.8].forEach((p) => svg.append(el("text", { x: L - 6, y: Y2(p) + 4, class: "svg-text", "text-anchor": "end" }, p.toFixed(1))));
+    for (let t = 0; t <= MAX_WEEKS; t += 5) svg.append(el("text", { x: X(t), y: B2 + 16, class: "svg-text", "text-anchor": "middle" }, t));
+    svg.append(el("text", { x: (L + R) / 2, y: 316, class: "svg-text", "text-anchor": "middle" }, "week"));
+    svg.append(el("text", { x: L + 4, y: T1 + 2, class: "svg-text" }, "champion live accuracy"));
+    svg.append(el("text", { x: L + 4, y: T2 - 4, class: "svg-text" }, "PSI vs champion's training data"));
+    // thresholds
+    if (S.strategy === "trigger") {
+      svg.append(el("line", { x1: L, y1: Y1(S.accThr), x2: R, y2: Y1(S.accThr), stroke: css("--bad"), "stroke-dasharray": "5 4" }));
+      svg.append(el("text", { x: R - 2, y: Y1(S.accThr) - 4, class: "svg-text", "text-anchor": "end" }, `accuracy trigger ${S.accThr.toFixed(2)}`));
+      svg.append(el("line", { x1: L, y1: Y2(S.psiThr), x2: R, y2: Y2(S.psiThr), stroke: css("--bad"), "stroke-dasharray": "5 4" }));
+      svg.append(el("text", { x: R - 2, y: Y2(S.psiThr) - 4, class: "svg-text", "text-anchor": "end" }, `PSI trigger ${S.psiThr.toFixed(2)}`));
+    }
+    // PSI bars
+    const bw = ((R - L) / MAX_WEEKS) * 0.6;
+    S.hist.forEach((h) => {
+      const y = Y2(h.psi);
+      svg.append(el("rect", { x: X(h.t) - bw / 2, y, width: bw, height: B2 - y, fill: css("--pos"), opacity: h.psi > S.psiThr ? 0.95 : 0.55, rx: 1.5 }));
+    });
+    // accuracy line
+    if (S.hist.length) {
+      const pts = [[0, 0.86], ...S.hist.map((h) => [h.t, h.acc])];
+      svg.append(el("path", { d: pts.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + "," + Y1(p[1]).toFixed(1)).join(""), fill: "none", stroke: css("--accent"), "stroke-width": 2.5 }));
+      S.hist.forEach((h) => svg.append(el("circle", { cx: X(h.t), cy: Y1(h.acc), r: 2.5, fill: css("--accent") })));
+    } else {
+      svg.append(el("circle", { cx: X(0), cy: Y1(0.86), r: 4, fill: css("--accent") }));
+      svg.append(el("text", { x: X(0) + 10, y: Y1(0.86) + 4, class: "svg-text" }, "week 0: v1 is champion. Press \"Next week\"."));
+    }
+    // event markers
+    S.hist.forEach((h) => {
+      if (!h.event) return;
+      const x = X(h.t);
+      svg.append(el("line", { x1: x, y1: T1, x2: x, y2: B2, stroke: css(h.event === "promote" ? "--good" : "--bad"), "stroke-width": 1, opacity: 0.45 }));
+      svg.append(el("path", { d: `M${x - 5},${T1 + 22} L${x + 5},${T1 + 22} L${x},${T1 + 13} Z`, fill: css("--warn") }));
+      if (h.event === "promote") {
+        svg.append(el("circle", { cx: x, cy: T1 + 32, r: 5, fill: css("--good") }));
+      } else {
+        svg.append(el("path", { d: `M${x - 4},${T1 + 28} L${x + 4},${T1 + 36} M${x + 4},${T1 + 28} L${x - 4},${T1 + 36}`, stroke: css("--bad"), "stroke-width": 2.2 }));
+      }
+    });
+    // current week marker
+    if (week > 0) svg.append(el("line", { x1: X(week), y1: T1, x2: X(week), y2: B2, stroke: css("--text"), "stroke-dasharray": "2 3", opacity: 0.5 }));
+
+    const last = S.hist[S.hist.length - 1];
+    const accNow = last ? last.acc : 0.86, psiNow = last ? last.psi : 0;
+    const vers = S.nextVersion - 1;
+    $("lpMetrics").innerHTML = [
+      ["Week", `${week} / ${MAX_WEEKS}`], ["Champion", "v" + S.champ.v], ["Live accuracy", accNow.toFixed(3), S.strategy !== "none" && accNow < S.accThr],
+      ["PSI", psiNow.toFixed(2), psiNow > 0.25], ["Retrains", S.retrains], ["Promoted", S.promotions], ["Versions", vers],
+    ].map(([k, v, hl]) => `<div class="metric${hl ? " hl" : ""}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+    const avgAcc = S.hist.length ? S.hist.reduce((a, h) => a + h.acc, 0) / S.hist.length : 0.86;
+    const vd = $("lpVerdict");
+    let tok = "--good", text;
+    if (!S.hist.length) { tok = "--accent"; text = "Ready. Each press of \"Next week\" adds one week of data. Changing any control replays the same weeks with the new settings."; }
+    else if (S.strategy === "none") { tok = accNow < 0.75 ? "--bad" : "--warn"; text = `No retraining: the champion is still v1 and its accuracy has drifted to ${accNow.toFixed(3)}. Average over ${S.hist.length} weeks: ${avgAcc.toFixed(3)}.`; }
+    else {
+      const rej = S.retrains - S.promotions;
+      if (accNow < S.accThr - 0.03) tok = "--bad"; else if (rej > S.promotions && S.retrains > 2) tok = "--warn";
+      text = `${S.retrains} retrain${S.retrains === 1 ? "" : "s"}: ${S.promotions} promoted, ${rej} rejected. Average live accuracy over ${S.hist.length} weeks: ${avgAcc.toFixed(3)}.` + (rej > 0 ? " Rejections are the rule doing its job: the challenger wasn't clearly better." : "");
+    }
+    vd.style.background = css(tok === "--accent" ? "--accent-soft" : tok + "-soft"); vd.style.color = css(tok);
+    vd.textContent = text;
+    $("lpLog").innerHTML = S.events.slice().reverse().map((e) => `<li class="${e.cls}">${esc(e.text)}<code>${esc(e.code)}</code></li>`).join("");
+    $("lpStep").disabled = week >= MAX_WEEKS;
+    $("lpPlay").textContent = playTimer ? "Pause" : "Play to week 30";
+  }
+  function stopPlay() { if (playTimer) { clearInterval(playTimer); playTimer = null; } }
+  $("lpStep").addEventListener("click", () => { stopPlay(); if (week < MAX_WEEKS) { week++; drawLoop(); } });
+  $("lpPlay").addEventListener("click", () => {
+    if (playTimer) { stopPlay(); drawLoop(); return; }
+    if (week >= MAX_WEEKS) week = 0;
+    playTimer = setInterval(() => { week++; if (week >= MAX_WEEKS) stopPlay(); drawLoop(); }, 260);
+    drawLoop();
+  });
+  $("lpReset").addEventListener("click", () => { stopPlay(); week = 0; drawLoop(); });
+  ["lpDrift", "lpPsi", "lpAcc", "lpMargin"].forEach((id) => $(id).addEventListener("input", drawLoop));
+  $("lpStrategy").addEventListener("change", drawLoop);
+  drawLoop(); redrawers.push(drawLoop);
+  let lpResize = null;
+  addEventListener("resize", () => { clearTimeout(lpResize); lpResize = setTimeout(drawLoop, 120); });
+
+  /* ---------- quiz ---------- */
+  const QUIZ = [
+    { q: "Which filter_string is valid in mlflow.search_runs?", o: ["tags.model_family = nn", "metrics.test_f1 > '0.8'", "tags.model_family = 'ml' or tags.model_family = 'nn'", "tags.model_family = 'nn' and metrics.test_f1 > 0.8"], a: 3, w: "Tags and params need quoted values, metrics need unquoted numbers, and there is no OR: run two searches instead." },
+    { q: "Your search matches no runs and the next line, runs['metrics.test_f1'].max(), crashes. Why?", o: ["MLflow is not running", "An empty result has no metrics/params/tags columns, so the column doesn't exist", "max() doesn't work on metrics", "The tracking URI is wrong"], a: 1, w: "Check len(runs) before indexing. The usual cause is a typo in a tag value or experiment name." },
+    { q: "Why does MLflow recommend aliases instead of stages?", o: ["You choose the names, a version can have several, each alias points at one version, and stages are deprecated", "Aliases are faster to load", "Stages can't be used with scikit-learn", "Aliases delete old versions automatically"], a: 0, w: "Aliases such as @champion and @challenger are flexible pointers; workflow states go in version tags." },
+    { q: "Champion ROC-AUC 0.842, challenger 0.846, rule: win by at least 0.01. What happens?", o: ["Promote the challenger: it is higher", "Keep the champion: 0.004 is below the margin", "Delete the champion", "Average the two models"], a: 1, w: "A draw (within the margin) goes to the champion. Small differences are likely noise." },
+    { q: "The new champion causes a spike in complaints. What is the quickest safe fix?", o: ["Retrain immediately on today's data", "Delete the new version and its run", "Move the champion alias back to the previous version", "Switch the API to load runs:/<run_id>/model"], a: 2, w: "Rollback is moving an alias. That's why you keep the previous champion (e.g. as @previous_champion)." },
+    { q: "A feature's PSI between training and this week's data is 0.18. How is that usually read?", o: ["Stable", "Significant shift: the model is certainly broken", "PSI can't be above 0.1", "Moderate shift: investigate and watch"], a: 3, w: "Rule of thumb: < 0.1 stable, 0.1–0.25 moderate, > 0.25 significant." },
+    { q: "Input distributions look unchanged (low PSI everywhere), but accuracy on newly labelled data has dropped sharply. What is the most likely cause?", o: ["Data drift (covariate shift)", "Concept drift: the relationship between inputs and target changed", "The API is down", "Too many trees"], a: 1, w: "Concept drift changes P(y | X), which input checks can't see. Only labelled recent data reveals it." },
+    { q: "Which test suits checking drift in a categorical feature such as contract type?", o: ["Chi-square test on the counts per category", "Kolmogorov–Smirnov", "A t-test on the mean", "ROC-AUC"], a: 0, w: "KS is for numeric features; chi-square compares category proportions between two windows." },
+    { q: "With 200,000 rows per window, a KS test gives p = 0.0001 but PSI is 0.02. What should you conclude?", o: ["Severe drift: retrain now", "The shift is statistically detectable but very small; probably no action", "The test is broken", "PSI is wrong whenever p is small"], a: 1, w: "Large samples make tiny differences 'significant'. Use PSI or the KS statistic to judge the size." },
+    { q: "A drift alert fires and a new model is trained on recent data. What should happen next?", o: ["It replaces the champion automatically", "It is served to all users to see what happens", "It becomes a challenger, is scored with the champion on the same recent holdout, and is promoted only if it meets the rule", "The old champion is deleted to save space"], a: 2, w: "Never blind replacement: new data can be broken, and a new model can be worse." },
+  ];
+  let answered = 0, correct = 0;
+  function renderQuiz() {
+    answered = 0; correct = 0;
+    $("quizScore").textContent = `0 / ${QUIZ.length} answered`;
+    $("quizBox").innerHTML = QUIZ.map((it, qi) => `<div class="q" data-q="${qi}"><div class="prompt">${qi + 1}. ${esc(it.q)}</div><div class="opts">${it.o.map((o, oi) => `<button class="opt" type="button" data-o="${oi}">${esc(o)}</button>`).join("")}</div><div class="why">${esc(it.w)}</div></div>`).join("");
+  }
+  $("quizBox").addEventListener("click", (e) => {
+    const b = e.target.closest(".opt"); if (!b || b.disabled) return;
+    const qEl = b.closest(".q"), it = QUIZ[+qEl.dataset.q];
+    qEl.querySelectorAll(".opt").forEach((o) => { o.disabled = true; if (+o.dataset.o === it.a) o.classList.add("right"); });
+    if (+b.dataset.o !== it.a) b.classList.add("wrong"); else correct++;
+    qEl.classList.add("answered"); answered++;
+    $("quizScore").textContent = answered === QUIZ.length ? `Score: ${correct} / ${QUIZ.length}` : `${correct} correct · ${answered} / ${QUIZ.length} answered`;
+  });
+  $("quizReset").addEventListener("click", renderQuiz);
+  renderQuiz();
+})();
+</script>
+</body>
+</html>

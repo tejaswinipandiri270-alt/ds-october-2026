@@ -48,7 +48,7 @@ Interactive reference pages (HTML) and notebooks for the **Data Science & Agenti
 | ✅ | Unsupervised learning: K-Means, elbow method, silhouette score | [Unsupervised learning & K-Means](week1/unsupervised-kmeans.html) · [Tuning notebook](https://github.com/samuelts96/ds-october-2026-week1/blob/main/materials/tuning_roc_kmeans.ipynb) |
 | ◐ | Other clustering: DBSCAN, hierarchical, Gaussian mixtures (overview only) | [Unsupervised learning & K-Means](week1/unsupervised-kmeans.html) |
 
-## Week 2 · Deep Learning Foundations & Intro to MLflow
+## Week 2 · Deep Learning, MLflow, MLOps & FastAPI (theory)
 *Mon 12 – Fri 16 Oct*
 
 | | Topic | Where |
@@ -61,18 +61,30 @@ Interactive reference pages (HTML) and notebooks for the **Data Science & Agenti
 | ✅ | Object detection & segmentation with pretrained YOLO | [Neural network architectures](week2/neural-network-architectures.html) |
 | ✅ | RNNs, LSTMs and GRUs | [Neural network architectures](week2/neural-network-architectures.html) |
 | ✅ | Experiment tracking with MLflow: runs, params, metrics, artifacts, autolog | [MLflow & experiment tracking](week2/mlflow-experiment-tracking.html) |
-| ✅ | Model registry, versions, champion / challenger aliases (preview) | [MLflow & experiment tracking](week2/mlflow-experiment-tracking.html) |
+| ✅ | MLflow: tagging experiments and runs, searching and comparing runs | [MLflow & the MLOps pipeline](week2/mlflow-mlops-pipeline.html) |
+| ✅ | Model registry: versions, aliases, champion vs challenger | [MLflow & the MLOps pipeline](week2/mlflow-mlops-pipeline.html) · [MLflow & experiment tracking](week2/mlflow-experiment-tracking.html) |
+| ✅ | MLOps theory: training, evaluation, promotion, monitoring, retraining, rollback | [MLflow & the MLOps pipeline](week2/mlflow-mlops-pipeline.html) |
+| ✅ | Monitoring: data drift and model drift (PSI, KS test) | [MLflow & the MLOps pipeline](week2/mlflow-mlops-pipeline.html) |
+| ✅ | FastAPI theory: URLs, IPv4, localhost / 127.0.0.1 / 0.0.0.0, ports, routes and endpoints | [FastAPI & serving models](week2/fastapi-serving.html) |
+| ✅ | HTTP methods and status codes: 200, 4xx (400, 404, 405, 422), 5xx (500, 503) | [FastAPI & serving models](week2/fastapi-serving.html) |
+
+## Week 3 · Time Series & MLOps
+*Mon 19 – Fri 23 Oct · Tech Eval 1 on Thu–Fri (ML and DL)*
+
+| | Topic | Where |
+|---|---|---|
+| ◐ | Day 1 · FastAPI for ML deployment: Pydantic validation, Swagger UI, `/health`, `/predict`, `/model-info` | [FastAPI & serving models](week2/fastapi-serving.html) (theory and serving; no `/model-info` yet) |
+| ⬜ | Serving a scikit-learn model loaded with Joblib; feature order and preprocessing | |
+| ◐ | API testing with pytest and TestClient | [FastAPI & serving models](week2/fastapi-serving.html) |
+| ⬜ | Day 2 · Docker: Dockerfile, images vs containers, port mapping, volumes, networking | |
+| ⬜ | Docker Compose: services, networks, `depends_on`, up / down / logs | |
+| ⬜ | Time series: trend, seasonality, stationarity, forecasting | |
+| ⬜ | Streamlit apps | |
 
 ## Coming up (not documented yet)
 
 | Week | | Topic |
 |---|---|---|
-| 3 · Time Series & MLOps | ⬜ | Time series: trend, seasonality, stationarity, forecasting, chronological validation |
-| | ◐ | MLflow in an MLOps pipeline: registry and promotion (basics in the MLflow page) |
-| | ⬜ | FastAPI: routes, endpoints (`/health`, `/v1/process`), validation, status codes 200 / 400 / 422 / 500 |
-| | ◐ | MLOps pipeline: training, challenger vs champion, promotion (basics in the MLflow page) |
-| | ⬜ | Monitoring: data drift and model drift |
-| | ⬜ | Streamlit apps; moving from notebooks to Python scripts |
 | 4 · NLP, Transformers & LLMs | ⬜ | Text preparation, embeddings, attention, transformers, BERT / GPT / T5, Hugging Face, LLM APIs, prompting |
 | 5 · Embeddings & RAG | ⬜ | Chunking, vector databases, hybrid retrieval, re-ranking, RAG evaluation |
 | 6 · Fine-tuning & guardrails | ⬜ | LoRA / QLoRA, instruction tuning, RLHF / DPO, LLM evaluation, guardrails |
