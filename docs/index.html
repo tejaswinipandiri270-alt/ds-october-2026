@@ -122,6 +122,8 @@
     dl: { kind: "Page", title: "Deep learning foundations", desc: "Neurons, activations, MLP/DNN, forward pass, loss, backprop, gradient descent, optimisers, learning rate", href: "week2/deep-learning-foundations.html" },
     arch: { kind: "Page", title: "Neural network architectures", desc: "CNNs, pooling, transfer learning, YOLO, RNNs, LSTMs, GRUs", href: "week2/neural-network-architectures.html" },
     mlflow: { kind: "Page", title: "MLflow & experiment tracking", desc: "Runs, params, metrics, artifacts, autolog, comparing runs, model registry, champion / challenger", href: "week2/mlflow-experiment-tracking.html" },
+    mlops: { kind: "Page", title: "MLflow & the MLOps pipeline", desc: "Tagging and comparing runs, model registry, champion vs challenger, monitoring, drift (PSI), retraining and promotion", href: "week2/mlflow-mlops-pipeline.html" },
+    fastapi: { kind: "Page", title: "FastAPI & serving models", desc: "URLs, IPv4, localhost, ports, routes and endpoints, HTTP methods, status codes 200 / 4xx / 5xx, serving the champion", href: "week2/fastapi-serving.html" },
     brief2: { kind: "Brief", title: "Week 2 sprint brief", desc: "Write your own tickets, train 3+ DL models, track them in MLflow, present", href: BRIEF2 },
   };
 
@@ -157,7 +159,7 @@
       ["Unsupervised learning: K-Means, elbow method, silhouette score", "c", ["kmeans", "tune"]],
       ["Other clustering: DBSCAN, hierarchical, Gaussian mixtures", "p", ["kmeans"]],
     ]},
-    { n: 2, title: "Deep Learning Foundations & Intro to MLflow", dates: "Mon 12 – Fri 16 Oct", docs: ["dl", "arch", "mlflow", "brief2"], topics: [
+    { n: 2, title: "Deep Learning, MLflow, MLOps & FastAPI (theory)", dates: "Mon 12 – Fri 16 Oct", docs: ["dl", "arch", "mlflow", "mlops", "fastapi", "brief2"], topics: [
       ["Neurons, activation functions, MLPs and deep networks, the forward pass", "c", ["dl"]],
       ["Loss functions, backpropagation, gradient descent", "c", ["dl"]],
       ["Optimisers (SGD, momentum, RMSprop, Adam) and the learning rate", "c", ["dl"]],
@@ -166,15 +168,21 @@
       ["Object detection & segmentation with pretrained YOLO", "c", ["arch"]],
       ["RNNs, LSTMs and GRUs", "c", ["arch"]],
       ["Experiment tracking with MLflow: runs, params, metrics, artifacts, autolog", "c", ["mlflow"]],
-      ["Model registry, versions, champion / challenger aliases (preview)", "c", ["mlflow"]],
+      ["MLflow: tagging experiments and runs, searching and comparing runs", "c", ["mlops", "mlflow"]],
+      ["Model registry: versions, aliases, champion vs challenger", "c", ["mlops", "mlflow"]],
+      ["MLOps theory: training, evaluation, promotion, monitoring, retraining, rollback", "c", ["mlops"]],
+      ["Monitoring: data drift and model drift (PSI, KS test)", "c", ["mlops"]],
+      ["FastAPI theory: URLs, IPv4, localhost / 127.0.0.1 / 0.0.0.0, ports, routes and endpoints", "c", ["fastapi"]],
+      ["HTTP methods and status codes: 200, 4xx (400, 404, 405, 422), 5xx (500, 503)", "c", ["fastapi"]],
     ]},
-    { n: 3, title: "Time Series & MLOps", dates: "Mon 19 – Fri 23 Oct · Tech Eval 1 Thu–Fri", docs: [], topics: [
-      ["Time series: trend, seasonality, stationarity, forecasting, chronological validation", "t", []],
-      ["MLflow in an MLOps pipeline: registry and promotion", "p", ["mlflow"]],
-      ["FastAPI: routes, endpoints (/health, /v1/process), validation, status codes 200 / 400 / 422 / 500", "t", []],
-      ["MLOps pipeline: training, challenger vs champion, promotion", "p", ["mlflow"]],
-      ["Monitoring: data drift and model drift", "t", []],
-      ["Streamlit apps and moving from notebooks to Python scripts", "t", []],
+    { n: 3, title: "Time Series & MLOps", dates: "Mon 19 – Fri 23 Oct · Tech Eval 1 Thu–Fri", docs: ["fastapi"], topics: [
+      ["Day 1 · FastAPI for ML deployment: Pydantic validation, Swagger UI, /health, /predict, /model-info", "p", ["fastapi"]],
+      ["Serving a scikit-learn model loaded with Joblib; feature order and preprocessing", "t", []],
+      ["API testing with pytest and TestClient", "p", ["fastapi"]],
+      ["Day 2 · Docker: Dockerfile, images vs containers, port mapping, volumes, networking", "t", []],
+      ["Docker Compose: services, networks, depends_on, up / down / logs", "t", []],
+      ["Time series: trend, seasonality, stationarity, forecasting", "t", []],
+      ["Streamlit apps", "t", []],
     ]},
     { n: 4, title: "NLP, Transformers & Large Language Models", dates: "Mon 26 – Fri 30 Oct", docs: [], topics: [
       ["Text preparation: tokenisation, bag-of-words, TF-IDF, word embeddings", "t", []],
