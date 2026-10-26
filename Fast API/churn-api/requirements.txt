@@ -1,0 +1,10 @@
+
+fastapi
+uvicorn[standard]
+scikit-learn
+joblib
+pandas
+pytest
+httpx
+tensorflow
+mlflow==3.17.2

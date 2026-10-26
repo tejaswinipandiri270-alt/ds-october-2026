@@ -1,0 +1,86 @@
+# Day 2 — first Docker Compose deployment of the churn API
+# Run from the project root (churn-api/):  docker compose up --build
+
+
+
+name: churn-platform
+
+services:
+  mlflow:
+    image: python:3.12-slim
+    working_dir: /mlflow-data
+    command:
+      - sh
+      - -c
+      - >-
+        pip install mlflow &&
+        mlflow server
+        --host 0.0.0.0
+        --port 5000
+        --backend-store-uri sqlite:///mlflow.db
+        --serve-artifacts
+        --artifacts-destination /mlflow-data/mlartifacts
+    ports:
+      - "5000:5000"
+    volumes:
+      - ../../week2:/mlflow-data
+    networks:
+      - ml-net
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: churn-api:1.0.0
+    ports:
+      - "8000:8000"
+    environment:
+      USE_MLFLOW: "true"
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+      MODEL_NAME: "AdultCensusIncomeModel"
+      MODEL_VERSION: "3"
+      MODEL_ALIAS: "champion"
+      MODEL_PATH: "/week2/adult_census_best_model.keras"
+      PREPROCESSOR_PATH: "/week2/adult_census_preprocessor.joblib"
+      LOG_LEVEL: "INFO"
+    volumes:
+      - ../../week2:/week2:ro
+    depends_on:
+      - mlflow
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - ml-net
+
+  streamlit:
+    image: python:3.12-slim
+    working_dir: /app
+    command:
+      - sh
+      - -c
+      - pip install streamlit requests && streamlit run streamlit_app.py --server.address=0.0.0.0 --server.port=8501
+    ports:
+      - "8501:8501"
+    environment:
+      API_URL: "http://api:8000"
+    volumes:
+      - ./streamlit_app.py:/app/streamlit_app.py:ro
+    depends_on:
+      - api
+    networks:
+      - ml-net
+    restart: unless-stopped
+
+networks:
+  ml-net:
+    driver: bridge
