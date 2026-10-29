@@ -124,6 +124,12 @@
     mlflow: { kind: "Page", title: "MLflow & experiment tracking", desc: "Runs, params, metrics, artifacts, autolog, comparing runs, model registry, champion / challenger", href: "week2/mlflow-experiment-tracking.html" },
     mlops: { kind: "Page", title: "MLflow & the MLOps pipeline", desc: "Tagging and comparing runs, model registry, champion vs challenger, monitoring, drift (PSI), retraining and promotion", href: "week2/mlflow-mlops-pipeline.html" },
     fastapi: { kind: "Page", title: "FastAPI & serving models", desc: "URLs, IPv4, localhost, ports, routes and endpoints, HTTP methods, status codes 200 / 4xx / 5xx, serving the champion", href: "week2/fastapi-serving.html" },
+    nlp4: { kind: "Notebook", title: "NLP basics & vectorisation", desc: "Tokenisation, stop words, lemmatisation, BoW, TF-IDF, Word2Vec, GloVe, BERT, sentence embeddings on restaurant reviews", href: "https://github.com/samuelts96/ds-october-2026/blob/main/week4/01_nlp_vectorization_restaurant_reviews.ipynb" },
+    setup4: { kind: "Brief", title: "Week 4 setup", desc: "Packages and the Azure OpenAI .env settings", href: "https://github.com/samuelts96/ds-october-2026/blob/main/week4/README.md" },
+    nlppage4: { kind: "Page", title: "NLP basics & embeddings", desc: "Preprocessing, BoW, TF-IDF, Word2Vec, GloVe, BERT, sentence embeddings, with live calculators and a quiz", href: "week4/nlp-basics.html" },
+    pepage4: { kind: "Page", title: "Prompt engineering", desc: "How LLMs are trained, Azure OpenAI, prompting styles, structured outputs, Pydantic, guardrails, LLM as a judge, accuracy", href: "week4/prompt-engineering.html" },
+    simple4: { kind: "Notebook", title: "Prompt engineering notebook", desc: "Azure OpenAI, prompting styles, JSON output, Pydantic validation, accuracy per strategy, LLM as a judge", href: "https://github.com/samuelts96/ds-october-2026/blob/main/week4/02_prompt_engineering_simple.ipynb" },
+    projects4: { kind: "Brief", title: "Week 4 projects", desc: "One LLM app per person: prompting, Pydantic, LLM as a judge, FastAPI, Streamlit, Docker", href: "https://github.com/samuelts96/ds-october-2026/blob/main/week4/PROJECTS.md" },
     brief2: { kind: "Brief", title: "Week 2 sprint brief", desc: "Write your own tickets, train 3+ DL models, track them in MLflow, present", href: BRIEF2 },
   };
 
@@ -184,10 +190,18 @@
       ["Time series: trend, seasonality, stationarity, forecasting", "t", []],
       ["Streamlit apps", "t", []],
     ]},
-    { n: 4, title: "NLP, Transformers & Large Language Models", dates: "Mon 26 – Fri 30 Oct", docs: [], topics: [
-      ["Text preparation: tokenisation, bag-of-words, TF-IDF, word embeddings", "t", []],
-      ["Attention and the transformer architecture", "t", []],
-      ["BERT, GPT, T5; Hugging Face; LLM APIs; prompting and structured output", "t", []],
+    { n: 4, title: "NLP, Transformers & Large Language Models", dates: "Mon 26 – Fri 30 Oct", docs: ["nlppage4", "pepage4", "nlp4", "simple4", "setup4", "projects4"], topics: [
+      ["NLP basics: tokenisation, normalisation, stop words (keeping negations), stemming vs lemmatisation, n-grams", "c", ["nlppage4", "nlp4"]],
+      ["Vectorisation: Bag of Words, TF-IDF, Word2Vec (CBOW vs skip-gram), GloVe", "c", ["nlppage4", "nlp4"]],
+      ["Vectors vs embeddings, with model examples", "c", ["nlppage4", "nlp4"]],
+      ["Attention, transformers and BERT (contextual embeddings)", "c", ["nlppage4", "nlp4"]],
+      ["From embeddings to LLMs: how LLMs are trained, in brief", "c", ["nlppage4", "nlp4"]],
+      ["Prompt engineering: zero-shot, few-shot, structured output, chain of thought, tree of thought", "c", ["pepage4", "simple4"]],
+      ["Guardrails and LLM-as-a-judge", "c", ["pepage4", "simple4"]],
+      ["RAG basics: semantic search, grounded answers with citations", "c", ["nlppage4", "pepage4", "nlp4"]],
+      ["Calling Azure OpenAI; running and serving an LLM locally (Ollama, FastAPI)", "c", ["pepage4", "simple4", "setup4"]],
+      ["Structured outputs validated with Pydantic (with a retry)", "c", ["pepage4", "simple4"]],
+      ["Comparing prompting strategies: field-level accuracy on a labelled set", "c", ["pepage4", "simple4"]],
     ]},
     { n: 5, title: "Embeddings & Retrieval-Augmented Generation", dates: "Mon 2 – Fri 6 Nov", docs: [], topics: [
       ["Chunking, embeddings, vector databases, hybrid retrieval, re-ranking, RAG evaluation", "t", []],
