@@ -1,0 +1,279 @@
+# Customer Support Ticket Router using LLMs
+
+## 1. Project Overview
+
+The Customer Support Ticket Router is an AI-powered application that analyses customer support emails and automatically identifies the customer's issue.
+
+It uses a locally running Large Language Model (LLM) through Ollama to classify emails, generate draft replies and evaluate the quality of those replies.
+
+The application is built using Python, FastAPI, Streamlit, Pydantic and Docker.
+
+## 2. Project Objectives
+
+- Automatically classify customer support emails.
+- Identify the category and priority of each ticket.
+- Understand what the customer wants.
+- Compare different prompt engineering techniques.
+- Generate helpful and professional draft replies.
+- Evaluate generated replies using an LLM-as-a-judge.
+- Validate structured LLM responses using Pydantic.
+
+## 3. Technologies Used
+
+| Technology | Purpose |
+|---|---|
+| Python | Main programming language |
+| Ollama | Runs the local LLM |
+| Qwen 2.5:3B | Language model |
+| FastAPI | Backend API |
+| Streamlit | Frontend interface |
+| Pydantic | Data validation and structured output |
+| Docker | Containerisation |
+| Docker Compose | Runs backend and frontend together |
+| JSON | Stores labelled examples and accuracy results |
+
+## 4. Prompt Engineering Techniques
+
+Four prompting techniques were implemented and compared:
+
+1. **Zero-shot prompting:** The LLM receives instructions without examples.
+2. **Few-shot prompting:** The LLM receives instructions with example inputs and outputs.
+3. **Role-based prompting:** The LLM is assigned a customer support role.
+4. **Chain-of-thought prompting:** The prompt encourages the model to consider the problem before producing its structured answer.
+
+The application also includes automatic prompt technique selection.
+
+## 5. Ticket Classification
+
+The LLM returns structured JSON containing four fields:
+
+- `category`: billing, technical, delivery, account or other.
+- `priority`: low, medium or high.
+- `product`: the product or service mentioned.
+- `customer_wants`: refund, fix, information or cancel.
+
+Pydantic validates the generated response against predefined rules.
+
+If the response fails validation, the classification service is designed to retry once.
+
+## 6. Accuracy Evaluation
+
+A manually labelled dataset containing 24 customer support email examples was used to compare the four prompt engineering techniques.
+
+Each technique was tested against the same 24 examples.
+
+Field-level accuracy was calculated by comparing the predicted values with the expected values.
+
+### Accuracy Results
+
+| Prompt technique | Category | Priority | Product | Customer wants | Average |
+|---|---:|---:|---:|---:|---:|
+| Zero-shot | 70.8% | 41.7% | 20.8% | 95.8% | 57.3% |
+| Few-shot | 70.8% | 66.7% | 70.8% | 95.8% | **76.0%** |
+| Role-based | 66.7% | 41.7% | 20.8% | 95.8% | 56.3% |
+| Chain-of-thought | 66.7% | 45.8% | 45.8% | 95.8% | 63.5% |
+
+### Selected Technique
+
+Few-shot prompting achieved the highest average field-level accuracy of 76.0%.
+
+It performed particularly well in identifying priority and product information.
+
+Therefore, few-shot was selected as the preferred technique based on this evaluation.
+
+**Note:** These results are based on 24 labelled examples and should not be interpreted as a guarantee of performance on all customer support emails.
+
+## 7. LLM-as-a-Judge
+
+An LLM-based evaluation component assesses the quality of generated customer replies.
+
+It evaluates three criteria:
+
+- Question answering
+- Tone
+- Policy compliance
+
+Each criterion receives a score from 1 to 5, along with a reason.
+
+### Human and LLM Judge Comparison
+
+The judge was compared against human scores using 10 examples.
+
+| Evaluation metric | Result |
+|---|---:|
+| Complete examples | 10 |
+| Exact agreement | 40.0% |
+| Average absolute difference | 0.87 |
+
+Agreement by criterion:
+
+| Criterion | Exact agreement |
+|---|---:|
+| Question answering | 10% |
+| Tone | 30% |
+| Policy compliance | 80% |
+
+These results show that the judge agreed most consistently with human ratings on policy compliance. Further calibration could improve agreement.
+
+## 8. Application Architecture
+
+The application follows this workflow:
+
+1. The user submits a customer support email through Streamlit.
+2. Streamlit sends the request to the FastAPI backend.
+3. The backend uses the local Ollama model.
+4. The prompt router selects a prompting technique.
+5. The LLM classifies the email.
+6. Pydantic validates the structured classification.
+7. The application generates a draft reply.
+8. The LLM judge evaluates the reply.
+9. The results are returned to Streamlit and displayed to the user.
+
+## 9. Project Structure
+
+```text
+customer-support-ticket-router/
+│
+├── backend/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── schemas.py
+│   ├── prompts.py
+│   ├── llm_service.py
+│   ├── evaluate.py
+│   ├── calibrate_judge.py
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+├── frontend/
+│   ├── app.py
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+├── data/
+│   ├── labelled_examples.json
+│   ├── accuracy_results.json
+│   └── judge_calibration.csv
+│
+├── .env
+├── .env.example
+├── .gitignore
+├── docker-compose.yml
+└── README.md
+```
+
+## 10. Setup and Installation
+
+### Prerequisites
+
+Install or prepare:
+
+- Docker Desktop
+- Ollama
+- Git (if cloning the repository)
+
+### Step 1: Download the Ollama model
+
+Make sure Ollama is running on your computer.
+
+Open PowerShell and run:
+
+```bash
+ollama pull qwen2.5:3b
+```
+
+Check the installed model:
+
+```bash
+ollama list
+```
+
+### Step 2: Configure environment variables
+
+Create or update the `.env` file in the project root:
+
+```env
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_MODEL=qwen2.5:3b
+```
+
+Do not commit your private `.env` file to GitHub.
+
+### Step 3: Build and start the application
+
+Open a terminal in the project root:
+
+```bash
+docker compose up --build
+```
+
+To run the containers in the background:
+
+```bash
+docker compose up -d --build
+```
+
+### Step 4: Check running containers
+
+```bash
+docker compose ps
+```
+
+### Step 5: Stop the application
+
+```bash
+docker compose down
+```
+
+## 11. Access the Application
+
+After starting Docker Compose, use these addresses:
+
+| Component | Address |
+|---|---|
+| Streamlit frontend | http://localhost:8501 |
+| FastAPI backend | http://localhost:8001 |
+| FastAPI Swagger documentation | http://localhost:8001/docs |
+| Backend health check | http://localhost:8001/health |
+
+## 12. API Endpoints
+
+### GET /health
+
+Checks whether the backend service is running.
+
+### POST /classify
+
+Accepts a customer email and returns:
+
+- Ticket classification
+- Draft customer reply
+- LLM judge scores
+- Selected prompt technique
+
+Example request:
+
+```json
+{
+  "email": "I was charged twice for my monthly subscription. Please refund the extra payment."
+}
+```
+
+The response contains the classification, generated reply, judge evaluation and prompt technique.
+
+## 13. Future Improvements
+
+- Increase the number of manually labelled examples.
+- Improve classification accuracy.
+- Improve agreement between human and LLM judge scores.
+- Add more robust error handling.
+- Test the application with a wider variety of customer support emails.
+- Integrate a real support ticket management system when required.
+
+## 14. Conclusion
+
+This project demonstrates how Large Language Models can be used to automate customer support email classification and reply generation.
+
+It combines prompt engineering, structured JSON output, Pydantic validation, FastAPI, Streamlit, LLM-as-a-judge and Docker.
+
+The project demonstrates an end-to-end LLM application using a locally hosted model through Ollama.

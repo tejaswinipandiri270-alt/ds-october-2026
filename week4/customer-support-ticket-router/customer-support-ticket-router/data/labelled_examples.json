@@ -1,0 +1,218 @@
+[
+  {
+    "input": "I was charged twice for my March subscription to the Premium plan. Please send the extra £12.99 back to my card.",
+    "expected": {
+      "category": "billing",
+      "priority": "medium",
+      "product": "Premium plan",
+      "customer_wants": "refund"
+    }
+  },
+  {
+    "input": "The app crashes every time I try to open the settings page. Please fix it.",
+    "expected": {
+      "category": "technical",
+      "priority": "high",
+      "product": "app",
+      "customer_wants": "fix"
+    }
+  },
+  {
+    "input": "My parcel was due yesterday and tracking has not changed. Can you tell me where it is?",
+    "expected": {
+      "category": "delivery",
+      "priority": "medium",
+      "product": "parcel",
+      "customer_wants": "information"
+    }
+  },
+  {
+    "input": "I cannot log in even after resetting my password. Please help me regain access.",
+    "expected": {
+      "category": "account",
+      "priority": "high",
+      "product": "account",
+      "customer_wants": "fix"
+    }
+  },
+  {
+    "input": "Could you explain what features are included in the Plus subscription?",
+    "expected": {
+      "category": "other",
+      "priority": "low",
+      "product": "Plus subscription",
+      "customer_wants": "information"
+    }
+  },
+  {
+    "input": "Please cancel my monthly Music Plus plan before it renews next week.",
+    "expected": {
+      "category": "billing",
+      "priority": "medium",
+      "product": "Music Plus plan",
+      "customer_wants": "cancel"
+    }
+  },
+  {
+    "input": "The payment page shows an error and will not let me complete checkout.",
+    "expected": {
+      "category": "technical",
+      "priority": "high",
+      "product": "payment page",
+      "customer_wants": "fix"
+    }
+  },
+  {
+    "input": "I received a message saying my package was delivered, but nothing arrived. Please investigate.",
+    "expected": {
+      "category": "delivery",
+      "priority": "high",
+      "product": "package",
+      "customer_wants": "information"
+    }
+  },
+  {
+    "input": "I want to change the email address associated with my account. How can I do that?",
+    "expected": {
+      "category": "account",
+      "priority": "low",
+      "product": "account",
+      "customer_wants": "information"
+    }
+  },
+  {
+    "input": "Please refund my order because the item arrived damaged.",
+    "expected": {
+      "category": "billing",
+      "priority": "medium",
+      "product": "order",
+      "customer_wants": "refund"
+    }
+  },
+  {
+    "input": "My headphones keep disconnecting from Bluetooth after two minutes. I need a fix.",
+    "expected": {
+      "category": "technical",
+      "priority": "medium",
+      "product": "headphones",
+      "customer_wants": "fix"
+    }
+  },
+  {
+    "input": "Can you provide the tracking number for my replacement order?",
+    "expected": {
+      "category": "delivery",
+      "priority": "low",
+      "product": "replacement order",
+      "customer_wants": "information"
+    }
+  },
+  {
+    "input": "My account is locked and the unlock link says it has expired.",
+    "expected": {
+      "category": "account",
+      "priority": "high",
+      "product": "account",
+      "customer_wants": "fix"
+    }
+  },
+  {
+    "input": "I no longer need the annual Cloud Storage plan. Please cancel it.",
+    "expected": {
+      "category": "billing",
+      "priority": "medium",
+      "product": "Cloud Storage plan",
+      "customer_wants": "cancel"
+    }
+  },
+  {
+    "input": "What is the warranty period for the Home Speaker?",
+    "expected": {
+      "category": "other",
+      "priority": "low",
+      "product": "Home Speaker",
+      "customer_wants": "information"
+    }
+  },
+  {
+    "input": "The website keeps showing a blank screen when I upload a document.",
+    "expected": {
+      "category": "technical",
+      "priority": "high",
+      "product": "website",
+      "customer_wants": "fix"
+    }
+  },
+  {
+    "input": "The courier left my parcel at the wrong building. Please tell me how to get it.",
+    "expected": {
+      "category": "delivery",
+      "priority": "medium",
+      "product": "parcel",
+      "customer_wants": "information"
+    }
+  },
+  {
+    "input": "I forgot my username and cannot access my profile. Please help me recover it.",
+    "expected": {
+      "category": "account",
+      "priority": "high",
+      "product": "profile",
+      "customer_wants": "fix"
+    }
+  },
+  {
+    "input": "I was billed for the Basic plan after I cancelled last month. I want the payment returned.",
+    "expected": {
+      "category": "billing",
+      "priority": "medium",
+      "product": "Basic plan",
+      "customer_wants": "refund"
+    }
+  },
+  {
+    "input": "Please tell me whether the Smart Thermostat works with Android phones.",
+    "expected": {
+      "category": "other",
+      "priority": "low",
+      "product": "Smart Thermostat",
+      "customer_wants": "information"
+    }
+  },
+  {
+    "input": "The desktop software freezes whenever I export a report. Can you resolve this?",
+    "expected": {
+      "category": "technical",
+      "priority": "high",
+      "product": "desktop software",
+      "customer_wants": "fix"
+    }
+  },
+  {
+    "input": "My delivery tracking says address problem, but my address is correct. What should I do?",
+    "expected": {
+      "category": "delivery",
+      "priority": "medium",
+      "product": "delivery",
+      "customer_wants": "information"
+    }
+  },
+  {
+    "input": "I need to update the phone number on my profile. Please show me how.",
+    "expected": {
+      "category": "account",
+      "priority": "low",
+      "product": "profile",
+      "customer_wants": "information"
+    }
+  },
+  {
+    "input": "Please stop my Fitness App subscription and confirm the cancellation process.",
+    "expected": {
+      "category": "billing",
+      "priority": "medium",
+      "product": "Fitness App subscription",
+      "customer_wants": "cancel"
+    }
+  }
+]

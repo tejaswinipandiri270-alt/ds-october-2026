@@ -1,0 +1,29 @@
+{
+  "n_examples": 24,
+  "scores_percent": {
+    "zero_shot": {
+      "category": 70.8,
+      "priority": 41.7,
+      "product": 20.8,
+      "customer_wants": 95.8
+    },
+    "few_shot": {
+      "category": 70.8,
+      "priority": 66.7,
+      "product": 70.8,
+      "customer_wants": 95.8
+    },
+    "role_based": {
+      "category": 66.7,
+      "priority": 41.7,
+      "product": 20.8,
+      "customer_wants": 95.8
+    },
+    "chain_of_thought": {
+      "category": 66.7,
+      "priority": 45.8,
+      "product": 45.8,
+      "customer_wants": 95.8
+    }
+  }
+}

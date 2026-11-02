@@ -1,0 +1,11 @@
+example_id,human_question_answering_score,judge_question_answering_score,human_tone_score,judge_tone_score,human_policy_compliance_score,judge_policy_compliance_score
+1,4,4,5,4,5,5
+2,3,4,4,4,5,5
+3,3,4,4,5,4,5
+4,2,5,5,4,5,5
+5,5,4,3,4,5,5
+6,4,3,4,4,5,5
+7,3,4,5,4,5,5
+8,4,2,3,3,5,5
+9,4,5,2,5,5,5
+10,5,3,2, 4,3,5
