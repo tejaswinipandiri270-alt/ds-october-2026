@@ -130,6 +130,9 @@
     pepage4: { kind: "Page", title: "Prompt engineering", desc: "How LLMs are trained, Azure OpenAI, prompting styles, structured outputs, Pydantic, guardrails, LLM as a judge, accuracy", href: "week4/prompt-engineering.html" },
     simple4: { kind: "Notebook", title: "Prompt engineering notebook", desc: "Azure OpenAI, prompting styles, JSON output, Pydantic validation, accuracy per strategy, LLM as a judge", href: "https://github.com/samuelts96/ds-october-2026/blob/main/week4/02_prompt_engineering_simple.ipynb" },
     projects4: { kind: "Brief", title: "Week 4 projects", desc: "One LLM app per person: prompting, Pydantic, LLM as a judge, FastAPI, Streamlit, Docker", href: "https://github.com/samuelts96/ds-october-2026/blob/main/week4/PROJECTS.md" },
+    rag5: { kind: "Page", title: "RAG with FAISS and Chroma", desc: "Chunking, embeddings, FAISS, Chroma, thresholds, cited answers, hit rate and MRR, with interactive tools and a quiz", href: "week5/rag-faiss-chroma.html" },
+    ragnb5: { kind: "Notebook", title: "RAG step by step: FAISS and Chroma", desc: "Restaurant handbook: chunk, embed, search with FAISS and Chroma, answer with Azure OpenAI, evaluate retrieval", href: "https://github.com/samuelts96/ds-october-2026/blob/main/week5/01_rag_faiss_chroma.ipynb" },
+    setup5: { kind: "Brief", title: "Week 5 setup", desc: "Packages and the Azure OpenAI .env settings", href: "https://github.com/samuelts96/ds-october-2026/blob/main/week5/README.md" },
     brief2: { kind: "Brief", title: "Week 2 sprint brief", desc: "Write your own tickets, train 3+ DL models, track them in MLflow, present", href: BRIEF2 },
   };
 
@@ -203,8 +206,17 @@
       ["Structured outputs validated with Pydantic (with a retry)", "c", ["pepage4", "simple4"]],
       ["Comparing prompting strategies: field-level accuracy on a labelled set", "c", ["pepage4", "simple4"]],
     ]},
-    { n: 5, title: "Embeddings & Retrieval-Augmented Generation", dates: "Mon 2 – Fri 6 Nov", docs: [], topics: [
-      ["Chunking, embeddings, vector databases, hybrid retrieval, re-ranking, RAG evaluation", "t", []],
+    { n: 5, title: "Embeddings & Retrieval-Augmented Generation", dates: "Mon 2 – Fri 6 Nov", docs: ["rag5", "ragnb5", "setup5"], topics: [
+      ["RAG: offline indexing vs online answering", "c", ["rag5", "ragnb5"]],
+      ["Chunking: paragraphs, fixed size with overlap, choosing a size", "c", ["rag5", "ragnb5"]],
+      ["Embeddings and normalisation (dot product = cosine similarity)", "c", ["rag5", "ragnb5"]],
+      ["FAISS: flat index, saving and loading, approximate indexes (IVF, HNSW)", "c", ["rag5", "ragnb5"]],
+      ["Chroma: collections, metadata filters, upsert and delete", "c", ["rag5", "ragnb5"]],
+      ["Similarity threshold and answering \"I don't know\"", "c", ["rag5", "ragnb5"]],
+      ["Grounded answers with citations; query decomposition", "c", ["rag5", "ragnb5"]],
+      ["Evaluating retrieval: hit rate @k and MRR", "c", ["rag5", "ragnb5"]],
+      ["Hybrid retrieval (BM25 + embeddings) and re-ranking", "p", ["rag5"]],
+      ["HyDE, query rewriting and RAG evaluation with RAGAS", "t", []],
     ]},
     { n: 6, title: "Fine-Tuning, Alignment, Evaluation & Guardrails", dates: "Mon 9 – Fri 13 Nov", docs: [], topics: [
       ["LoRA / QLoRA, instruction tuning, RLHF / DPO, LLM evaluation, guardrails", "t", []],

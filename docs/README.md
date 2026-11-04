@@ -98,11 +98,26 @@ Interactive reference pages (HTML) and notebooks for the **Data Science & Agenti
 | ✅ | Structured outputs validated with Pydantic (with a retry) | [Prompt engineering](week4/prompt-engineering.html) · [Prompt engineering notebook](../week4/02_prompt_engineering_simple.ipynb) |
 | ✅ | Comparing prompting strategies: field-level accuracy on a labelled set | [Prompt engineering](week4/prompt-engineering.html) · [Prompt engineering notebook](../week4/02_prompt_engineering_simple.ipynb) |
 
+## Week 5 · Embeddings & Retrieval-Augmented Generation
+*Mon 2 – Fri 6 Nov* · setup: [week5/README.md](../week5/README.md)
+
+| | Topic | Where |
+|---|---|---|
+| ✅ | RAG: offline indexing vs online answering | [RAG with FAISS and Chroma](week5/rag-faiss-chroma.html) · [RAG notebook](../week5/01_rag_faiss_chroma.ipynb) |
+| ✅ | Chunking: paragraphs, fixed size with overlap, choosing a size | [RAG with FAISS and Chroma](week5/rag-faiss-chroma.html) · [RAG notebook](../week5/01_rag_faiss_chroma.ipynb) |
+| ✅ | Embeddings and normalisation (dot product = cosine similarity) | [RAG with FAISS and Chroma](week5/rag-faiss-chroma.html) · [RAG notebook](../week5/01_rag_faiss_chroma.ipynb) |
+| ✅ | FAISS: flat index, saving and loading, approximate indexes (IVF, HNSW) | [RAG with FAISS and Chroma](week5/rag-faiss-chroma.html) · [RAG notebook](../week5/01_rag_faiss_chroma.ipynb) |
+| ✅ | Chroma: collections, metadata filters, upsert and delete | [RAG with FAISS and Chroma](week5/rag-faiss-chroma.html) · [RAG notebook](../week5/01_rag_faiss_chroma.ipynb) |
+| ✅ | Similarity threshold and answering "I don't know" | [RAG with FAISS and Chroma](week5/rag-faiss-chroma.html) · [RAG notebook](../week5/01_rag_faiss_chroma.ipynb) |
+| ✅ | Grounded answers with citations; query decomposition | [RAG with FAISS and Chroma](week5/rag-faiss-chroma.html) · [RAG notebook](../week5/01_rag_faiss_chroma.ipynb) |
+| ✅ | Evaluating retrieval: hit rate @k and MRR | [RAG with FAISS and Chroma](week5/rag-faiss-chroma.html) · [RAG notebook](../week5/01_rag_faiss_chroma.ipynb) |
+| ◐ | Hybrid retrieval (BM25 + embeddings) and re-ranking | [RAG with FAISS and Chroma](week5/rag-faiss-chroma.html) (introduced; not in the notebook yet) |
+| ⬜ | HyDE, query rewriting and RAG evaluation with RAGAS | not documented yet |
+
 ## Coming up (not documented yet)
 
 | Week | | Topic |
 |---|---|---|
-| 5 · Embeddings & RAG | ⬜ | Chunking, vector databases, hybrid retrieval, re-ranking, RAG evaluation |
 | 6 · Fine-tuning & guardrails | ⬜ | LoRA / QLoRA, instruction tuning, RLHF / DPO, LLM evaluation, guardrails |
 | 7 · Single-agent systems | ⬜ | Agent loop, tool calling, memory, planning, LangGraph, MCP |
 | 8 · Multi-agent & capstone | ⬜ | Orchestration patterns, observability, deployment, capstone |
