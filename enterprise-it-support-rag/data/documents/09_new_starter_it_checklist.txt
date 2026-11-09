@@ -1,0 +1,2 @@
+NEW STARTER IT CHECKLIST
+The hiring manager submits an approved joiner request with employee, start date, department, manager, location, role, equipment, applications and access approvals. IT provisions a suitable device, applies security configuration, enables the account after required checks, assigns licences and grants role-based access. The employee completes password setup and MFA enrolment. The manager confirms access matches job duties. Shared accounts are not a substitute for named accounts.

@@ -1,0 +1,47 @@
+# Python environments
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Local databases and generated data
+data/vector_db/
+data/feedback/
+data/uploads/*
+!data/uploads/.gitkeep
+
+# Logs
+*.log
+
+# Model files and experiment outputs
+*.joblib
+*.pkl
+*.keras
+*.h5
+mlruns/
+mlflow.db
+
+# Temporary test files
+request.json
+feedback_request.json
+test_upload.*
+large_test.txt
+
+# IDE and operating system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+create_test_docx.py
+create_test_pdf.py

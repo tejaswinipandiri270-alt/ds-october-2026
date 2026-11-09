@@ -1,0 +1,7 @@
+[
+ {"question":"How do I reset a forgotten password?","expected_source":"01_password_reset_and_mfa.txt"},
+ {"question":"What should I do if my VPN will not connect?","expected_source":"02_vpn_remote_access.txt"},
+ {"question":"How do I report a suspicious email?","expected_source":"08_data_handling_and_phishing.txt"},
+ {"question":"What should I check when a printer will not print?","expected_source":"06_printer_and_printing.txt"},
+ {"question":"What happens when a new employee joins?","expected_source":"09_new_starter_it_checklist.txt"}
+]

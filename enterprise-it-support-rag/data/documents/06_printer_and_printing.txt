@@ -1,0 +1,2 @@
+PRINTER AND PRINTING SUPPORT
+Check power, paper, toner, printer display, network connection, selected printer and paused print queue. Use a test page if permitted. Collect confidential printouts immediately and use secure release where available. For support, provide printer name/location, device, application, error, time and whether other users are affected. Do not attach confidential documents to a ticket.

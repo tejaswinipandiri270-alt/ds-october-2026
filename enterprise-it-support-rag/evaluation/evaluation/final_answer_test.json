@@ -1,0 +1,42 @@
+﻿[
+  {
+    "question": "How can an employee reset a forgotten password?",
+    "expected_answer": "Use the approved self-service password reset portal from a trusted device, verify identity using registered MFA and choose a unique password that meets policy."
+  },
+  {
+    "question": "What should an employee do if VPN access is not working?",
+    "expected_answer": "Follow the approved VPN troubleshooting procedure and contact the IT Service Desk if the problem remains unresolved."
+  },
+  {
+    "question": "How should an employee report a suspicious email?",
+    "expected_answer": "Do not open suspicious links or attachments. Report the email using the approved phishing-reporting process."
+  },
+  {
+    "question": "What information should be provided when reporting a laptop hardware fault?",
+    "expected_answer": "Provide the device asset tag, model, operating system, symptoms, error messages and recent changes."
+  },
+  {
+    "question": "How can an employee request access to new software?",
+    "expected_answer": "Submit an application access request containing the application name, business reason, required access level, duration and manager approval where required."
+  },
+  {
+    "question": "What should an employee do if the office printer is not working?",
+    "expected_answer": "Follow the approved printer troubleshooting guidance and contact IT support if the issue remains unresolved."
+  },
+  {
+    "question": "How are IT incidents prioritised?",
+    "expected_answer": "Incidents are prioritised according to their severity, business impact and urgency, following the documented support process."
+  },
+  {
+    "question": "How does a new employee receive a laptop and account access?",
+    "expected_answer": "The hiring manager submits an approved joiner request. IT provisions and secures the device, enables the account after required checks, assigns licences and grants role-based access. The employee completes password setup and MFA enrolment."
+  },
+  {
+    "question": "What information should an employee include in an IT support ticket?",
+    "expected_answer": "Include the issue, start time, device or service, exact error, business impact, troubleshooting performed and workaround. Never include passwords or MFA codes."
+  },
+  {
+    "question": "What is the company's annual employee bonus amount?",
+    "expected_answer": "This information is not available in the IT support knowledge base. The employee should contact the appropriate department."
+  }
+]

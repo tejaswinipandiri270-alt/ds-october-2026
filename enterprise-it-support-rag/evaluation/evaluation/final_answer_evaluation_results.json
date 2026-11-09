@@ -1,0 +1,122 @@
+[
+    {
+        "question": "How can an employee reset a forgotten password?",
+        "expected_answer": "Use the approved self-service password reset portal from a trusted device, verify identity using registered MFA and choose a unique password that meets policy.",
+        "generated_answer": "To reset a forgotten password, the employee should use the organisation-approved self-service password reset portal from a trusted device. They should verify their identity using their registered Multi-Factor Authentication (MFA) method and choose a unique password that meets the organisation's policy requirements. It's important to never share the password or any one-time code, including with someone claiming to be IT support. If the password reset fails, the employee should contact the IT Service Desk through the approved internal route. They should provide the username, the name of the device they are using, the exact error message, and the time when the issue occurred.",
+        "scores": {
+            "faithfulness": 5,
+            "answer_relevance": 5,
+            "context_precision": 5,
+            "context_recall": 5,
+            "reason": "The generated answer is faithful to the reference answer, directly answers the question, and is supported by the retrieved context. The context precision and recall are also high as the generated answer uses the exact wording and information provided in the retrieved context."
+        }
+    },
+    {
+        "question": "What should an employee do if VPN access is not working?",
+        "expected_answer": "Follow the approved VPN troubleshooting procedure and contact the IT Service Desk if the problem remains unresolved.",
+        "generated_answer": "If VPN access is not working, the employee should follow these steps:\n\n1. Check the internet connection to ensure it is stable and working properly.\n2. Verify that the device's clock is accurate, as incorrect time settings can cause connection issues.\n3. Restart the VPN client application.\n4. Try connecting again after restarting the client.\n5. If the issue persists, contact IT support with the following information:\n   - Username\n   - Device model and operating system\n   - Version of the VPN client\n   - Exact error message\n   - Time when the connection failed\n6. If there are unexpected certificate warnings or repeated MFA prompts, report this to IT Security as well.",
+        "scores": {
+            "faithfulness": 5,
+            "answer_relevance": 5,
+            "context_precision": 5,
+            "context_recall": 5,
+            "reason": "The generated answer directly addresses the question and is supported by the retrieved context. All factual claims are accurate and relevant to the question. The context precision and recall are also high as the generated answer uses information from the provided context without contradicting or missing any crucial details."
+        }
+    },
+    {
+        "question": "How should an employee report a suspicious email?",
+        "expected_answer": "Do not open suspicious links or attachments. Report the email using the approved phishing-reporting process.",
+        "generated_answer": "An employee should report a suspicious email using the approved phishing-report function.",
+        "scores": {
+            "faithfulness": 5,
+            "answer_relevance": 5,
+            "context_precision": 5,
+            "context_recall": 5,
+            "reason": "The generated answer is faithful to the reference answer, directly addressing the question. It is relevant and precise, aligning with the context provided. The context is comprehensive and relevant to the question, covering all necessary information."
+        }
+    },
+    {
+        "question": "What information should be provided when reporting a laptop hardware fault?",
+        "expected_answer": "Provide the device asset tag, model, operating system, symptoms, error messages and recent changes.",
+        "generated_answer": "When reporting a laptop hardware fault, the following information should be provided:\n\n- Asset tag\n- Model of the laptop\n- Operating system version\n- Symptoms of the hardware fault\n- Errors encountered\n- Recent changes made to the device\n\nDo not include any personal or sensitive information such as passwords or MFA codes.",
+        "scores": {
+            "faithfulness": 5,
+            "answer_relevance": 5,
+            "context_precision": 5,
+            "context_recall": 5,
+            "reason": "The generated answer directly and completely covers all the information requested in the reference answer. The context provided in the retrieved context is comprehensive and relevant to the question, supporting the generated answer without contradicting any information. All necessary details are included and no additional information is provided that is not relevant to the question."
+        }
+    },
+    {
+        "question": "How can an employee request access to new software?",
+        "expected_answer": "Submit an application access request containing the application name, business reason, required access level, duration and manager approval where required.",
+        "generated_answer": "An employee can request access to new software by following these steps:\n\n1. Submit an application access request through the IT Support, including the application name, business reason, required access level, duration, and manager approval if required.\n2. Ensure that the application is from the approved software catalogue or has been approved through the IT Support.\n3. Access follows the principle of least privilege, meaning that the employee will only be granted access to the minimum level of access necessary to perform their job duties.\n4. Never share any licence keys or tokens in the request for access.\n\nPlease note that any temporary elevated access must be approved and time-limited.",
+        "scores": {
+            "faithfulness": 5,
+            "answer_relevance": 5,
+            "context_precision": 5,
+            "context_recall": 5,
+            "reason": "The generated answer accurately reflects the reference answer and the retrieved context, providing all necessary information to answer the question about how an employee can request access to new software. The answer is relevant and faithful to the context provided."
+        }
+    },
+    {
+        "question": "What should an employee do if the office printer is not working?",
+        "expected_answer": "Follow the approved printer troubleshooting guidance and contact IT support if the issue remains unresolved.",
+        "generated_answer": "If the office printer is not working, the employee should follow these steps:\n\n1. Check the power supply to the printer to ensure it is turned on and plugged in.\n2. Verify that there is paper in the printer.\n3. Check the toner levels and replace if necessary.\n4. Ensure the printer display is showing correctly and that the network connection is stable.\n5. Confirm that the selected printer is correct in the device settings.\n6. If possible, pause the print queue to see if any jobs are stuck.\n7. Use a test page to check if the printer is functioning properly.\n8. Collect any confidential printouts immediately and use secure release if available.\n9. If the issue persists, provide the following information to the IT support team:\n   - Printer name or location\n   - Device details\n   - Application used\n   - Error message\n   - Time of the issue\n   - Whether other users are affected\n\nIf the knowledge base does not have an answer, the employee should contact the IT Service Desk using the organisation's approved channel.",
+        "scores": {
+            "faithfulness": 5,
+            "answer_relevance": 5,
+            "context_precision": 5,
+            "context_recall": 5,
+            "reason": "The generated answer directly addresses the question and is supported by the provided context. It includes all necessary steps and information to resolve printer issues, as well as instructions for contacting IT support when needed. The context is precise and relevant to the generated answer, providing detailed troubleshooting steps and information about IT support procedures."
+        }
+    },
+    {
+        "question": "How are IT incidents prioritised?",
+        "expected_answer": "Incidents are prioritised according to their severity, business impact and urgency, following the documented support process.",
+        "generated_answer": "IT incidents are prioritised based on their business impact and urgency. Priority levels reflect the severity and scope of the issue. For example, widespread outages or critical service failures are considered high priority incidents. On the other hand, a single-user issue with a known workaround would be considered a lower priority. If there is a suspected account compromise, lost devices, or data exposure, these should be reported immediately through the approved security route.",
+        "scores": {
+            "faithfulness": 5,
+            "answer_relevance": 5,
+            "context_precision": 5,
+            "context_recall": 5,
+            "reason": "The generated answer accurately reflects the information provided in the reference answer and the retrieved context. It covers the key points of incident prioritization, including severity, business impact, and urgency, and mentions specific examples such as widespread outages and suspected account compromises. The answer is relevant and directly answers the question about how IT incidents are prioritized. The context precision and recall are also high as the generated answer uses information from the retrieved context without contradicting or missing any crucial details."
+        }
+    },
+    {
+        "question": "How does a new employee receive a laptop and account access?",
+        "expected_answer": "The hiring manager submits an approved joiner request. IT provisions and secures the device, enables the account after required checks, assigns licences and grants role-based access. The employee completes password setup and MFA enrolment.",
+        "generated_answer": "A new employee receives a laptop and account access through the following steps:\n\n1. The hiring manager submits an approved joiner request with details such as the employee's start date, department, manager, location, role, equipment, applications, and access approvals.\n2. IT provisions a suitable device, applies security configurations, and enables the account after required checks.\n3. The employee completes password setup and MFA (Multi-Factor Authentication) enrolment.\n4. The manager confirms that the access matches the job duties.\n\nShared accounts are not a substitute for named accounts.",
+        "scores": {
+            "faithfulness": 5,
+            "answer_relevance": 5,
+            "context_precision": 5,
+            "context_recall": 5,
+            "reason": "The generated answer accurately reflects the information provided in the reference answer and the retrieved context. It covers all the key points without contradictions or omissions. The answer is relevant to the question and the context is precise and comprehensive."
+        }
+    },
+    {
+        "question": "What information should an employee include in an IT support ticket?",
+        "expected_answer": "Include the issue, start time, device or service, exact error, business impact, troubleshooting performed and workaround. Never include passwords or MFA codes.",
+        "generated_answer": "An employee should include the following information in an IT support ticket:\n\n1. Issue\n2. Start time\n3. Device/service\n4. Exact error\n5. Business impact\n6. Troubleshooting and workaround\n\nNever include passwords or MFA codes.",
+        "scores": {
+            "faithfulness": 5,
+            "answer_relevance": 5,
+            "context_precision": 5,
+            "context_recall": 5,
+            "reason": "The generated answer is faithful, relevant, precise, and recall all necessary information from the retrieved context."
+        }
+    },
+    {
+        "question": "What is the company's annual employee bonus amount?",
+        "expected_answer": "This information is not available in the IT support knowledge base. The employee should contact the appropriate department.",
+        "generated_answer": "The information about the company's annual employee bonus amount is not provided in the given documents. Please contact the HR department for this information.",
+        "scores": {
+            "faithfulness": 1,
+            "answer_relevance": 1,
+            "context_precision": 1,
+            "context_recall": 1,
+            "reason": "The generated answer does not provide the requested information about the annual employee bonus amount. It suggests contacting the HR department, which is not supported by the retrieved context. The context does not contain any information about employee bonuses."
+        }
+    }
+]

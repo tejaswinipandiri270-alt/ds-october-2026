@@ -1,0 +1,2 @@
+SOFTWARE ACCESS AND INSTALLATION
+Install software only from the approved software catalogue or through IT Support. Application access requests should include application name, business reason, required access level, duration and manager approval where required. Access follows least privilege. Never share licence keys or tokens in tickets. Temporary elevated access must be approved and time-limited.

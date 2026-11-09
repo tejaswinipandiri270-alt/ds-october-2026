@@ -1,0 +1,2 @@
+VPN AND REMOTE ACCESS
+Use the company-approved VPN client on a trusted network. Sign in with the corporate account and complete MFA. If connection fails, check internet, device clock, restart the client and retry. Do not disable endpoint protection or bypass security controls. Contact IT with username, device, VPN version, exact error and failure time. Report unexpected certificate warnings or repeated MFA prompts to IT Security.

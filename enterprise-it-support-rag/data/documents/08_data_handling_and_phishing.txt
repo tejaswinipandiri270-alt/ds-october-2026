@@ -1,0 +1,2 @@
+DATA HANDLING AND PHISHING
+Be cautious with unexpected emails, links, attachments, QR codes and credential requests. Do not enter credentials after an unsolicited link. Report suspected phishing through the approved route. If you clicked a suspicious link or entered credentials, report immediately and follow security guidance. Store business information only in approved locations. Never paste confidential information, personal data, passwords or tokens into public AI tools or unapproved services.

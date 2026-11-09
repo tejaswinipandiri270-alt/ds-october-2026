@@ -1,0 +1,2 @@
+INCIDENT PRIORITY AND SUPPORT TARGETS
+Fictional training example only; this is not a real SLA. Priority reflects business impact and urgency. Widespread outages or critical service failures may be high priority. A single-user issue with a workaround may be lower. Suspected account compromise, lost devices and data exposure must be reported immediately through the approved security route. Provide impact, affected users/service, start time and workaround. The Service Desk assigns official priority and response targets.

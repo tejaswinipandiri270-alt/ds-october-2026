@@ -1,0 +1,2 @@
+EMAIL AND OUTLOOK SUPPORT
+For Outlook issues, check internet and service status, restart Outlook and confirm the correct work account. For missing messages, check Junk, Deleted, archive folders and rules. Do not open unexpected links or attachments. Report suspicious email using the approved phishing-report function. Tickets should include mailbox, device, Outlook version, error and start time. Never include passwords or MFA codes.

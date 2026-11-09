@@ -1,0 +1,7 @@
+SERVICE DESK FAQ
+Q: What belongs in an IT ticket? A: Issue, start time, device/service, exact error, business impact, troubleshooting and workaround. Never include passwords or MFA codes.
+Q: Can I install any free application? A: No. Use the approved catalogue or request approval.
+Q: What if a device is lost? A: Report immediately using the approved urgent security route.
+Q: What if I receive an unexpected MFA prompt? A: Do not approve it; report it to IT Security.
+Q: Can this assistant reset my password? A: No. It provides information only. Use the approved identity verification process.
+Q: What if the knowledge base has no answer? A: Contact the IT Service Desk using the organisation's approved channel. The assistant must not invent contact details.
