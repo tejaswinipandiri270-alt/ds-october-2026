@@ -1,0 +1,135 @@
+# Enterprise IT Support RAG Assistant
+
+An AI-powered IT Support Assistant built using **Retrieval-Augmented Generation (RAG)** to help employees find accurate answers to common IT support questions using an internal knowledge base.
+
+The system combines semantic search, keyword-based retrieval, hybrid ranking, and cross-encoder reranking to retrieve relevant information before generating grounded responses using a locally hosted Large Language Model (LLM).
+
+## Project Overview
+
+The Enterprise IT Support RAG Assistant allows employees to ask IT-related questions in natural language and receive answers based on internal IT documentation.
+
+Instead of relying entirely on an LLM's general knowledge, the system retrieves relevant information from the organisation's knowledge base and uses that context to generate responses.
+
+### Key Objectives
+
+- Build an end-to-end RAG application for IT support.
+- Retrieve relevant information from internal knowledge base documents.
+- Improve retrieval quality using hybrid search and reranking.
+- Generate context-grounded answers using a locally hosted LLM.
+- Provide an interactive interface for employees.
+- Support document uploads and knowledge base expansion.
+- Evaluate retrieval accuracy and answer quality.
+
+## Architecture
+
+The application follows an end-to-end RAG architecture with two main workflows.
+
+### 1. Document Ingestion Pipeline
+
+Internal IT documents are processed and indexed for retrieval.
+
+1. **Document Loading:** Load IT support documents from the knowledge base.
+2. **Text Extraction:** Extract text from supported document formats.
+3. **Chunking:** Split documents into smaller text chunks.
+4. **Embedding Generation:** Convert text chunks into numerical vector representations using Sentence Transformers.
+5. **Vector Database:** Store embeddings and document metadata in ChromaDB.
+6. **Keyword Indexing:** Build a BM25 index for keyword-based retrieval.
+
+### 2. Query and Retrieval Pipeline
+
+When an employee submits a question:
+
+1. The employee enters a question through the Streamlit interface.
+2. The request is sent to the FastAPI backend.
+3. API key authentication is applied to protected endpoints.
+4. The question is processed by the retrieval pipeline.
+5. **Vector Search:** Retrieves semantically similar document chunks.
+6. **BM25 Search:** Retrieves keyword-relevant document chunks.
+7. **Reciprocal Rank Fusion (RRF):** Combines the two ranked result lists.
+8. **Cross-Encoder Reranking:** Reorders retrieved chunks based on their relevance to the question.
+9. **Top-K Retrieval:** Selects the five most relevant chunks.
+10. **LLM Generation:** The retrieved context and question are passed to Ollama running `qwen2.5:3b`.
+11. **Response Generation:** The assistant generates a context-grounded answer and provides source information.
+12. **Feedback:** User feedback is stored for later analysis.
+
+## Technology Stack
+
+| Component | Technology |
+|---|---|
+| Programming Language | Python 3.12 |
+| Frontend | Streamlit |
+| Backend API | FastAPI |
+| LLM | Ollama – Qwen 2.5 3B |
+| Embedding Model | Sentence Transformers – all-MiniLM-L6-v2 |
+| Vector Database | ChromaDB |
+| Keyword Retrieval | BM25 |
+| Hybrid Retrieval | BM25 + Vector Search |
+| Ranking Strategy | Reciprocal Rank Fusion (RRF) |
+| Reranking | Cross-Encoder – ms-marco-MiniLM-L-6-v2 |
+| Document Processing | PDF, DOCX and TXT |
+| Containerisation | Docker and Docker Compose |
+| Testing | Pytest |
+
+## Key Features
+
+### 1. Document Ingestion
+- Loads internal IT support knowledge base documents.
+- Extracts and processes document content.
+- Splits documents into chunks.
+- Generates embeddings.
+- Stores vectors and metadata in ChromaDB.
+
+### 2. Hybrid Retrieval
+Combines two retrieval approaches:
+
+- **Semantic Search:** Uses embeddings to identify documents with similar meaning.
+- **Keyword Search:** Uses BM25 to identify documents containing relevant terms.
+
+The results are combined using Reciprocal Rank Fusion (RRF).
+
+### 3. Cross-Encoder Reranking
+The cross-encoder evaluates the relevance between the employee's question and retrieved document chunks.
+
+It improves the ordering of the retrieved results before selecting the final context.
+
+### 4. LLM-Based Answer Generation
+- Uses Ollama with `qwen2.5:3b`.
+- Generates answers using retrieved knowledge base context.
+- Helps reduce unsupported answers through context-grounded generation.
+- Provides source information alongside responses.
+
+### 5. Interactive Streamlit Interface
+- Employee question-and-answer interface.
+- Conversation history.
+- Source document information.
+- Document upload functionality.
+- User feedback collection.
+
+### 6. Document Upload
+Supports:
+- PDF
+- DOCX
+- TXT
+
+Uploaded documents are validated, saved, processed and added to the retrieval knowledge base.
+
+Maximum upload size: **15 MB**.
+
+### 7. Feedback Collection
+Stores user feedback in JSONL format for future analysis and improvement.
+
+### 8. Evaluation
+Includes retrieval and answer-quality evaluation to measure system performance.
+
+## Retrieval Configuration
+
+| Parameter | Configuration |
+|---|---|
+| Chunk Size | 700 characters |
+| Chunk Overlap | 120 characters |
+| Embedding Model | all-MiniLM-L6-v2 |
+| Vector Database | ChromaDB |
+| Keyword Retrieval | BM25 |
+| Fusion Method | Reciprocal Rank Fusion |
+| RRF Constant (K) | 60 |
+| Reranking Model | ms-marco-MiniLM-L-6-v2
