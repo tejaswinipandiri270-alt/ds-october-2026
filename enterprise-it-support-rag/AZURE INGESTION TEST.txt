@@ -1,0 +1,9 @@
+AZURE INGESTION TEST
+
+Document ID: TEST-001
+
+This document explains how employees can request a replacement laptop.
+
+Employees should contact the IT Service Desk.
+The request must include the employee name, device details and reason for replacement.
+The IT team will review the request and confirm the next steps.

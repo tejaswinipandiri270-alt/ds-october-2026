@@ -1,0 +1,90 @@
+question,reference,answer,retrieved_context_count,status,faithfulness,faithfulness_reason,answer_relevancy,answer_relevancy_reason,context_precision,context_precision_reason,context_recall,context_recall_reason
+How can I reset my forgotten password?,Employees should follow the approved password reset process and complete identity verification and MFA if required.,"Follow these steps to reset a forgotten company password:
+
+1. Open the company sign‑in page from the approved employee portal.  
+2. Select ""Forgot password"".  
+3. Enter your registered work email address.  
+4. Complete the identity verification steps shown on screen.  
+5. Create a new password that meets the company rules:
+   - At least 14 characters.  
+   - Do not reuse any of your previous 10 passwords.  
+   - Do not use your name, work email, or common dictionary phrases.  
+   - Never share your password or enter it into an unverified link.  
+6. Sign in again using the new password.
+
+If the self‑service reset fails, your account is locked for more than 15 minutes, or you suspect someone else has accessed your account, contact the IT Service Desk using the organisation’s approved channel (do not share passwords or MFA codes). Support hours: Monday–Friday, 08:00–18:00 UK time, excluding company public holidays.
+
+Note: This assistant cannot perform password resets. (Source: Password Reset and Multi‑Factor Authentication — IT‑KB‑001)",5,partial,,,0.786285836729697,,0.9999999999666667,,1.0,
+How do I connect to the company VPN?,"Employees should use the approved VPN client, sign in with company credentials and complete MFA if prompted.","Steps to connect to the company VPN
+
+1. On a trusted network, open the company-approved VPN client.  
+2. Sign in with your corporate account.  
+3. Complete multi-factor authentication (MFA) when prompted.
+
+If the connection fails
+1. Check your internet connection.  
+2. Verify your device clock/date are correct (set automatically).  
+3. Restart the VPN client and try again.  
+4. Do not disable endpoint protection or bypass security controls.
+
+If you still need help
+- Contact IT and include: your username, device, VPN client version, the exact error message, and the time the failure occurred.  
+- Report unexpected certificate warnings or repeated/unprompted MFA approval requests to IT Security and do not approve them.
+
+Sources: 02_vpn_remote_access.txt; 01_password_reset_and_mfa.txt; 10_service_desk_faq.txt.",5,partial,,,0.8969087439327171,,0.9999999999666667,,1.0,
+What should I do if I receive a phishing email?,Do not click links or open attachments. Report the suspicious email using the approved company reporting process.,"1) Do not interact with it
+- Do not open links, attachments or QR codes in the message.
+- Do not enter credentials after an unsolicited link.
+- Do not approve any unexpected MFA prompts.
+
+2) Report it using the approved route
+- Report the suspicious email using the organisation's approved phishing-report function (do not invent contact details).
+
+3) If you clicked a link, opened an attachment, entered credentials or saw an unexpected MFA prompt
+- Report immediately and follow the security guidance you are given.
+- If you received an MFA approval you did not initiate, deny it and report it immediately.
+
+4) What to include (and not include) when you report
+- Provide the issue, start time, affected device/service, exact error or suspicious text, business impact and any troubleshooting or workaround you tried.
+- Never include passwords, MFA codes or other sensitive credentials.
+
+Security reminder: do not paste confidential business data or credentials into public AI tools or unapproved services.
+
+Sources: 08_data_handling_and_phishing.txt; 03_email_and_outlook.txt; 01_password_reset_and_mfa.txt; 10_service_desk_faq.txt.",5,partial,,,0.7856223019388849,,0.999999999975,,1.0,
+How can I request software installation?,Submit a software installation request through the approved IT service request process.,"Follow the approved process in the IT knowledge base:
+
+1. Check the approved software catalogue first — install only from the catalogue or via IT Support. (05_software_access_and_installation.txt)
+2. If the application is not in the catalogue, submit a request to IT Support using the organisation’s approved Service Desk channel. (Do not invent or share contact details here.)
+3. Include the required information in the request:
+   - Application name
+   - Business reason / justification
+   - Required access level
+   - Duration (if access is temporary)
+   - Manager approval where required
+4. Security and access rules to follow:
+   - Access is granted on a least-privilege basis.
+   - Never include licence keys or tokens in tickets.
+   - Temporary elevated access must be approved and time-limited. (05_software_access_and_installation.txt)
+5. If you’re unsure how to submit the request through your Service Desk channel, use the organisation’s approved IT Service Desk route (see Service Desk guidance). (10_service_desk_faq.txt)
+
+If you need the actual Service Desk contact method, that is not included in these documents — contact your manager or check your internal Service Desk pages for the approved submission channel.",5,partial,,,0.6136929840137055,,0.94999999997625,,1.0,
+What should a new employee do to get IT access?,"Complete the IT onboarding checklist and obtain the required accounts, device access and permissions.","Follow the standard new-starter process (from New Starter IT Checklist). Key actions by each party:
+
+1. Hiring manager
+   - Submit an approved joiner request with employee name, start date, department, manager, location, role, required equipment, applications and access approvals. (09_new_starter_it_checklist.txt)
+
+2. IT team
+   - Provision a suitable device, apply required security configuration, enable the account after checks, assign licences and grant role-based, role-based access. (09_new_starter_it_checklist.txt)
+
+3. New employee (your actions)
+   - Complete initial password setup and enrol in MFA as part of account enablement. (09_new_starter_it_checklist.txt)
+   - When creating a password, follow the company rules: at least 14 characters; do not reuse any of your previous 10 passwords; do not use your name, work email, or common dictionary phrases; never share your password. (01_password_reset_and_mfa.txt)
+   - Do not use shared accounts — you must use a named account. (09_new_starter_it_checklist.txt)
+
+4. Hiring manager (final check)
+   - Confirm the employee’s access and applications match job duties. (09_new_starter_it_checklist.txt)
+
+Additional note
+- If you need access to specific applications, requests should include application name, business reason, required access level, duration and manager approval. (05_software_access_and_installation.txt)
+
+If you need steps to reset your password or resolve MFA issues after account enablement, see Password Reset and Multi-Factor Authentication (01_password_reset_and_mfa.txt).",5,partial,,,0.5470531631797101,,0.6791666666496875,,1.0,

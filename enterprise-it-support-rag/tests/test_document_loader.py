@@ -4,7 +4,7 @@ from backend.rag.document_loader import load_documents
 def test_load_all_documents():
     documents = load_documents("data/documents")
 
-    assert len(documents) == 10
+    assert len(documents) == 12 
 
     for document in documents:
         assert document["filename"]

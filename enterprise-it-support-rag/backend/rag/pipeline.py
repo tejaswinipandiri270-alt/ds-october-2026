@@ -1,30 +1,54 @@
 
-         
 from backend.config import settings
-from backend.rag.document_loader import load_documents
-from backend.rag.chunker import chunk_documents
-from backend.rag.embeddings import embed_texts
-from backend.rag.vector_store import ChromaStore
-from backend.rag.hybrid_retriever import HybridRetriever
-from backend.rag.reranker import CrossEncoderReranker
+from backend.rag.azure_search_retriever import AzureSearchRetriever
 
 
 class RAGPipeline:
+
     def __init__(self):
-        self.store = ChromaStore()
-        self.retriever = HybridRetriever(self.store)
-        self.reranker = CrossEncoderReranker()
+
         self.bm25_ready = False
 
+        if settings.AZURE_SEARCH_ENABLED:
+
+            print("Initializing Azure AI Search pipeline...")
+
+            self.store = None
+            self.retriever = None
+            self.reranker = None
+
+            self.azure_retriever = AzureSearchRetriever()
+
+        else:
+
+            print("Initializing local RAG pipeline...")
+
+            from backend.rag.vector_store import ChromaStore
+            from backend.rag.hybrid_retriever import HybridRetriever
+            from backend.rag.reranker import CrossEncoderReranker
+
+            self.store = ChromaStore()
+            self.retriever = HybridRetriever(self.store)
+            self.reranker = CrossEncoderReranker()
+
+            self.azure_retriever = None
+
     def ingest_directory(self, directory=None):
-        # Step 1: Load documents
-        docs = load_documents(
-            settings.path(
-                directory or settings.DOCUMENT_DIRECTORY
+
+        if self.azure_retriever is not None:
+            raise RuntimeError(
+                "Azure mode uses Blob Storage and Azure AI Search "
+                "for document ingestion. Local ingestion is disabled."
             )
+
+        from backend.rag.document_loader import load_documents
+        from backend.rag.chunker import chunk_documents
+        from backend.rag.embeddings import embed_texts
+
+        docs = load_documents(
+            settings.path(directory or settings.DOCUMENT_DIRECTORY)
         )
 
-        # Step 2: Split documents into chunks
         chunks = chunk_documents(
             docs,
             settings.CHUNK_SIZE,
@@ -41,12 +65,10 @@ class RAGPipeline:
                 "removed_old_chunks": 0
             }
 
-        # Step 3: Generate embeddings
         vectors = embed_texts(
             [chunk["text"] for chunk in chunks]
         )
 
-        # Step 4: Identify documents and chunk IDs
         document_ids = list({
             doc["document_id"] for doc in docs
         })
@@ -55,19 +77,13 @@ class RAGPipeline:
             chunk["id"] for chunk in chunks
         ]
 
-        # Step 5: Insert or update new chunks
-        count = self.store.upsert(
-            chunks,
-            vectors
-        )
+        count = self.store.upsert(chunks, vectors)
 
-        # Step 6: Remove obsolete chunks
         removed = self.store.delete_obsolete_chunks(
             document_ids,
             new_chunk_ids
         )
 
-        # Step 7: Rebuild BM25 index
         self.retriever.rebuild_bm25(chunks)
         self.bm25_ready = True
 
@@ -78,13 +94,34 @@ class RAGPipeline:
         }
 
     def retrieve(self, question, top_k=None):
+
+        if self.azure_retriever is not None:
+
+            print("Using Azure AI Search Hybrid Retrieval...")
+
+            response = self.azure_retriever.hybrid_search(
+                question,
+                top_k=settings.VECTOR_CANDIDATES
+            )
+
+            candidates = response["results"]
+
+            # Azure Search already performs hybrid retrieval.
+            # Do not load the local Cross-Encoder here.
+            return candidates[:(top_k or settings.TOP_K)]
+
+        print("Using Local ChromaDB + BM25 Retrieval...")
+
         if not self.store.count():
             raise RuntimeError(
                 "Knowledge base is empty. Run ingestion first."
             )
 
-        # Build BM25 index if not already ready
         if not self.bm25_ready:
+
+            from backend.rag.document_loader import load_documents
+            from backend.rag.chunker import chunk_documents
+
             docs = load_documents(
                 settings.path(settings.DOCUMENT_DIRECTORY)
             )
@@ -98,17 +135,14 @@ class RAGPipeline:
             self.retriever.rebuild_bm25(chunks)
             self.bm25_ready = True
 
-        # Stage 1: Hybrid retrieval
         candidates = self.retriever.retrieve(
             question,
             top_k=settings.VECTOR_CANDIDATES
         )
 
-        # Stage 2: Cross-Encoder reranking
-        final_results = self.reranker.rerank(
+        return self.reranker.rerank(
             query=question,
             documents=candidates,
             top_k=top_k or settings.TOP_K
         )
 
-        return final_results
