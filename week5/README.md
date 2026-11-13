@@ -8,6 +8,8 @@
 
 **Reading:** [RAG with FAISS and Chroma](../docs/week5/rag-faiss-chroma.html) explains every step of the notebook.
 
+**Project:** each person builds a RAG application on AWS (S3, OpenSearch, FastAPI, Docker, ECR, ECS, Secrets Manager), due and presented on **Tuesday 17 November**. See **[RAG_PROJECTS.md](RAG_PROJECTS.md)**.
+
 ## Setup
 
 ```bash

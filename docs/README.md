@@ -99,7 +99,7 @@ Interactive reference pages (HTML) and notebooks for the **Data Science & Agenti
 | ✅ | Comparing prompting strategies: field-level accuracy on a labelled set | [Prompt engineering](week4/prompt-engineering.html) · [Prompt engineering notebook](../week4/02_prompt_engineering_simple.ipynb) |
 
 ## Week 5 · Embeddings & Retrieval-Augmented Generation
-*Mon 2 – Fri 6 Nov* · setup: [week5/README.md](../week5/README.md)
+*Mon 2 – Fri 6 Nov* · setup: [week5/README.md](../week5/README.md) · project: [week5/RAG_PROJECTS.md](../week5/RAG_PROJECTS.md)
 
 | | Topic | Where |
 |---|---|---|
