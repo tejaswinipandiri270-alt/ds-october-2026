@@ -131,22 +131,18 @@ def test_chat_success(monkeypatch):
     assert len(data["sources"]) == 1
     assert data["sources"][0]["filename"] == "Password Reset Guide"
 
-def test_missing_api_key_rejected():
-    from backend.api import routes
+def test_missing_api_key_rejected(monkeypatch):
+    from backend.config import settings
 
-    # Restore the real authentication dependency.
+    monkeypatch.setattr(settings, "API_KEY", "ci-test-key")
     app.dependency_overrides.pop(require_api_key, None)
 
-    response = client.post(
-        "/retrieve",
-        json={
-            "question": "How can I reset my password?"
-        }
-    )
-
-    assert response.status_code == 401
-    assert response.json()["detail"] == "Invalid or missing API key"
-
-    # Restore the test override for other tests.
-    app.dependency_overrides[require_api_key] = lambda: True
-
+    try:
+        response = client.post(
+            "/retrieve",
+            json={"question": "How can I reset my password?"}
+        )
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Invalid or missing API key"
+    finally:
+        app.dependency_overrides[require_api_key] = lambda: True
