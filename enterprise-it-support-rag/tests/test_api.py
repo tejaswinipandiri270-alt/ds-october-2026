@@ -146,3 +146,26 @@ def test_missing_api_key_rejected(monkeypatch):
         assert response.json()["detail"] == "Invalid or missing API key"
     finally:
         app.dependency_overrides[require_api_key] = lambda: True
+def test_health_live():
+    response = client.get("/health/live")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "alive"
+
+
+def test_health_ready(monkeypatch):
+    from backend.api import routes
+
+    class FakePipeline:
+        pass
+
+    monkeypatch.setattr(
+        routes,
+        "pipeline",
+        lambda: FakePipeline()
+    )
+
+    response = client.get("/health/ready")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ready"

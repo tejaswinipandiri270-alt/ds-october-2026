@@ -65,6 +65,33 @@ class FeedbackRequest(BaseModel):
     answer: str = Field(min_length=1, max_length=8000)
     rating: str = Field(pattern="^(helpful|not_helpful)$")
     comment: str = Field(default="", max_length=2000)
+@router.get("/health/live")
+def health_live():
+    return {
+        "status": "alive"
+    }
+
+
+@router.get("/health/ready")
+def health_ready():
+    try:
+        pipeline()
+
+        return {
+            "status": "ready",
+            "llm_provider": settings.LLM_PROVIDER,
+            "retrieval_provider": (
+                "azure_ai_search"
+                if settings.AZURE_SEARCH_ENABLED
+                else "local_chromadb"
+            )
+        }
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Application is not ready"
+        ) from exc
 
 
 # --------------------------------------------------
