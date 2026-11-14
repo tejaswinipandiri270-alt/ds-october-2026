@@ -1,0 +1,75 @@
+﻿name: NEXUS IT CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'enterprise-it-support-rag/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'enterprise-it-support-rag/**'
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build NEXUS Docker image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t nexus-it:${{ github.sha }} \
+            ./enterprise-it-support-rag
+
+  deploy:
+    name: Deploy NEXUS to Azure Container Apps
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AZURE_DEPLOY_ENABLED == 'true'
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Login to Azure using GitHub OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to Azure Container Registry
+        run: az acr login --name "${{ vars.ACR_NAME }}"
+
+      - name: Build and push NEXUS image
+        run: |
+          IMAGE="${{ vars.ACR_NAME }}.azurecr.io/nexus-it:${{ github.sha }}"
+          docker build -t "$IMAGE" ./enterprise-it-support-rag
+          docker push "$IMAGE"
+
+      - name: Deploy NEXUS API
+        run: |
+          az containerapp update \
+            --name "${{ vars.NEXUS_API_APP }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --image "${{ vars.ACR_NAME }}.azurecr.io/nexus-it:${{ github.sha }}"
+
+      - name: Deploy NEXUS Streamlit UI
+        run: |
+          az containerapp update \
+            --name "${{ vars.NEXUS_UI_APP }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --image "${{ vars.ACR_NAME }}.azurecr.io/nexus-it:${{ github.sha }}"

@@ -13,3 +13,7 @@ mlruns/
 *_files/
 *.html
 *.htm
+.streamlit/secrets.toml
+*.log
+.coverage
+htmlcov/
