@@ -1,67 +1,66 @@
-
-from backend.rag.azure_search_retriever import AzureSearchRetriever
-
-def main():
-    print("Connecting to Azure AI Search...")
-
-    retriever = AzureSearchRetriever()
-
-    question = "How do I troubleshoot Outlook email issues?"
-
-    print(f"\nQuestion: {question}")
-
-    response = retriever.search(question, top_k=3)
-
-    print(f"\nMatching documents: {response['count']}")
-
-    for i, document in enumerate(response["results"], start=1):
-        print(f"\nResult {i}")
-        print("Available fields:", list(document.keys()))
-        print("Score:", document.get("@search.score"))
-        print("Content:", document.get("chunk", "No chunk field found")[:500])
+﻿from backend.config import settings
+from backend.rag import azure_search_retriever
 
 
-from backend.rag.azure_search_retriever import AzureSearchRetriever
+class FakeSearchClient:
+    """Simulate Azure Search without network access."""
+
+    def __init__(self, **kwargs):
+        self.endpoint = kwargs["endpoint"]
+        self.index_name = kwargs["index_name"]
+
+    def search(self, **kwargs):
+        return [
+            {
+                "chunk_id": "chunk-1",
+                "parent_id": "document-1",
+                "chunk": "Reset your password using the IT support portal.",
+                "title": "Password Reset Guide",
+                "@search.score": 0.95,
+            }
+        ]
 
 
-def test_vector_search():
-    print("\nTesting Azure Vector Search...")
-
-    retriever = AzureSearchRetriever()
-
-    # Enter your question here
-    response = retriever.vector_search(
-        "My Outlook is not receiving emails. What should I do?",
-        top_k=3
+def setup_fake_search(monkeypatch):
+    monkeypatch.setattr(
+        settings,
+        "AZURE_SEARCH_ENDPOINT",
+        "https://test.search.windows.net",
+    )
+    monkeypatch.setattr(
+        settings,
+        "AZURE_SEARCH_API_KEY",
+        "test-api-key",
+    )
+    monkeypatch.setattr(
+        azure_search_retriever,
+        "SearchClient",
+        FakeSearchClient,
     )
 
-    print(f"\nMatching documents: {response['count']}")
 
-    for i, document in enumerate(response["results"], start=1):
-        print(f"\nResult {i}")
-        print("Title:", document.get("title"))
-        print("Score:", document.get("@search.score"))
-        print("Content:", document.get("chunk", "")[:500])
+def test_vector_search(monkeypatch):
+    setup_fake_search(monkeypatch)
+
+    retriever = azure_search_retriever.AzureSearchRetriever()
+    result = retriever.vector_search(
+        "How do I reset my password?",
+        top_k=3,
+    )
+
+    assert result["count"] == 1
+    assert result["results"][0]["title"] == "Password Reset Guide"
 
 
+def test_hybrid_search(monkeypatch):
+    setup_fake_search(monkeypatch)
 
+    retriever = azure_search_retriever.AzureSearchRetriever()
+    result = retriever.hybrid_search(
+        "How do I reset my password?",
+        top_k=3,
+    )
 
-
-def test_hybrid_search():
-    print("\nTesting Azure Hybrid Search...")
-
-    retriever = AzureSearchRetriever()
-
-    question = "My Outlook is not receiving emails. What should I do?"
-
-    response = retriever.hybrid_search(question, top_k=5)
-
-    print(f"\nMatching documents: {response['count']}")
-
-    for i, document in enumerate(response["results"], start=1):
-        print(f"\nResult {i}")
-        print("Title:", document.get("title"))
-        print("Score:", document.get("@search.score"))
-        print("Content:", document.get("chunk", "")[:500])
-if __name__ == "__main__":
-    test_hybrid_search()
+    assert result["count"] == 1
+    assert result["results"][0]["id"] == "chunk-1"
+    assert "Reset your password" in result["results"][0]["text"]
